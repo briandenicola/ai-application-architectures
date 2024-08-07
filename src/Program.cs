@@ -1,11 +1,6 @@
 ﻿using Microsoft.SemanticKernel;
 using Microsoft.Extensions.Configuration;
 
-var config  = new ConfigurationBuilder()
-    .AddJsonFile("settings.json")
-    .AddEnvironmentVariables()
-    .Build();    
-
 // task settings generates a Settings object from the settings.json file
 // settings.json
 // {
@@ -16,21 +11,10 @@ var config  = new ConfigurationBuilder()
 //   }
 // }
 
-Settings? settings = config.GetRequiredSection("OpenAI").Get<Settings>();
-
-if(settings is null)
-{
-    Console.WriteLine("Settings not found");
-    return;
-} 
-else if( string.IsNullOrEmpty(settings.modelId) || string.IsNullOrEmpty(settings.endpoint) || string.IsNullOrEmpty(settings.apiKey))
-{
-    Console.WriteLine("Settings are not complete");
-    return;
-}
+var (modelId, endpoint, apiKey) = new Settings().LoadSettings();
 
 Kernel kernel = Kernel.CreateBuilder()
-                      .AddAzureOpenAIChatCompletion(settings.modelId, settings.endpoint, settings.apiKey)
+                      .AddAzureOpenAIChatCompletion(modelId, endpoint, apiKey)
                       .Build();
 
 Console.WriteLine("Hello, I am a Jokester chatbot. I can help you with jokes. Let's start with a knock-knock joke.");
@@ -40,9 +24,27 @@ Console.WriteLine($"Prompt: {prompt}");
 var joke = await kernel.InvokePromptAsync(prompt);
 Console.WriteLine($"Reply: {joke}");
 
-public sealed class Settings
+public sealed class Settings 
 {
-    public required  string modelId { get; set; }
-    public required  string endpoint { get; set; }
-    public required  string apiKey { get; set; }
+    public (string modelId, string endpoint, string apiKey) LoadSettings()
+    {
+        var config  = new ConfigurationBuilder()
+            .AddJsonFile("settings.json")
+            .AddEnvironmentVariables()
+            .Build(); 
+
+        OpenAI? openai = config.GetRequiredSection("OpenAI").Get<OpenAI>();
+
+        if( openai is null || string.IsNullOrEmpty(openai.modelId) || string.IsNullOrEmpty(openai.endpoint) || string.IsNullOrEmpty(openai.apiKey)) {
+            throw new Exception("Settings not found or invalid");
+        }
+
+        return (openai.modelId, openai.endpoint, openai.apiKey);
+    }
+}
+public sealed class OpenAI
+{
+    public required string modelId { get; set; }
+    public required string endpoint { get; set; }
+    public required string apiKey { get; set; }
 }
