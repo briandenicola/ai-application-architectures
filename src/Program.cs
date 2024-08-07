@@ -16,8 +16,6 @@ var config  = new ConfigurationBuilder()
 //   }
 // }
 
-
-
 Settings? settings = config.GetRequiredSection("OpenAI").Get<Settings>();
 
 if(settings is null)
@@ -31,12 +29,8 @@ else if( string.IsNullOrEmpty(settings.modelId) || string.IsNullOrEmpty(settings
     return;
 }
 
-string modelId = settings.modelId;
-string endpoint = settings.endpoint;
-string apiKey = settings.apiKey;
-
 Kernel kernel = Kernel.CreateBuilder()
-                      .AddAzureOpenAIChatCompletion(modelId, endpoint, apiKey)
+                      .AddAzureOpenAIChatCompletion(settings.modelId, settings.endpoint, settings.apiKey)
                       .Build();
 
 Console.WriteLine("Hello, I am a Jokester chatbot. I can help you with jokes. Let's start with a knock-knock joke.");
