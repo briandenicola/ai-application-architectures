@@ -12,6 +12,9 @@ infrastructure/terraform.tfstate.backup
 infrastructure/variables.tfvars
 infrastructure/terraform.tfstate.d/
 
+# Settings
+src/settings.json
+
 # User-specific files
 *.rsuser
 *.suo

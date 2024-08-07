@@ -16,7 +16,8 @@ tasks:
     cmds:
     - task: init
     - task: apply 
-  
+    - task: settings
+
   init:
     desc: Initializes Terraform workspace
     cmds:
@@ -36,11 +37,31 @@ tasks:
     vars: 
       REGION: '{{default .DEFAULT_REGION .CLI_ARGS}}'
 
-  # build:
-  #   desc: Builds application code with Docker
-  #   cmds:
-  #   - docker build -t -f src/dockerfile src/
-  #   vars:
+  refresh:
+    cmds:
+    - terraform -chdir=./infrastructure refresh
+      -var "region={{.REGION}}" 
+      -var "tags={{.TITLE}}"
+      -compact-warnings
+    vars: 
+      REGION: '{{default .DEFAULT_REGION .CLI_ARGS}}'
+
+  settings:
+    cmds:
+    - jq -n --arg endpoint {{.ENDPOINT}} --arg apiKey {{.KEY}} --arg modelId {{.MODEL}} '{"OpenAI":$ARGS.named}' > src/settings.json
+    vars:
+      KEY: 
+        sh: terraform -chdir=./infrastructure output -raw OPENAI_KEY
+      ENDPOINT:
+        sh: terraform -chdir=./infrastructure output -raw OPENAI_ENDPOINT
+      MODEL:
+        sh: terraform -chdir=./infrastructure output -raw OPENAI_MODEL_ID
+
+  run:
+    desc: Builds and run the application 
+    dir: ./src
+    cmds:
+    - dotnet run
 
   down:
     desc: Destroys all Azure resources and cleans up Terraform
