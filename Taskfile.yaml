@@ -3,9 +3,7 @@ version: '3'
 dotenv: ['.env']
 
 env:
-  TITLE: REPLACE_ME!!!!
-  SKU: "Standard_D4as_v5"
-  K8S_VERSION: "1.29"
+  TITLE: openai_learnings
   DEFAULT_REGION: "westus3"
 
 tasks:
@@ -18,7 +16,6 @@ tasks:
     cmds:
     - task: init
     - task: apply 
-    #- task: creds
   
   init:
     desc: Initializes Terraform workspace
@@ -33,34 +30,17 @@ tasks:
     desc: Creates Azure infrastructure
     cmds:
     - terraform -chdir=./infrastructure apply -auto-approve
-       -var "region={{.REGION}}" 
+      -var "region={{.REGION}}" 
       -var "tags={{.TITLE}}"
-       -compact-warnings
+      -compact-warnings
     vars: 
       REGION: '{{default .DEFAULT_REGION .CLI_ARGS}}'
 
-  # creds:
-  #   desc: Gets credential file for newly created AKS cluster
+  # build:
+  #   desc: Builds application code with Docker
   #   cmds:
-  #   - az aks get-credentials -g {{.RG}} -n {{.AKS}} --overwrite-existing
-  #   - sed -i s/devicecode/azurecli/g ~/.kube/config
+  #   - docker build -t -f src/dockerfile src/
   #   vars:
-  #     RG: 
-  #       sh: terraform -chdir=./infrastructure output -raw APP_RESOURCE_GROUP
-  #     AKS: 
-  #       sh: terraform -chdir=./infrastructure output -raw AKS_CLUSTER_NAME
-
-  #build:
-  #  desc: Builds application code with Docker
-  #  cmds:
-  #  - docker build -t -f src/dockerfile src/
-  #  vars:
-
-  #deploy:
-  #  desc: Deploys application code via helm
-  #  cmds:
-  #  - helm upgrade -i {{.TITLE}} deploy/.
-  #  vars:
 
   down:
     desc: Destroys all Azure resources and cleans up Terraform
