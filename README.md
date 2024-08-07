@@ -1,11 +1,2 @@
 # Overview
-## Components 
-## Architecture
-
-# Infrastructure
-## Prerequisites
-## Deployment 
-
-# Application Deployment 
-
-# Test
+* Just a simple repository to learn OpenAI and Semantic Kernels.
