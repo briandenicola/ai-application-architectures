@@ -26,7 +26,7 @@ Console.WriteLine($"Reply: {joke}");
 
 public sealed class Settings 
 {
-    public (string modelId, string endpoint, string apiKey) LoadSettings()
+    public (string, string, string) LoadSettings()
     {
         var config  = new ConfigurationBuilder()
             .AddJsonFile("settings.json")
