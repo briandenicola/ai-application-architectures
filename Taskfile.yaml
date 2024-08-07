@@ -1,0 +1,70 @@
+version: '3'
+
+dotenv: ['.env']
+
+env:
+  TITLE: REPLACE_ME!!!!
+  SKU: "Standard_D4as_v5"
+  K8S_VERSION: "1.29"
+  DEFAULT_REGION: "westus3"
+
+tasks:
+  default: 
+    cmds: 
+    - task --list 
+  
+  up: 
+    desc: Builds Complete Environment
+    cmds:
+    - task: init
+    - task: apply 
+    #- task: creds
+  
+  init:
+    desc: Initializes Terraform workspace
+    cmds:
+    - terraform -chdir=./infrastructure workspace new {{.REGION}} || true
+    - terraform -chdir=./infrastructure workspace select {{.REGION}}
+    - terraform -chdir=./infrastructure init
+    vars: 
+      REGION: '{{default .DEFAULT_REGION .CLI_ARGS}}'
+
+  apply:
+    desc: Creates Azure infrastructure
+    cmds:
+    - terraform -chdir=./infrastructure apply -auto-approve
+       -var "region={{.REGION}}" 
+      -var "tags={{.TITLE}}"
+       -compact-warnings
+    vars: 
+      REGION: '{{default .DEFAULT_REGION .CLI_ARGS}}'
+
+  # creds:
+  #   desc: Gets credential file for newly created AKS cluster
+  #   cmds:
+  #   - az aks get-credentials -g {{.RG}} -n {{.AKS}} --overwrite-existing
+  #   - sed -i s/devicecode/azurecli/g ~/.kube/config
+  #   vars:
+  #     RG: 
+  #       sh: terraform -chdir=./infrastructure output -raw APP_RESOURCE_GROUP
+  #     AKS: 
+  #       sh: terraform -chdir=./infrastructure output -raw AKS_CLUSTER_NAME
+
+  #build:
+  #  desc: Builds application code with Docker
+  #  cmds:
+  #  - docker build -t -f src/dockerfile src/
+  #  vars:
+
+  #deploy:
+  #  desc: Deploys application code via helm
+  #  cmds:
+  #  - helm upgrade -i {{.TITLE}} deploy/.
+  #  vars:
+
+  down:
+    desc: Destroys all Azure resources and cleans up Terraform
+    cmds:
+    - az group list --tag Application="{{.TITLE}}" --query "[].name" -o tsv | xargs -ot -n 1 az group delete -y --no-wait -n || true
+    - cd infrastructure ;
+      rm -rf terraform.tfstate.d .terraform.lock.hcl .terraform terraform.tfstate terraform.tfstate.backup .terraform.tfstate.lock.info || true
