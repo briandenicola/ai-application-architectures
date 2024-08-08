@@ -48,6 +48,7 @@ tasks:
 
   settings:
     cmds:
+    - task: refresh
     - jq -n --arg endpoint {{.ENDPOINT}} --arg apiKey {{.KEY}} --arg modelId {{.MODEL}} '{"OpenAI":$ARGS.named}' > src/settings.json
     vars:
       KEY: 
