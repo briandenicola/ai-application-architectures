@@ -1,0 +1,7 @@
+{
+  "OpenAI": {
+    "endpoint": "https://westus3.api.cognitive.microsoft.com/",
+    "apiKey": "3dcf6e60b1f34ec9989adadeee3b9be4",
+    "modelId": "gpt-4o"
+  }
+}

@@ -57,9 +57,9 @@ tasks:
       MODEL:
         sh: terraform -chdir=./infrastructure output -raw OPENAI_MODEL_ID
 
-  run:
+  jokester:
     desc: Builds and run the application 
-    dir: ./src
+    dir: ./src/jokester
     cmds:
     - dotnet run
 
