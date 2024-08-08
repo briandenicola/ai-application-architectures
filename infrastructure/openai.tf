@@ -21,3 +21,17 @@ resource "azurerm_cognitive_deployment" "gpt" {
     type = "Standard"
   }
 }
+
+resource "azurerm_cognitive_deployment" "gpt4_turbo" {
+  name                 = "gpt-4"
+  cognitive_account_id = azurerm_cognitive_account.this.id
+  model {
+    format  = "OpenAI"
+    name    = "gpt-4"
+    version = "turbo-2024-04-09"
+  }
+
+  scale {
+    type = "Standard"
+  }
+}
