@@ -4,7 +4,7 @@ dotenv: ['.env']
 
 env:
   TITLE: openai_learnings
-  DEFAULT_REGION: "westus3"
+  DEFAULT_REGION: "westus"
 
 tasks:
   default: 
@@ -49,18 +49,22 @@ tasks:
   settings:
     cmds:
     - task: refresh
-    - jq -n --arg endpoint {{.ENDPOINT}} --arg apiKey {{.KEY}} --arg modelId {{.MODEL}} '{"OpenAI":$ARGS.named}' > src/settings.json
+    - jq -n --arg endpoint {{.ENDPOINT}} --arg apiKey {{.KEY}} '{"OpenAI":$ARGS.named}' > src/settings.json
     vars:
       KEY: 
         sh: terraform -chdir=./infrastructure output -raw OPENAI_KEY
       ENDPOINT:
         sh: terraform -chdir=./infrastructure output -raw OPENAI_ENDPOINT
-      MODEL:
-        sh: terraform -chdir=./infrastructure output -raw OPENAI_MODEL_ID
 
   jokester:
     desc: Builds and run the application 
     dir: ./src/jokester
+    cmds:
+    - dotnet run
+
+  coin:
+    desc: Builds and run the application 
+    dir: ./src/ric_analyzer
     cmds:
     - dotnet run
 

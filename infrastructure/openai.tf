@@ -7,7 +7,6 @@ resource "azurerm_cognitive_account" "this" {
   sku_name = "S0"
 }
 
-
 resource "azurerm_cognitive_deployment" "gpt" {
   name                 = "gpt-4o"
   cognitive_account_id = azurerm_cognitive_account.this.id
@@ -23,7 +22,7 @@ resource "azurerm_cognitive_deployment" "gpt" {
 }
 
 resource "azurerm_cognitive_deployment" "gpt4_turbo" {
-  name                 = "gpt-4"
+  name                 = "gpt-4-turbo"
   cognitive_account_id = azurerm_cognitive_account.this.id
   model {
     format  = "OpenAI"
