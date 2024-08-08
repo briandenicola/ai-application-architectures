@@ -27,7 +27,7 @@ resource "azurerm_cognitive_deployment" "gpt4_turbo" {
   model {
     format  = "OpenAI"
     name    = "gpt-4"
-    version = "turbo-2024-04-09"
+    version = "vision-preview"
   }
 
   scale {
