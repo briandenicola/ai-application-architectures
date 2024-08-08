@@ -1,6 +1,7 @@
 ﻿using Microsoft.SemanticKernel;
 
-var (modelId, endpoint, apiKey) = new Settings().LoadSettings();
+var modelId = "gpt-4o";
+var (endpoint, apiKey) = new Settings().LoadSettings();
 
 Kernel kernel = Kernel.CreateBuilder()
                       .AddAzureOpenAIChatCompletion(modelId, endpoint, apiKey)
@@ -20,7 +21,6 @@ Console.WriteLine($"Reply: {completion}");
 // {
 //   "OpenAI": {
 //     "apiKey": "{{YOUR_API_KEY}}",
-//     "modelId": "gpt-4o",
 //     "endpoint": "https://westus3.api.cognitive.microsoft.com/"
 //   }
 // }
