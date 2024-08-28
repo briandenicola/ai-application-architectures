@@ -23,7 +23,6 @@ var  requestSettings = new OpenAIPromptExecutionSettings()
     MaxTokens = 4096,    
 };
 
-
 var content = await new HttpClient().GetStringAsync(livy);
 var collectionItems= new ChatMessageContentItemCollection
 {
