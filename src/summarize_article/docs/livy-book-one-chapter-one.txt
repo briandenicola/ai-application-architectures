@@ -1,0 +1,530 @@
+﻿The Project Gutenberg eBook of The History of Rome, Books 01 to 08
+
+THE HISTORY OF ROME. BOOK ONE
+BY 
+TITUS LIVIUS.
+
+THE HISTORY OF ROME.
+BOOK I.
+
+
+     _The coming of Æneas into Italy, and his achievements there; the
+     reign of Ascanius in Alba, and of the other Sylvian kings. Romulus
+     and Remus born. Amulius killed. Romulus builds Rome; forms a
+     senate; makes war upon the Sabines; presents the_ opima spolia _to
+     Jupiter Feretrius; divides the people into_ curiæ; _his victories;
+     is deified. Numa institutes the rites of religious worship; builds
+     a temple to Janus; and having made peace with all his neighbours,
+     closes it for the first time; enjoys a peaceful reign, and is
+     succeeded by Tullus Hostilius. War with the Albans; combat of the
+     Horatii and Curiatii. Alba demolished, and the Albans made citizens
+     of Rome. War declared against the Sabines; Tullus killed by
+     lightning. Ancus Marcius renews the religious institutions of Numa;
+     conquers the Latins, confers on them the right of citizenship, and
+     assigns them the Aventine hill to dwell on; adds the hill Janiculum
+     to the city; enlarges the bounds of the empire. In his reign Lucumo
+     comes to Rome; assumes the name of Tarquinius; and, after the death
+     of Ancus, is raised to the throne. He increases the senate, by
+     adding to it a hundred new senators; defeats the Latins and
+     Sabines; augments the centuries of knights; builds a wall round the
+     city; makes the common sewers; is slain by the sons of Ancus after
+     a reign of thirty-eight years; and is succeeded by Servius Tullius.
+     He institutes the census; closes the lustrum, in which eighty
+     thousand citizens are said to have been enrolled; divides the
+     people into classes and centuries; enlarges the Pomoerium, and
+     adds the Quirinal, Viminal, and Esquiline hills to the city; after
+     a reign of forty years, is murdered by L. Tarquin, afterwards
+     surnamed Superbus. He usurps the crown. Tarquin makes war on the
+     Volsci, and, with the plunder taken from them, builds a temple to
+     Jupiter Capitolinus. By a stratagem of his son, Sextus Tarquin, he
+     reduces the city of Gabii; after a reign of twenty-five years is
+     dethroned and banished, in consequence of the forcible violation of
+     the person of Lucretia by his son Sextus. L. Junius Brutus and L.
+     Tarquinius Collatinus first created consuls._
+
+
+
+
+PREFACE.
+Whether in tracing the history of the Roman people, from the foundation
+of the city, I shall employ myself to a useful purpose,[1] I am neither
+very certain, nor, if I were, dare I say: inasmuch as I observe, that it
+is both an old and hackneyed practice,[2] later authors always supposing
+that they will either adduce something more authentic in the facts, or,
+that they will excel the less polished ancients in their style of
+writing. Be that as it may, it will, at all events, be a satisfaction to
+me, that I too have contributed my share[3] to perpetuate the
+achievements of a people, the lords of the world; and if, amidst so
+great a number of historians,[4] my reputation should remain in
+obscurity, I may console myself with the celebrity and lustre of those
+who shall stand in the way of my fame. Moreover, the subject is both of
+immense labour, as being one which must be traced back for more than
+seven hundred years, and which, having set out from small beginnings,
+has increased to such a degree that it is now distressed by its own
+magnitude. And, to most readers, I doubt not but that the first origin
+and the events immediately succeeding, will afford but little pleasure,
+while they will be hastening to these later times,[5] in which the
+strength of this overgrown people has for a long period been working its
+own destruction. I, on the contrary, shall seek this, as a reward of my
+labour, viz. to withdraw myself from the view of the calamities, which
+our age has witnessed for so many years, so long as I am reviewing with
+my whole attention these ancient times, being free from every care[6]
+that may distract a writer's mind, though it cannot warp it from the
+truth. The traditions which have come down to us of what happened before
+the building of the city, or before its building was contemplated, as
+being suitable rather to the fictions of poetry than to the genuine
+records of history, I have no intention either to affirm or refute. This
+indulgence is conceded to antiquity, that by blending things human with
+divine, it may make the origin of cities appear more venerable: and if
+any people might be allowed to consecrate their origin, and to ascribe
+it to the gods as its authors, such is the renown of the Roman people in
+war, that when they represent Mars, in particular, as their own parent
+and that of their founder, the nations of the world may submit to this
+as patiently as they submit to their sovereignty.--But in whatever way
+these and such like matters shall be attended to, or judged of, I shall
+not deem of great importance. I would have every man apply his mind
+seriously to consider these points, viz. what their life and what their
+manners were; through what men and by what measures, both in peace and
+in war, their empire was acquired[7] and extended; then, as discipline
+gradually declined, let him follow in his thoughts their morals, at
+first as slightly giving way, anon how they sunk more and more, then
+began to fall headlong, until he reaches the present times, when we can
+neither endure our vices, nor their remedies. This it is which is
+particularly salutary and profitable in the study of history, that you
+behold instances of every variety of conduct displayed on a conspicuous
+monument; that from thence you may select for yourself and for your
+country that which you may imitate; thence _note_ what is shameful in
+the undertaking, and shameful in the result, which you may avoid. But
+either a fond partiality for the task I have undertaken deceives me, or
+there never was any state either greater, or more moral, or richer in
+good examples, nor one into which luxury and avarice made their entrance
+so late, and where poverty and frugality were so much and so long
+honoured; so that the less wealth there was, the less desire was there.
+Of late, riches have introduced avarice, and excessive pleasures a
+longing for them, amidst luxury and a passion for ruining ourselves and
+destroying every thing else. But let complaints, which will not be
+agreeable even then, when perhaps they will be also necessary, be kept
+aloof at least from the first stage of commencing so great a work. We
+should rather, if it was usual with us (historians) as it is with poets,
+begin with good omens, vows and prayers to the gods and goddesses to
+vouchsafe good success to our efforts in so arduous an undertaking.
+
+CHAPTER I.
+Now first of all it is sufficiently established that, Troy having been
+taken, the utmost severity was shown to all the other Trojans; but that
+towards two, Æneas and Antenor, the Greeks forbore all the rights of
+war, both in accordance with an ancient tie of hospitality, and because
+they had ever been the advisers of peace, and of the restoration of
+Helen--then that Antenor after various vicissitudes came into the
+innermost bay of the Adriatic Sea, with a body of the Heneti, who having
+been driven from Paphlagonia in consequence of a civil commotion, were
+in quest both of a settlement and a leader, their king Pylæmenes having
+been lost at Troy; and that the Heneti and Trojans, having expelled the
+Euganei, who dwelt between the sea and the Alps, took possession of the
+country; and the place where they first landed is called Troy; from
+whence also the name of Trojan is given to the canton; but the nation in
+general is called Veneti: that Æneas was driven from home by a similar
+calamity, but the fates leading him to the founding of a greater empire,
+he came first to Macedonia: that he sailed from thence to Sicily in
+quest of a settlement: that from Sicily he made for the Laurentine
+territory; this place also has the name of Troy. When the Trojans,
+having disembarked there, were driving plunder from the lands,--as being
+persons to whom, after their almost immeasurable wandering, nothing was
+left but their arms and ships,--Latinus the king, and the Aborigines,
+who then occupied those places, assembled in arms from the city and
+country to repel the violence of the new-comers. On this point the
+tradition is two-fold: some say, that Latinus, after being overcome in
+battle, made first a peace, and then an alliance with Æneas: others,
+that when the armies were drawn out in battle-array, before the signals
+were sounded, Latinus advanced to the front of the troops and invited
+the leader of the adventurers to a conference. That he then inquired who
+they were, whence (they had come), or by what casualty they had left
+their home, and in quest of what they had landed on the Laurentine
+territory: after he heard that the host were Trojans, their chief Æneas,
+the son of Anchises and Venus, and that, driven from their own country
+and their homes, which had been destroyed by fire, they were seeking a
+settlement and a place for building a town, struck with admiration of
+the noble origin of the nation and of the hero, and their spirit, alike
+prepared for peace or war, he confirmed the assurance of future
+friendship by giving his right hand: that upon this a compact was struck
+between the chiefs, and mutual greetings passed between the armies: that
+Æneas was hospitably entertained by Latinus: that Latinus, in the
+presence of his household gods, added a family league to the public one,
+by giving Æneas his daughter in marriage. This event confirms the
+Trojans in the hope of at length terminating their wanderings by a fixed
+and permanent settlement. They build a town. Æneas calls it Lavinium,
+after the name of his wife. In a short time, too, a son was the issue of
+the new marriage, to whom his parents gave the name of Ascanius.
+
+2. The Aborigines and Trojans were soon after attacked together in war.
+Turnus, king of the Rutulians, to whom Lavinia had been affianced before
+the coming of Æneas, enraged that a stranger had been preferred to
+himself, made war on Æneas and Latinus together. Neither side came off
+from that contest with cause for rejoicing. The Rutulians were
+vanquished; the victorious Aborigines and Trojans lost their leader
+Latinus. Upon this Turnus and the Rutulians, diffident of their
+strength, have recourse to the flourishing state of the Etruscans, and
+their king Mezentius; who holding his court at Coere, at that time an
+opulent town, being by no means pleased, even from the commencement, at
+the founding of the new city, and then considering that the Trojan power
+was increasing much more than was altogether consistent with the safety
+of the neighbouring states, without reluctance joined his forces in
+alliance with the Rutulians. Æneas, in order to conciliate the minds of
+the Aborigines to meet the terror of so serious a war, called both
+nations Latins, so that they might all be not only under the same laws,
+but also the same name. Nor after that did the Aborigines yield to the
+Trojans in zeal and fidelity towards their king Æneas; relying therefore
+on this disposition of the two nations, who were now daily coalescing
+more and more, although Etruria was so powerful, that it filled with the
+fame of its prowess not only the land, but the sea also, through the
+whole length of Italy, from the Alps to the Sicilian Strait, though he
+might have repelled the war by means of fortifications, yet he led out
+his forces to the field. Upon this a battle ensued successful to the
+Latins, the last also of the mortal acts of Æneas. He was buried, by
+whatever name human and divine laws require him to be called,[8] on the
+banks of the river Numicius. They call him Jupiter Indiges.
+
+3. Ascanius, the son of Æneas, was not yet old enough to take the
+government upon him; that government, however, remained secure for him
+till the age of maturity. In the interim, the Latin state and the
+kingdom of his grandfather and father was secured for the boy under the
+regency of his mother (such capacity was there in Lavinia). I have some
+doubts (for who can state as certain a matter of such antiquity) whether
+this was the Ascanius, or one older than he, born of Creusa before the
+fall of Troy, and the companion of his father in his flight from thence,
+the same whom, being called Iulus, the Julian family call the author of
+their name. This Ascanius, wheresoever and of whatever mother born, (it
+is at least certain that he was the son of Æneas,) Lavinium being
+overstocked with inhabitants, left that flourishing and, considering
+these times, wealthy city to his mother or step-mother, and built for
+himself a new one at the foot of Mount Alba, which, being extended on
+the ridge of a hill, was, from its situation, called Longa Alba. Between
+the founding of Lavinium and the transplanting this colony to Longa
+Alba, about thirty years intervened. Yet its power had increased to such
+a degree, especially after the defeat of the Etrurians, that not even
+upon the death of Æneas, nor after that, during the regency of Lavinia,
+and the first essays of the young prince's reign, did Mezentius, the
+Etrurians, or any other of its neighbours dare to take up arms against
+it. A peace had been concluded between the two nations on these terms,
+that the river Albula, now called Tiber, should be the common boundary
+between the Etrurians and Latins. After him Sylvius, the son of
+Ascanius, born by some accident in a wood, ascends the throne. He was
+the father of Æneas Sylvius, who afterwards begot Latinus Sylvius. By
+him several colonies, called the ancient Latins, were transplanted. From
+this time, all the princes, who reigned at Alba, had the surname of
+Sylvius. From Latinus sprung Alba; from Alba, Atys; from Atys, Capys;
+from Capys, Capetus; from Capetus, Tiberinus, who, being drowned in
+crossing the river Albula, gave it a name famous with posterity. Then
+Agrippa, the son of Tiberinus; after Agrippa, Romulus Silvius ascends
+the throne, in succession to his father. The latter, having been killed
+by a thunderbolt, left the kingdom to Aventinus, who being buried on
+that hill, which is now part of the city of Rome, gave his name to it.
+After him reigns Proca; he begets Numitor and Amulius. To Numitor, his
+eldest son, he bequeaths the ancient kingdom of the Sylvian family. But
+force prevailed more than the father's will or the respect due to
+seniority: for Amulius, having expelled his brother, seizes the kingdom;
+he adds crime to crime, murders his brother's male issue; and under
+pretence of doing his brother's daughter, Rhea Sylvia, honour, having
+made her a vestal virgin, by obliging her to perpetual virginity he
+deprives her of all hopes of issue.
+
+4. But, in my opinion, the origin of so great a city, and the
+establishment of an empire next in power to that of the gods, was due to
+the Fates. The vestal Rhea, being deflowered by force, when she had
+brought forth twins, declares Mars to be the father of her illegitimate
+offspring, either because she believed it to be so, or because a god was
+a more creditable author of her offence. But neither gods nor men
+protect her or her children from the king's cruelty: the priestess is
+bound and thrown into prison; the children he commands to be thrown into
+the current of the river. By some interposition of providence,[9] the
+Tiber having overflowed its banks in stagnant pools, did not admit of
+any access to the regular bed of the river; and the bearers supposed
+that the infants could be drowned in water however still; thus, as if
+they had effectually executed the king's orders, they expose the boys in
+the nearest land-flood, where now stands the ficus Ruminalis (they say
+that it was called Romularis). The country thereabout was then a vast
+wilderness. The tradition is, that when the water, subsiding, had left
+the floating trough, in which the children had been exposed, on dry
+ground, a thirsty she-wolf, coming from the neighbouring mountains,
+directed her course to the cries of the infants, and that she held down
+her dugs to them with so much gentleness, that the keeper of the king's
+flock found her licking the boys with her tongue. It is said his name
+was Faustulus; and that they were carried by him to his homestead to be
+nursed by his wife Laurentia. Some are of opinion that she was called
+Lupa among the shepherds, from her being a common prostitute, and that
+this gave rise to the surprising story. The children thus born and thus
+brought up, when arrived at the years of manhood, did not loiter away
+their time in tending the folds or following the flocks, but roamed and
+hunted in the forests. Having by this exercise improved their strength
+and courage, they not only encountered wild beasts, but even attacked
+robbers laden with plunder, and afterwards divided the spoil among the
+shepherds. And in company with these, the number of their young
+associates daily increasing, they carried on their business and their
+sports.
+
+5. They say, that the festival of the lupercal, as now celebrated, was
+even at that time solemnized on the Palatine hill, which, from
+Palanteum, a city of Arcadia, was first called Palatium, and afterwards
+Mount Palatine. There they say that Evander, who belonged to the tribe
+of Arcadians,[10] that for many years before had possessed that country,
+appointed the observance of a feast, introduced from Arcadia, in such
+manner, that young men ran about naked in sport and wantonness, doing
+honour to Pan Lycæus, whom the Romans afterwards called Inuus. That the
+robbers, through rage at the loss of their booty, having lain in wait
+for them whilst intent on this sport, as the festival was now well
+known, whilst Romulus vigorously defended himself, took Remus prisoner;
+that they delivered him up, when taken, to king Amulius, accusing him
+with the utmost effrontery. They principally alleged it as a charge
+against them, that they had made incursions upon Numitor's lands, and
+plundered them in a hostile manner, having assembled a band of young men
+for the purpose. Upon this Remus was delivered to Numitor to be
+punished. Now, from the very first, Faustulus had entertained hopes that
+the boys whom he was bringing up were of the blood royal; for he both
+knew that the children had been exposed by the king's orders, and that
+the time at which he had taken them up agreed exactly with that period:
+but he had been unwilling that the matter, as not being yet ripe for
+discovery, should be disclosed, till either a fit opportunity or
+necessity should arise. Necessity came first; accordingly, compelled by
+fear, he discovers the whole affair to Romulus. By accident also, whilst
+he had Remus in custody, and had heard that the brothers were twins, on
+comparing their age, and _observing_ their turn of mind entirely free
+from servility, the recollection of his grand-children struck Numitor;
+and on making inquiries[11] he arrived at the same conclusion, so that
+he was well nigh recognising Remus. Thus a plot is concerted for the
+king on all sides. Romulus, not accompanied by a body of young men, (for
+he was unequal to open force,) but having commanded the shepherds to
+come to the palace by different roads at a fixed time, forces his way to
+the king; and Remus, with another party from Numitor's house, assists
+his brother, and so they kill the king.
+
+6. Numitor, at the beginning of the fray, having given out that enemies
+had invaded the city, and assaulted the palace, after he had drawn off
+the Alban youth to secure the citadel with a garrison and arms, when he
+saw the young men, after they had killed the king, advancing to
+congratulate him, immediately called an assembly of the people, and
+represented to them the unnatural behaviour of his brother towards him,
+the extraction of his grand-children, the manner of their birth and
+education, and how they came to be discovered; then he informed them of
+the king's death, and that he was killed by his orders. When the young
+princes, coming up with their band through the middle of the assembly,
+saluted their grandfather king, an approving shout, following from all
+the people present, ratified to him both that title and the sovereignty.
+Thus the government of Alba being committed to Numitor, a desire seized
+Romulus and Remus to build a city on the spot where they had been
+exposed and brought up. And there was an overflowing population of
+Albans and of Latins. The shepherds too had come into that design, and
+all these readily inspired hopes, that Alba and Lavinium would be but
+petty places in comparison with the city which they intended to build.
+But ambition of the sovereignty, the bane of their grandfather,
+interrupted these designs, and thence arose a shameful quarrel from a
+beginning sufficiently amicable. For as they were twins, and the respect
+due to seniority could not determine the point, they agreed to leave to
+the tutelary gods of the place to choose, by augury, which should give a
+name to the new city, which govern it when built.
+
+7. Romulus chose the Palatine and Remus the Aventine hill as their
+stands to make their observations. It is said, that to Remus an omen
+came first, six vultures; and now, the omen having been declared, when
+double the number presented itself to Romulus, his own party saluted
+each king; the former claimed the kingdom on the ground of priority of
+time, the latter on account of the number of birds. Upon this, having
+met in an altercation, from the contest of angry feelings they turn to
+bloodshed; there Remus fell from a blow received in the crowd. A more
+common account is, that Remus, in derision of his brother, leaped over
+his new-built wall, and was, for that reason, slain by Romulus in a
+passion; who, after sharply chiding him, added words to this effect: "So
+shall every one fare, who shall dare to leap over my
+fortifications."[12] Thus Romulus got the sovereignty to himself; the
+city, when built, was called after the name of its founder. His first
+work was to fortify the Palatine hill where he had been educated. To the
+other gods he offers sacrifices according to the Alban rite; to
+Hercules, according to the Grecian rite, as they had been instituted by
+Evander. There is a tradition, that Hercules, having killed Geryon,
+drove his oxen, which were extremely beautiful, into those places; and
+that, after swimming over the Tiber, and driving the cattle before him,
+being fatigued with travelling, he laid himself down on the banks of the
+river, in a grassy place, to refresh them with rest and rich pasture.
+When sleep had overpowered him, satiated with food and wine, a shepherd
+of the place, named Cacus, presuming on his strength, and charmed with
+the beauty of the oxen, wished to purloin that booty, but because, if he
+had driven them forward into the cave, their footsteps would have guided
+the search of their owner thither, he therefore drew the most beautiful
+of them, one by one, by the tails, backwards into a cave. Hercules,
+awaking at day-break, when he had surveyed his herd, and observed that
+some of them were missing, goes directly to the nearest cave, to see if
+by chance their footsteps would lead him thither. But when he observed
+that they were all turned from it, and directed him no other way,
+confounded, and not knowing what to do, he began to drive his cattle
+out of that unlucky place. Upon this, some of the cows, as they usually
+do, lowed on missing those that were left; and the lowings of those that
+were confined being returned from the cave, made Hercules turn that way.
+And when Cacus attempted to prevent him by force, as he was proceeding
+to the cave, being struck with a club, he was slain, vainly imploring
+the assistance of the shepherds. At that time Evander, who had fled from
+the Peloponnesus, ruled this country more by his credit and reputation
+than absolute sway. He was a person highly revered for his wondrous
+knowledge of letters,[13] a discovery that was entirely new and
+surprising to men ignorant of every art; but more highly respected on
+account of the supposed divinity of his mother Carmenta, whom these
+nations had admired as a prophetess, before the coming of the Sibyl into
+Italy. This prince, alarmed by the concourse of the shepherds hastily
+crowding round the stranger, whom they charged with open murder, after
+he heard the act and the cause of the act, observing the person and mien
+of the hero to be larger, and his gait more majestic, than human, asked
+who he was? As soon as he was informed of his name, his father, and his
+native country, he said, "Hail! Hercules! son of Jupiter, my mother, a
+truth-telling interpreter of the gods, has revealed to me, that thou
+shalt increase the number of the celestials; and that to thee an altar
+shall be dedicated here, which some ages hence the most powerful people
+on earth shall call Ara Maxima, and honour according to thy own
+institution." Hercules having given him his right hand, said, "That he
+accepted the omen, and would fulfil the predictions of the fates, by
+building and consecrating an altar." There for the first time a
+sacrifice was offered to Hercules of a chosen heifer, taken from the
+herd, the Potitii and Pinarii, who were then the most distinguished
+families that inhabited these parts, having been invited to the service
+and the entertainment. It so happened that the Potitii were present in
+due time, and the entrails were set before them; when they were eaten
+up, the Pinarii came to the remainder of the feast. From this time it
+was ordained, that while the Pinarian family subsisted, none of them
+should eat of the entrails of the solemn sacrifices. The Potitii, being
+instructed by Evander, discharged this sacred function as priests for
+many ages, until the office, solemnly appropriated to their family,
+being delegated to public slaves, their whole race became extinct. This
+was the only foreign religious institution which Romulus adopted, being
+even then an abettor of immortality attained by merit, to which his own
+destinies were conducting him.
+
+8. The duties of religion having been duly performed, and the multitude
+summoned to a meeting, as they could be incorporated into one people by
+no other means than fixed rules, he gave them a code of laws, and
+judging that these would be best respected by this rude class of men, if
+he made himself dignified by the insignia of authority, he assumed a
+more majestic appearance both in his other appointments, and especially
+by taking twelve lictors to attend him. Some think that he chose this
+number of officers from that of the birds, which in the augury had
+portended the kingdom to him. I do not object to be of the opinion of
+those who will have it that the apparitors (in general), and this
+particular class of them,[14] and even their number, was taken from
+their neighbours the Etrurians, from whom were borrowed the curule
+chair, and the gown edged with purple; and that the Etrurians adopted
+that number, because their king being elected in common from twelve
+states, each state assigned him one lictor. Meanwhile the city increased
+by their taking in various lots of ground for buildings, whilst they
+built rather with a view to future numbers, than for the population[15]
+which they then had. Then, lest the size of the city might be of no
+avail, in order to augment the population, according to the ancient
+policy of the founders of cities, who, after drawing together to them an
+obscure and mean multitude, used to feign that their offspring sprung
+out of the earth, he opened as a sanctuary, a place which is now
+enclosed as you go down "to the two groves."[16] Hither fled from the
+neighbouring states, without distinction whether freemen or slaves,
+crowds of all sorts, desirous of change: and this was the first
+accession of strength to their rising greatness. When he was now not
+dissatisfied with his strength, he next sets about forming some means of
+directing that strength. He creates one hundred senators, either because
+that number was sufficient, or because there were only one hundred who
+could name their fathers. They certainly were called Fathers, through
+respect, and their descendants, Patricians.[17]
+
+9. And now the Roman state was become so powerful, that it was a match
+for any of the neighbouring nations in war, but, from the paucity of
+women, its greatness could only last for one age of man; for they had no
+hope of issue at home, nor had they any intermarriages with their
+neighbours. Therefore, by the advice of the Fathers, Romulus sent
+ambassadors to the neighbouring states to solicit an alliance and the
+privilege of intermarriage for his new subjects. "That cities, like
+every thing else, rose from very humble beginnings. That those which the
+gods and their own merit aided, gained great power and high renown. That
+he knew full well, both that the gods had aided the origin of Rome, and
+that merit would not be wanting. Wherefore that, as men, they should
+feel no reluctance to mix their blood and race with men." No where did
+the embassy obtain a favourable hearing: so much did they at the same
+time despise, and dread for themselves and their posterity, so great a
+power growing up in the midst of them. They were dismissed by the
+greater part with the repeated question, "Whether they had opened any
+asylum for women also, for that such a plan only could obtain them
+suitable matches?" The Roman youth resented this conduct bitterly, and
+the matter unquestionably began to point towards violence. Romulus, in
+order that he might afford a favourable time and place for this,
+dissembling his resentment, purposely prepares games in honour of
+Neptunus Equestris; he calls them Consualia. He then orders the
+spectacle to be proclaimed among their neighbours; and they prepare for
+the celebration with all the magnificence they were then acquainted
+with, or were capable of doing, that they might render the matter
+famous, and an object of expectation. Great numbers assembled, from a
+desire also of seeing the new city; especially their nearest neighbours,
+the Cæninenses, Crustumini, and Antemnates. Moreover the whole multitude
+of the Sabines came, with their wives and children. Having been
+hospitably invited to the different houses, when they had seen the
+situation, and fortifications, and the city crowded with houses, they
+became astonished that the Roman power had increased so rapidly. When
+the time of the spectacle came on, and while their minds and eyes were
+intent upon it, according to concert a tumult began, and upon a signal
+given the Roman youth ran different ways to carry off the virgins by
+force. A great number were carried off at hap-hazard, according as they
+fell into their hands. Persons from the common people, who had been
+charged with the task, conveyed to their houses some women of surpassing
+beauty, destined for the leading senators. They say that one, far
+distinguished beyond the others for stature and beauty, was carried off
+by the party of one Thalassius, and whilst many inquired to whom they
+were carrying her, they cried out every now and then, in order that no
+one might molest her, that she was being taken to Thalassius; that from
+this circumstance this term became a nuptial one. The festival being
+disturbed by this alarm, the parents of the young women retire in grief,
+appealing to the compact of violated hospitality, and invoking the god,
+to whose festival and games they had come, deceived by the pretence of
+religion and good faith. Neither had the ravished virgins better hopes
+of their condition, or less indignation. But Romulus in person went
+about and declared, "That what was done was owing to the pride of their
+fathers, who had refused to grant the privilege of marriage to their
+neighbours; but notwithstanding, they should be joined in lawful
+wedlock, participate in all their possessions and civil privileges, and,
+than which nothing can be dearer to the human heart, in their common
+children. He begged them only to assuage the fierceness of their anger,
+and cheerfully surrender their affections to those to whom fortune had
+consigned their persons." [He added,] "That from injuries love and
+friendship often arise; and that they should find them kinder husbands
+on this account, because each of them, besides the performance of his
+conjugal duty, would endeavour to the utmost of his power to make up for
+the want of their parents and native country." To this the caresses of
+the husbands were added, excusing what they had done on the plea of
+passion and love, arguments that work most successfully on women's
+hearts.
+
+10. The minds of the ravished virgins were soon much soothed, but their
+parents by putting on mourning, and tears and complaints, roused the
+states. Nor did they confine their resentment to their own homes, but
+they flocked from all quarters to Titus Tatius, king of the Sabines; and
+because he bore the greatest character in these parts, embassies were
+sent to him. The Cæninenses, Crustumini, and Antemnates were people to
+whom a considerable portion of the outrage extended. To them Tatius and
+the Sabines seemed to proceed somewhat dilatorily. Nor even do the
+Crustumini and Antemnates bestir themselves with sufficient activity to
+suit the impatience and rage of the Cæninenses. Accordingly the state of
+the Cæninenses by itself makes an irruption into the Roman territory.
+But Romulus with his army met them ravaging the country in straggling
+parties, and by a slight engagement convinces them, that resentment
+without strength is of no avail. He defeats and routs their army,
+pursues it when routed, kills and despoils their king in battle, and
+having slain their general takes the city at the first assault. From
+thence having led back his victorious army, and being a man highly
+distinguished by his exploits, and one who could place them in the best
+light, went in state to the capitol, carrying before him, suspended on a
+frame curiously wrought for that purpose, the spoils of the enemy's
+general, whom he had slain, and there after he had laid them down at the
+foot of an oak held sacred by the shepherds, together with the offering,
+he marked out the bounds for a temple of Jupiter, and gave a surname to
+the god: "Jupiter Feretrius," he says, "I, king Romulus, upon my
+victory, present to thee these royal arms, and to thee I dedicate a
+temple within those regions which I have now marked out in my mind, as a
+receptacle for the grand spoils, which my successors, following my
+example, shall, upon their killing the kings or generals of the enemy,
+offer to thee." This is the origin of that temple, the first consecrated
+at Rome. It afterwards so pleased the gods both that the declaration of
+the founder of the temple should not be frustrated, by which he
+announced that his posterity should offer such spoils, and that the
+glory of that offering should not be depreciated by the great number of
+those who shared it. During so many years, and amid so many wars since
+that time, grand spoils have been only twice gained,[18] so rare has
+been the successful attainment of that honour.
