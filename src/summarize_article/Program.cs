@@ -33,7 +33,8 @@ history.AddUserMessage(collectionItems);
 
 Console.WriteLine("Hello, I am a Ancient Historian Chatbot. I can help you with your questions about Ancient Rome.");
 Console.WriteLine($"Prompt: {prompt}");
-Console.WriteLine($"Analyzing the following article:\n {content.Substring(0, 500)}");
+Console.WriteLine($"Analyzing the following article:");
+Console.WriteLine($"{content.Substring(0, 500)}");
 
 Console.WriteLine("Please wait while analyzing book...\n");
 
