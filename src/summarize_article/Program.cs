@@ -11,7 +11,6 @@ var spinner = new ConsoleSpinner();
 var article = new Uri("https://raw.githubusercontent.com/briandenicola/openai-learnings/main/src/summarize_article/docs/history-of-rome-podcast-episode-one.txt");
 
 var (endpoint, apiKey) = new Settings().LoadSettings();
-
 var kernel = Kernel.CreateBuilder()
                       .AddAzureOpenAIChatCompletion(modelId, endpoint, apiKey)
                       .Build();

@@ -1,5 +1,7 @@
-#Complete class created by Copilot
-
+/*
+ * Class created by Copilot
+ */
+ 
 using System;
 using System.Threading;
 
