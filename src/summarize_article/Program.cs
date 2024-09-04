@@ -8,7 +8,7 @@ var prompt = "Summarize the following text in 100 words or less.";
 var spinner = new ConsoleSpinner();
 
 //var article = new Uri("https://raw.githubusercontent.com/briandenicola/openai-learnings/main/src/summarize_article/docs/livy-book-one-chapter-one.txt");
-var article = new Uri("https://raw.githubusercontent.com/briandenicola/traduire/main/.assets/transcription.md");
+var article = new Uri("https://raw.githubusercontent.com/briandenicola/openai-learnings/main/src/summarize_article/docs/history-of-rome-podcast-episode-one.txt");
 
 var (endpoint, apiKey) = new Settings().LoadSettings();
 
