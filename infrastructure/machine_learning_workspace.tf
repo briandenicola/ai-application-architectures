@@ -23,7 +23,7 @@ resource "azapi_update_resource" "machine_learning_workspace_name_updates" {
     properties = {
       ipAllowlist = [
         "${chomp(data.http.myip.response_body)}"
-      ]      
+      ]
     }
   })
 }
