@@ -21,6 +21,20 @@ resource "azurerm_cognitive_deployment" "gpt" {
   }
 }
 
+resource "azurerm_cognitive_deployment" "gpt_35_turbo" {
+  name                 = "gpt-35-turbo"
+  cognitive_account_id = azurerm_cognitive_account.this.id
+  model {
+    format  = "OpenAI"
+    name    = "gpt-35-turbo"
+    version = "2024-05-01-preview"
+  }
+
+  scale {
+    type = "Standard"
+  }
+}
+
 resource "azurerm_cognitive_deployment" "gpt4_turbo" {
   name                 = "gpt-4-turbo"
   cognitive_account_id = azurerm_cognitive_account.this.id

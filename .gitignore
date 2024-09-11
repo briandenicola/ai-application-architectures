@@ -6,6 +6,9 @@
 # Promptflow 
 .promptflow
 
+# Blogger
+paper/tmp_code*
+
 # Terraform 
 infrastructure/.terraform/
 infrastructure/.terraform.tfstate.lock.info
@@ -370,3 +373,4 @@ infrastructure/terraform/.terraform/
 source/ui/.env
 source/ui/build
 source/ui/src/config.json
+src/autogen_examples/blogger/paper/tmp_code_3ed63ae2b12f940023b09ffe0814fb0d.bash
