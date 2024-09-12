@@ -1,8 +1,10 @@
 ﻿using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
+using Azure.Identity;
+using Azure.Core;
 
-var modelId = "gpt-4-turbo";
+var modelId = "gpt-35-turbo";
 var systemMessage = "You are an expert in Ancient Roman History with a dry English sense of humor. You have been asked to summarize the following book.";
 var prompt = "Summarize the following text in 100 words or less.";
 var spinner = new ConsoleSpinner();
@@ -10,10 +12,12 @@ var spinner = new ConsoleSpinner();
 //var article = new Uri("https://raw.githubusercontent.com/briandenicola/openai-learnings/main/src/summarize_article/docs/livy-book-one-chapter-one.txt");
 var article = new Uri("https://raw.githubusercontent.com/briandenicola/openai-learnings/main/src/summarize_article/docs/history-of-rome-podcast-episode-one.txt");
 
-var (endpoint, apiKey) = new Settings().LoadSettings();
+var (endpoint, _) = new Settings().LoadSettings();
+var creds = new DefaultAzureCredential();
+
 var kernel = Kernel.CreateBuilder()
-                      .AddAzureOpenAIChatCompletion(modelId, endpoint, apiKey)
-                      .Build();
+                .AddAzureOpenAIChatCompletion(modelId, endpoint, creds)
+                .Build();
 
 var chat = kernel.GetRequiredService<IChatCompletionService>();
 var history = new ChatHistory();

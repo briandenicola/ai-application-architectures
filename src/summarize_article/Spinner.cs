@@ -16,12 +16,12 @@ public class ConsoleSpinner
     public ConsoleSpinner(int delay = 100)
     {
         _delay = delay;
+        _thread = new Thread(Spin);
     }
 
     public void Start()
     {
         _active = true;
-        _thread = new Thread(Spin);
         _thread.Start();
     }
 
