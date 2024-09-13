@@ -73,6 +73,13 @@ tasks:
   down:
     desc: Destroys all Azure resources and cleans up Terraform
     cmds:
-    - az group list --tag Application="{{.TITLE}}" --query "[].name" -o tsv | xargs -ot -n 1 az group delete -y --no-wait -n || true
-    - cd infrastructure ;
+    #- az group list --tag Application="{{.TITLE}}" --query "[].name" -o tsv | xargs -ot -n 1 az group delete -y --no-wait -n || true
+    
+    - terraform -chdir=./infrastructure destroy
+      -var "region={{.REGION}}" 
+      -var "tags={{.TITLE}}"
+      -compact-warnings
+    - cd infrastructure ;      
       rm -rf terraform.tfstate.d .terraform.lock.hcl .terraform terraform.tfstate terraform.tfstate.backup .terraform.tfstate.lock.info || true
+    vars: 
+      REGION: '{{default .DEFAULT_REGION .CLI_ARGS}}'
