@@ -1,4 +1,5 @@
 resource "azurerm_machine_learning_workspace" "this" {
+  count                         = var.deploy_ai_workspace == "true" ? 1 : 0
   name                          = local.machine_learning_workspace_name
   location                      = azurerm_resource_group.this.location
   resource_group_name           = azurerm_resource_group.this.name
@@ -16,8 +17,9 @@ resource "azapi_update_resource" "machine_learning_workspace_name_updates" {
     azurerm_machine_learning_workspace.this
   ]
 
+  count       = var.deploy_ai_workspace == "true" ? 1 : 0
   type        = "Microsoft.MachineLearningServices/workspaces@2024-07-01-preview"
-  resource_id = azurerm_machine_learning_workspace.this.id
+  resource_id = azurerm_machine_learning_workspace.this[0].id
 
   body = jsonencode({
     properties = {

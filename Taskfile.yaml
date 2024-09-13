@@ -5,6 +5,7 @@ dotenv: ['.env']
 env:
   TITLE: openai_learnings
   DEFAULT_REGION: "westus"
+  MACHINE_LEARNING_WORKSPACE_PDELOY: false
 
 tasks:
   default: 
@@ -33,6 +34,7 @@ tasks:
     - terraform -chdir=./infrastructure apply -auto-approve
       -var "region={{.REGION}}" 
       -var "tags={{.TITLE}}"
+      -var "deploy_ai_workspace={{.MACHINE_LEARNING_WORKSPACE_PDELOY}}"
       -compact-warnings
     vars: 
       REGION: '{{default .DEFAULT_REGION .CLI_ARGS}}'
