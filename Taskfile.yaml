@@ -17,7 +17,7 @@ tasks:
     cmds:
     - task: init
     - task: apply 
-    - task: settings
+    - task: creds
 
   init:
     desc: Initializes Terraform workspace
@@ -48,15 +48,20 @@ tasks:
     vars: 
       REGION: '{{default .DEFAULT_REGION .CLI_ARGS}}'
 
-  settings:
+  creds:
     cmds:
     - task: refresh
-    - jq -n --arg endpoint {{.ENDPOINT}} --arg apiKey {{.KEY}} '{"OpenAI":$ARGS.named}' > src/settings.json
+    - jq -n --arg embeddingEndpoint {{.EMBED_ENDPOINT}} --arg embeddingKey {{.EMBED_KEY}} --arg endpoint {{.ENDPOINT}} --arg apiKey {{.KEY}} '{"OpenAI":$ARGS.named}' > src/settings.json
     vars:
       KEY: 
         sh: terraform -chdir=./infrastructure output -raw OPENAI_KEY
       ENDPOINT:
         sh: terraform -chdir=./infrastructure output -raw OPENAI_ENDPOINT
+      EMBED_KEY: 
+        sh: terraform -chdir=./infrastructure output -raw OPENAI_EMBEDDING_KEY
+      EMBED_ENDPOINT:
+        sh: terraform -chdir=./infrastructure output -raw OPENAI_EMBEDDING_ENDPOINT
+
 
   jokester:
     desc: Builds and run the application 

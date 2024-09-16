@@ -42,3 +42,33 @@ resource "azurerm_cognitive_deployment" "gpt4_turbo" {
     capacity = 10
   }
 }
+
+resource "azurerm_cognitive_deployment" "text_embedding3_small" {
+  name                 = "text-embedding-3-small"
+  cognitive_account_id = azurerm_cognitive_account.embedding.id
+  model {
+    format  = "OpenAI"
+    name    = "text-embedding-3-small"
+    version = "1"
+  }
+
+  scale {
+    type     = "Standard"
+  }
+}
+
+resource "azurerm_cognitive_deployment" "gpt_35_turbo_embedding" {
+  name                 = "gpt-35-turbo"
+  cognitive_account_id = azurerm_cognitive_account.embedding.id
+  model {
+    format  = "OpenAI"
+    name    = "gpt-35-turbo"
+    version = "1106"
+  }
+
+  scale {
+    type = "Standard"
+    capacity = 10
+    
+  }
+}

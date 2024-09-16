@@ -18,7 +18,12 @@ output "OPENAI_KEY" {
     sensitive = true
 }
 
-output "OPENAI_MODEL_ID" {
-    value = azurerm_cognitive_deployment.gpt.model[0].name
+output "OPENAI_EMBEDDING_ENDPOINT" {
+    value = azurerm_cognitive_account.embedding.endpoint
     sensitive = false
+}
+
+output "OPENAI_EMBEDDING_KEY" {
+    value = azurerm_cognitive_account.embedding.primary_access_key
+    sensitive = true
 }

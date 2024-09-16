@@ -7,7 +7,7 @@
             "type": "process",
             "args": [
                 "build",
-                "${workspaceFolder}/src/summarize_article/article_summarizer.csproj",
+                "${workspaceFolder}/src/langchain_examples/rag/LangChain.Samples.Azure.csproj",
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary;ForceNoAlign"
             ],
@@ -19,7 +19,7 @@
             "type": "process",
             "args": [
                 "publish",
-                "${workspaceFolder}/src/summarize_article/article_summarizer.csproj",
+                "${workspaceFolder}/src/langchain_examples/rag/src/langchain_examples/rag/LangChain.Samples.Azure.csproj",
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary;ForceNoAlign"
             ],
@@ -33,7 +33,7 @@
                 "watch",
                 "run",
                 "--project",
-                "${workspaceFolder}/src/summarize_article/article_summarizer.csproj"
+                "${workspaceFolder}/src/langchain_examples/rage/LangChain.Samples.Azure.csproj"
             ],
             "problemMatcher": "$msCompile"
         }

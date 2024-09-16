@@ -8,6 +8,17 @@ resource "azurerm_cognitive_account" "this" {
   sku_name = "S0"
 }
 
+resource "azurerm_cognitive_account" "embedding" {
+  name                  = "${local.openai_name}-embedding"
+  resource_group_name   = azurerm_resource_group.this.name
+  location              = local.embedding_location
+  custom_subdomain_name = "${local.openai_name}-embedding"
+  kind                  = "OpenAI"
+
+  sku_name = "S0"
+}
+
+
 data "azurerm_monitor_diagnostic_categories" "this" {
   resource_id = azurerm_cognitive_account.this.id
 }

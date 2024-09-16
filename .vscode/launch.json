@@ -9,9 +9,9 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/src/summarize_article/bin/Debug/net8.0/article_summarizer.dll",
+            "program": "${workspaceFolder}/src/langchain_examples/rag/bin/Debug/net8.0/LangChain.Samples.Azure.dll",
             "args": [],
-            "cwd": "${workspaceFolder}/src/summarize_article",
+            "cwd": "${workspaceFolder}/src/langchain_examples/rag",
             "console": "internalConsole",
             "stopAtEntry": false
         },
