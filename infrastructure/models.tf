@@ -23,6 +23,8 @@ resource "azurerm_cognitive_deployment" "gpt_35_turbo" {
 
   scale {
     type = "Standard"
+    capacity = 10
+    
   }
 }
 
