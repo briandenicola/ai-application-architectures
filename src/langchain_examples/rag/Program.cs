@@ -21,7 +21,8 @@ var vectorCollection = await vectorDatabase.AddDocumentsFromAsync<PdfPigPdfLoade
     dimensions: 1536,
     dataSource: DataSource.FromUrl("https://canonburyprimaryschool.co.uk/wp-content/uploads/2016/01/Joanne-K.-Rowling-Harry-Potter-Book-1-Harry-Potter-and-the-Philosophers-Stone-EnglishOnlineClub.com_.pdf"),
     collectionName: "harrypotter", // Can be omitted, use if you want to have multiple collections
-    textSplitter: null);
+    textSplitter: null,
+    behavior: AddDocumentsToDatabaseBehavior.JustReturnCollectionIfCollectionIsAlreadyExists);
 
 string promptText =
     @"Use the following pieces of context to answer the question at the end. If the answer is not in context 
@@ -34,12 +35,17 @@ string promptText =
 
 
 var chain =
-    Set("Who was drinking a unicorn blood?")     
-    | RetrieveSimilarDocuments(vectorCollection, embeddingModel, amount: 5)                                                      
-    | CombineDocuments(outputKey: "context")     
+    Set("Who was drinking a unicorn blood?", outputKey: "question")     
+    | RetrieveSimilarDocuments(
+        vectorCollection,
+        embeddingModel,
+        inputKey: "question",
+        outputKey: "documents",
+        amount: 5)                                                      
+    | CombineDocuments(inputKey: "documents", outputKey: "context")     
     | Template(promptText)                                              
     | LLM(llm.UseConsoleForDebug());                                                         
-var chainAnswer = await chain.RunAsync("text");
+var chainAnswer = await chain.RunAsync("text", CancellationToken.None);
 
 Console.WriteLine("Chain Answer:"+ chainAnswer);    
 Console.WriteLine($"LLM usage: {llm.Usage}");   
