@@ -62,7 +62,6 @@ tasks:
       EMBED_ENDPOINT:
         sh: terraform -chdir=./infrastructure output -raw OPENAI_EMBEDDING_ENDPOINT
 
-
   jokester:
     desc: Builds and run the application 
     dir: ./src/jokester
@@ -73,6 +72,13 @@ tasks:
     desc: Builds and run the application 
     dir: ./src/ric_analyzer
     cmds:
+    - dotnet run
+
+  otel:
+    desc: Semantic Kernel with Observability
+    dir: ./src/ric_analyzer_with_observability
+    cmds:
+    - docker run --rm -p 18888:18888 -p 4317:18889 -d --name aspire-dashboard  mcr.microsoft.com/dotnet/aspire-dashboard:8.1.0 || true
     - dotnet run
 
   article:
