@@ -33,7 +33,6 @@ string promptText =
     Question: {question}
     Helpful Answer:";
 
-
 var chain =
     Set("Who was drinking a unicorn blood?", outputKey: "question")     
     | RetrieveSimilarDocuments(
@@ -49,5 +48,4 @@ var chainAnswer = await chain.RunAsync("text", CancellationToken.None);
 
 Console.WriteLine("Chain Answer:"+ chainAnswer);    
 Console.WriteLine($"LLM usage: {llm.Usage}");   
-Console.WriteLine($"Embedding model usage: {embeddingModel.Usage}");  
-
+Console.WriteLine($"Embedding model usage: {embeddingModel.Usage}"); 
