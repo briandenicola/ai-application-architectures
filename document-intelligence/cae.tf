@@ -8,7 +8,7 @@ resource "azurerm_container_app_environment" "this" {
   location                           = azurerm_resource_group.this.location
   infrastructure_resource_group_name = "${local.resource_name}_aca_nodes_rg"
   infrastructure_subnet_id           = azurerm_subnet.nodes.id
-  internal_load_balancer_enabled     = true
+  internal_load_balancer_enabled     = false
   zone_redundancy_enabled            = local.zonal
   log_analytics_workspace_id         = azurerm_log_analytics_workspace.this.id
 

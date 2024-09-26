@@ -1,10 +1,3 @@
-data "azurerm_client_config" "current" {}
-data "azurerm_subscription" "current" {}
-
-data "http" "myip" {
-  url = "http://checkip.amazonaws.com/"
-}
-
 resource "random_id" "this" {
   byte_length = 2
 }
@@ -33,6 +26,7 @@ locals {
   compute_subnet_cidir    = cidrsubnet(local.vnet_cidr, 8, 2)
   fw_subnet_cidir         = cidrsubnet(local.vnet_cidr, 8, 3)
   nodes_subnet_cidir      = cidrsubnet(local.vnet_cidr, 4, 2)
+  home_network            = "${chomp(data.http.myip.response_body)}/32"
 }
 
 resource "azurerm_resource_group" "this" {
