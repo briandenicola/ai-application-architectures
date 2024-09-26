@@ -27,7 +27,7 @@ resource "azurerm_container_app" "cognitive_service_document" {
     min_replicas = 1
     container {
       name   = "cognitive-service-document"
-      image  = "mcr.microsoft.com/azure-cognitive-services/form-recognizer/document-3.0"
+      image  = "mcr.microsoft.com/azure-cognitive-services/form-recognizer/document-3.0:2022-08-31"
       cpu    = 8
       memory = "16Gi"
 
@@ -50,7 +50,7 @@ resource "azurerm_container_app" "cognitive_service_document" {
     }
     container {
       name   = "cognitive-service-layout"
-      image  = "mcr.microsoft.com/azure-cognitive-services/form-recognizer/layout-3.0"
+      image  = "mcr.microsoft.com/azure-cognitive-services/form-recognizer/layout-3.0:2022-08-31"
       cpu    = 8
       memory = "16Gi"
 
