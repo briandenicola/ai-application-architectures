@@ -79,18 +79,18 @@ AnsiConsole.Markup("[bold blue]Hello, I am a Roman Imperial Coin Analyzer chatbo
 AnsiConsole.MarkupInterpolated($"[bold blue]Prompt: {prompt}[/]");
 AnsiConsole.MarkupInterpolated($"[bold blue]Analyzing the following coin image: {coin.AbsoluteUri}[/]\n");
 
-var result = await AnsiConsole.Progress()
-    .StartAsync(async ctx =>
-    {
-        var task = ctx.AddTask("[green]Analyzing Coin with GPT...[/]");
-        while (!task.IsFinished) {
-            task.Increment(1.0);
-            await Task.Delay(1000);
-        }
-        var chatResult = await chat.GetChatMessageContentAsync(history, requestSettings, kernel);
-        task.StopTask();
-        return chatResult;
-    });
+var result = await AnsiConsole.Progress().StartAsync(async ctx => {
+    var task = ctx.AddTask("[green]Analyzing Coin with GPT...[/]");
+
+    while (!task.IsFinished) {
+        task.Increment(1.0);
+        await Task.Delay(1000);
+    }
+
+    var chatResult = await chat.GetChatMessageContentAsync(history, requestSettings, kernel);
+    task.StopTask();
+    return chatResult;
+});
 
 if( result.Content is not null) {     
     AnsiConsole.MarkupInterpolated($"[bold yellow]{result.Content}[/]\n\n");                  
