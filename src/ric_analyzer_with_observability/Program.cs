@@ -8,13 +8,13 @@ using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
-
+using Spectre.Console;
 #pragma warning disable SKEXP0050
 
 var aspireEndpoint = "http://localhost:4317";
 var modelId = "gpt-4-turbo";
-var systemMessage = "You are an expert numismatist with a particular focus on Ancient Roman Imperial Coins with a dry sense of humor. You have been asked to analyze the following coin.";
-var prompt = "What is the inscription on the coin and who is the Emperor depicted? Tell me anything else you can deduce from the coin.";
+var systemMessage = "You are an expert numismatist with a particular focus on Ancient Roman Imperial Coins. You will be asked to analyze various coins. It's okay to be wrong - e guys are long dead and their feelings won't be hurt";
+var prompt = "Tell me everything that you can you can deduce from the coin such as what is the inscription on the coin and make a guess of who is the Emperor depicted?.";
 
 var coin = new Uri("https://github.com/briandenicola/openai-learnings/blob/main/src/ric_analyzer/img/coin.png?raw=true");
 
@@ -35,6 +35,7 @@ using var traceProvider = Sdk.CreateTracerProviderBuilder()
 using var meterProvider = Sdk.CreateMeterProviderBuilder()
     .SetResourceBuilder(resourceBuilder)
     .AddMeter("Microsoft.SemanticKernel*")
+    .AddConsoleExporter()
     .AddOtlpExporter(options => options.Endpoint = new Uri(aspireEndpoint))
     .Build();
 
@@ -43,6 +44,7 @@ using var loggerFactory = LoggerFactory.Create(builder =>
     builder.AddOpenTelemetry(options =>
     {
         options.SetResourceBuilder(resourceBuilder);
+        options.AddConsoleExporter();
         options.AddOtlpExporter(options => options.Endpoint = new Uri(aspireEndpoint));
         options.IncludeFormattedMessage = true;
         options.IncludeScopes = true;
@@ -73,23 +75,25 @@ var collectionItems= new ChatMessageContentItemCollection
 };
 history.AddUserMessage(collectionItems);
 
-Console.WriteLine("Hello, I am a Roman Imperial Coin Analyzer chatbot. I can help you with analyzing Roman Imperial Coins. Let's start with the coin analysis.");
-Console.WriteLine($"Prompt: {prompt}");
-Console.WriteLine($"Analyzing the following coin image: {coin.AbsoluteUri}");
-var result = await chat.GetChatMessageContentAsync(history, requestSettings, kernel);
+AnsiConsole.Markup("[bold blue]Hello, I am a Roman Imperial Coin Analyzer chatbot. I can help you with analyzing Roman Imperial Coins. Let's start with the coin analysis.[/]");
+AnsiConsole.MarkupInterpolated($"[bold blue]Prompt: {prompt}[/]");
+AnsiConsole.MarkupInterpolated($"[bold blue]Analyzing the following coin image: {coin.AbsoluteUri}[/]\n");
 
-if( result.Content is not null) { 
-    history.AddUserMessage(result.Content);
-    Console.WriteLine($"Reply: {result.Content}");                
-    
-    Console.WriteLine("======== Summarize: Conversation Summary Plugin ========");
-    
-    KernelPlugin conversationSummaryPlugin = kernel.ImportPluginFromType<Microsoft.SemanticKernel.Plugins.Core.ConversationSummaryPlugin>();
+var result = await AnsiConsole.Progress()
+    .StartAsync(async ctx =>
+    {
+        var task = ctx.AddTask("[green]Analyzing Coin with GPT...[/]");
+        while (!task.IsFinished) {
+            task.Increment(1.0);
+            await Task.Delay(1000);
+        }
+        var chatResult = await chat.GetChatMessageContentAsync(history, requestSettings, kernel);
+        task.StopTask();
+        return chatResult;
+    });
 
-    FunctionResult summary = await kernel.InvokeAsync(
-        conversationSummaryPlugin["SummarizeConversation"], new() { ["input"] = result.Content });
-
-    Console.WriteLine(summary.GetValue<string>());
+if( result.Content is not null) {     
+    AnsiConsole.MarkupInterpolated($"[bold yellow]{result.Content}[/]\n\n");                  
 } else {
     Console.WriteLine("No response from the chatbot.");
 }
