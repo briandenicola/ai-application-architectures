@@ -10,13 +10,13 @@
 paper/tmp_code*
 
 # Terraform 
-infrastructure/.terraform/
-infrastructure/.terraform.tfstate.lock.info
-infrastructure/.terraform.lock.hcl
-infrastructure/terraform.tfstate
-infrastructure/terraform.tfstate.backup
-infrastructure/variables.tfvars
-infrastructure/terraform.tfstate.d/
+.terraform/
+.terraform.tfstate.lock.info
+.terraform.lock.hcl
+terraform.tfstate
+terraform.tfstate.backup
+variables.tfvars
+terraform.tfstate.d/
 
 # Settings
 src/settings.json
