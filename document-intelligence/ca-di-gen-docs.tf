@@ -41,11 +41,11 @@ resource "azurerm_container_app" "cognitive_service_document" {
       }
       env {
         name  = "apikey"
-        value = azurerm_cognitive_account.this.primary_access_key 
+        value = azurerm_cognitive_account.this.primary_access_key
       }
       env {
-        name = "AzureCognitiveServiceLayoutHost"
-        value = "http://cognitive-service-layout:5000"
+        name  = "AzureCognitiveServiceLayoutHost"
+        value = "https://${azurerm_container_app.cognitive_service_layout.ingress[0].fqdn}/"
       }
     }
   }
