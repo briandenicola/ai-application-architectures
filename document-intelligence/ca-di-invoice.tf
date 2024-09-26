@@ -26,7 +26,7 @@ resource "azurerm_container_app" "cognitive_service_invoice" {
   template {
     min_replicas = 1
     container {
-      name   = "cognitive-service-document"
+      name   = "cognitive-service-invoice"
       image  = "mcr.microsoft.com/azure-cognitive-services/form-recognizer/invoice-3.1:2023-07-31"
       cpu    = 8
       memory = "16Gi"
