@@ -16,7 +16,7 @@ tasks:
     - task --list 
   
   up: 
-    desc: Builds Complete Environment
+    desc: Builds a Complete {{.TITLE}} Environment
     cmds:
     - task: init
     - task: apply 

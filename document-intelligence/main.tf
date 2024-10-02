@@ -34,7 +34,7 @@ resource "azurerm_resource_group" "this" {
   location = local.location
 
   tags = {
-    Application = "Forms Recognizer - Invoice"
+    Application = var.tags
     Components  = "Container Apps; Cognitive Services;"
     DeployedOn  = timestamp()
   }

@@ -1,12 +1,16 @@
 version: '3'
 
+env:
+  TITLE: "Offline Document Intelligence Demo"
+  DEFAULT_REGION: "westus"
+
 tasks:
   default:
     cmds:
     - task --list 
 
   up:
-    desc: Creates a complete Azure Container App Environment with Workload Profile
+    desc: Creates a {{.TITLE}} environment
     cmds:
     - task: init
     - task: apply
@@ -18,14 +22,14 @@ tasks:
     - terraform workspace select {{.REGION}}
     - terraform init
     vars: 
-      REGION: '{{default "southcentralus" .CLI_ARGS}}'
+      REGION: '{{default .DEFAULT_REGION .CLI_ARGS}}'
   
   apply:
     desc: Applies Terraform 
     cmds:
-    - terraform apply -auto-approve -var "region={{.REGION}}" -compact-warnings
+    - terraform apply -auto-approve -var "region={{.REGION}}" -var "tags={{.TITLE}}" -compact-warnings
     vars: 
-      REGION: '{{default "southcentralus" .CLI_ARGS}}'
+      REGION: '{{default .DEFAULT_REGION .CLI_ARGS}}'
 
   down:
     desc: Destroys all Azure resources and cleans up Terraform
