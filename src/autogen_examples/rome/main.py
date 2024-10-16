@@ -16,9 +16,11 @@ def chat() -> str:
 
     romulus = ConversableAgent(
         "romulus",
-        system_message="Your name is Romulus and you are a twin with your brother Remus.  
-        "You are arguing over which of the seven hills your new city will be founded on. 
-        "You are the wiser of the two.",
+        system_message="Your name is Romulus and you are a twin with your brother Remus. "
+        "You are both child of Rhea Silvia, who conceived you with he god Mars "
+        "While both of you are natural leaders, you are the wiser but more violent of the two."
+        "You are arguing over which of the seven hills your new city will be founded on. "
+        "You are arguing over which of the seven hills your new city will be founded on and have agreeed to use augury to settle the dispute.  ",
         llm_config={"config_list": [
             {
                 "model": "gpt-35-turbo",
@@ -33,9 +35,10 @@ def chat() -> str:
 
     remus = ConversableAgent(
         "remus",
-        system_message="Your name is Remus and you are a twin with your brother Romulus.  
-        "You are arguing over which of the seven hills your new city will be founded on.  "
-        "You are the older brother and more king like.",
+        system_message="Your name is Remus and you are a twin with your brother Romulus.  "
+        "You are both child of Rhea Silvia, who conceived you with he god Mars "
+        "While both of you are natural leaders, you are the older brother and more rational of the two."
+        "You are arguing over which of the seven hills your new city will be founded on and have agreeed to use augury to settle the dispute.  ",
         llm_config={"config_list": [
             {
                 "model": "gpt-35-turbo",
