@@ -7,8 +7,8 @@ resource "azurerm_cognitive_deployment" "gpt" {
     version = "2024-05-13"
   }
 
-  scale {
-    type = "Standard"
+  sku {
+    name = "Standard"
   }
 }
 
@@ -21,10 +21,10 @@ resource "azurerm_cognitive_deployment" "gpt_35_turbo" {
     version = "1106"
   }
 
-  scale {
-    type = "Standard"
+  sku {
+    name     = "Standard"
     capacity = 10
-    
+
   }
 }
 
@@ -37,8 +37,8 @@ resource "azurerm_cognitive_deployment" "gpt4_turbo" {
     version = "vision-preview"
   }
 
-  scale {
-    type     = "Standard"
+  sku {
+    name     = "Standard"
     capacity = 10
   }
 }
@@ -52,8 +52,8 @@ resource "azurerm_cognitive_deployment" "text_embedding3_small" {
     version = "1"
   }
 
-  scale {
-    type     = "Standard"
+  sku {
+    name = "Standard"
   }
 }
 
@@ -66,9 +66,9 @@ resource "azurerm_cognitive_deployment" "gpt_35_turbo_embedding" {
     version = "1106"
   }
 
-  scale {
-    type = "Standard"
+  sku {
+    name     = "Standard"
     capacity = 10
-    
+
   }
 }

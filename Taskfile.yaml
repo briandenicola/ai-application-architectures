@@ -3,7 +3,7 @@ version: '3'
 dotenv: ['.env']
 
 env:
-  TITLE: openai_learnings
+  AI_TITLE: openai_learnings
   DEFAULT_REGION: "westus"
   MACHINE_LEARNING_WORKSPACE_PDELOY: false
 
@@ -16,7 +16,7 @@ tasks:
     - task --list 
   
   up: 
-    desc: Builds a Complete {{.TITLE}} Environment
+    desc: Builds a Complete {{.AI_TITLE}} Environment
     cmds:
     - task: init
     - task: apply 
@@ -36,7 +36,7 @@ tasks:
     cmds:
     - terraform -chdir=./infrastructure apply -auto-approve
       -var "region={{.REGION}}" 
-      -var "tags={{.TITLE}}"
+      -var "tags={{.AI_TITLE}}"
       -var "deploy_ai_workspace={{.MACHINE_LEARNING_WORKSPACE_PDELOY}}"
       -compact-warnings
     vars: 
@@ -46,7 +46,7 @@ tasks:
     cmds:
     - terraform -chdir=./infrastructure refresh
       -var "region={{.REGION}}" 
-      -var "tags={{.TITLE}}"
+      -var "tags={{.AI_TITLE}}"
       -compact-warnings
     vars: 
       REGION: '{{default .DEFAULT_REGION .CLI_ARGS}}'
@@ -105,8 +105,8 @@ tasks:
     desc: Destroys all Azure resources and cleans up Terraform
     dir: ./infrastructure
     cmds:       
-    - terraform destroy -var "region={{.REGION}}" -var "tags={{.TITLE}}" -compact-warnings || true
-    - az group list --tag Application="{{.TITLE}}" --query "[].name" -o tsv | xargs -ot -n 1 az group delete -y --no-wait -n || true
+    - terraform destroy -var "region={{.REGION}}" -var "tags={{.AI_TITLE}}" -compact-warnings || true
+    - az group list --tag Application="{{.AI_TITLE}}" --query "[].name" -o tsv | xargs -ot -n 1 az group delete -y --no-wait -n || true
     - rm -rf terraform.tfstate.d .terraform.lock.hcl .terraform terraform.tfstate terraform.tfstate.backup .terraform.tfstate.lock.info || true
     vars: 
       REGION: '{{default .DEFAULT_REGION .CLI_ARGS}}'

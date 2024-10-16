@@ -1,7 +1,7 @@
 version: '3'
 
 env:
-  TITLE: "Offline Document Intelligence Demo"
+  DI_TITLE: "Offline Document Intelligence Demo"
   DEFAULT_REGION: "westus"
 
 tasks:
@@ -10,7 +10,7 @@ tasks:
     - task --list 
 
   up:
-    desc: Creates a {{.TITLE}} environment
+    desc: Creates a {{.DI_TITLE}} environment
     cmds:
     - task: init
     - task: apply
@@ -27,7 +27,7 @@ tasks:
   apply:
     desc: Applies Terraform 
     cmds:
-    - terraform apply -auto-approve -var "region={{.REGION}}" -var "tags={{.TITLE}}" -compact-warnings
+    - terraform apply -auto-approve -var "region={{.REGION}}" -var "tags={{.DI_TITLE}}" -compact-warnings
     vars: 
       REGION: '{{default .DEFAULT_REGION .CLI_ARGS}}'
 
