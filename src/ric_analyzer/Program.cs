@@ -6,7 +6,7 @@ var modelId = "gpt-4-turbo";
 var systemMessage = "You are an expert numismatist with a particular focus on Ancient Roman Imperial Coins with a dry sense of humor. You have been asked to analyze the following coin.";
 var prompt = "What is the inscription on the coin and who is the Emperor depicted? Tell me anything else you can deduce from the coin.";
 
-var coin = new Uri("https://github.com/briandenicola/openai-learnings/blob/main/src/ric_analyzer/img/coin.png?raw=true");
+var coin = new Uri("https://github.com/briandenicola/openai-learnings/blob/main/src/ric_analyzer/img/coin-2.png?raw=true");
 
 var (endpoint, apiKey) = new Settings().LoadSettings();
 
