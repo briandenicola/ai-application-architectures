@@ -13,8 +13,8 @@ using Spectre.Console;
 
 var aspireEndpoint = "http://localhost:4317";
 var modelId = "gpt-4-turbo";
-var systemMessage = "You are an expert numismatist with a particular focus on Ancient Roman Imperial Coins. You will be asked to analyze various coins. It's okay to be wrong - e guys are long dead and their feelings won't be hurt";
-var prompt = "Tell me everything that you can you can deduce from the coin such as what is the inscription on the coin and make a guess of who is the Emperor depicted?.";
+var systemMessage = "You are an expert numismatist with a particular focus on Ancient Roman Imperial Coins with a dry sense of humor. You have been asked to analyze the following coin.";
+var prompt = "What is the inscription on the coin and make a guess on the Emperor depicted? Tell me anything else you can deduce from the coin. It's okay to be wrong. These guys are long dead.";
 
 var coin = new Uri("https://github.com/briandenicola/openai-learnings/blob/main/src/ric_analyzer/img/coin-2.png?raw=true");
 

@@ -15,7 +15,6 @@ var completion = await kernel.InvokePromptAsync(prompt);
 Console.WriteLine($"Reply: {completion}");
 
 
-
 // task settings generates a Settings object from the settings.json file
 // settings.json
 // {
