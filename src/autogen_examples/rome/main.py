@@ -10,7 +10,7 @@ BASE_DIR = Path(__file__).absolute().parent
 def chat() -> str:
     """Flow entry function."""
 
-    if "OPENAI_API_KEY" not in os.environ and "AZURE_OPENAI_API_KEY" not in os.environ:
+    if "AZURE_OPENAI_ENDPOINT" not in os.environ and "AZURE_OPENAI_API_KEY" not in os.environ:
         # load environment variables from .env file
         load_dotenv()
 
@@ -23,11 +23,11 @@ def chat() -> str:
         "You are arguing over which of the seven hills your new city will be founded on, but recently have agreeed to use augury to settle the dispute.",
         llm_config={"config_list": [
             {
-                "model": "gpt-35-turbo",
+                "model": "gpt-4o",
                 "api_type": "azure",
                 "api_key": os.environ['AZURE_OPENAI_API_KEY'],
                 "azure_endpoint": os.environ['AZURE_OPENAI_ENDPOINT'],
-                "api_version": "2024-05-01-preview" 
+                "api_version": "2025-01-01-preview" 
             }     
         ]},
         human_input_mode="NEVER",
@@ -43,12 +43,12 @@ def chat() -> str:
         "You are arguing over which of the seven hills your new city will be founded on and have agreeed to use augury to settle the dispute. ",
         llm_config={"config_list": [
             {
-                "model": "gpt-35-turbo",
+                "model": "gpt-4o",
                 "api_type": "azure",
                 "api_key": os.environ['AZURE_OPENAI_API_KEY'],
                 "azure_endpoint": os.environ['AZURE_OPENAI_ENDPOINT'],
-                "api_version": "2024-05-01-preview" 
-            }     
+                "api_version": "2025-01-01-preview" 
+            }  
         ]},
         human_input_mode="NEVER",
     )

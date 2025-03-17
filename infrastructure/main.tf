@@ -15,6 +15,7 @@ resource "random_password" "password" {
 locals {
   location                        = var.region
   embedding_location              = "canadaeast"
+  global_location                 = "eastus2"
   resource_name                   = "${random_pet.this.id}-${random_id.this.dec}"
   openai_name                     = "${local.resource_name}-openai"
   kv_name                         = "${local.resource_name}-kv"

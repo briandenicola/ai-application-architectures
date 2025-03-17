@@ -22,6 +22,26 @@ resource "azurerm_cognitive_account" "embedding" {
   sku_name = "S0"
 }
 
+resource "azapi_resource" "global" {
+  type      = "Microsoft.CognitiveServices/accounts@2024-10-01"
+  name      = "${local.openai_name}-global"
+  location  = local.global_location
+  parent_id = azurerm_resource_group.this.id
+
+  body = {
+    sku = {
+        name =  "S0"
+    },
+    kind = "AIServices",
+    properties = {
+      customSubDomainName = "${local.openai_name}-global",
+      publicNetworkAccess = "Enabled",
+      
+    }
+  }
+}
+
+
 resource "azurerm_monitor_diagnostic_setting" "this" {
   depends_on = [
     data.azurerm_monitor_diagnostic_categories.this

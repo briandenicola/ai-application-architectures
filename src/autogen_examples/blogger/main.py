@@ -20,19 +20,20 @@ from autogen.coding import DockerCommandLineCodeExecutor, LocalCommandLineCodeEx
 
 config_list = [
     {
-        "model": "gpt-4",
+        "model": "gpt-4o",
         "api_type": "azure",
         "api_key": os.environ['AZURE_OPENAI_API_KEY'],
         "azure_endpoint": os.environ['AZURE_OPENAI_ENDPOINT'],
-        "api_version": "2023-03-15-preview" 
-    },
-    {
-        "model": "gpt-35-turbo",
-        "api_type": "azure",
-        "api_key": os.environ['AZURE_OPENAI_API_KEY'],
-        "azure_endpoint": os.environ['AZURE_OPENAI_ENDPOINT'],
-        "api_version": "2024-05-01-preview" 
-    }
+        "api_version": "2025-01-01-preview" 
+    }  
+    #},
+    # {
+    #     "model": "gpt-35-turbo",
+    #     "api_type": "azure",
+    #     "api_key": os.environ['AZURE_OPENAI_API_KEY'],
+    #     "azure_endpoint": os.environ['AZURE_OPENAI_ENDPOINT'],
+    #     "api_version": "2024-05-01-preview" 
+    # }
 ]
 
 user_proxy = UserProxyAgent(

@@ -4,7 +4,7 @@ using Microsoft.SemanticKernel.Connectors.OpenAI;
 using Azure.Identity;
 using Azure.Core;
 
-var modelId = "gpt-35-turbo";
+var modelId = "gpt-4-turbo";
 var systemMessage = "You are an expert in Ancient Roman History with a dry English sense of humor. You have been asked to summarize the following book.";
 var prompt = "Summarize the following text in 100 words or less.";
 var spinner = new ConsoleSpinner();
