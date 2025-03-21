@@ -106,7 +106,6 @@ tasks:
     dir: ./infrastructure
     cmds:       
     - terraform destroy -var "region={{.REGION}}" -var "tags={{.AI_TITLE}}" -compact-warnings || true
-    - az group list --tag Application="{{.AI_TITLE}}" --query "[].name" -o tsv | xargs -ot -n 1 az group delete -y --no-wait -n || true
     - rm -rf terraform.tfstate.d .terraform.lock.hcl .terraform terraform.tfstate terraform.tfstate.backup .terraform.tfstate.lock.info || true
     vars: 
       REGION: '{{default .DEFAULT_REGION .CLI_ARGS}}'
