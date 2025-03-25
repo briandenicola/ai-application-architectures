@@ -9,12 +9,12 @@ output "APP_RESOURCE_GROUP" {
 }
 
 output "OPENAI_ENDPOINT" {
-    value = azurerm_cognitive_account.this.endpoint
+    value = data.azurerm_cognitive_account.global.endpoint
     sensitive = false
 }
 
 output "OPENAI_KEY" {
-    value = azurerm_cognitive_account.this.primary_access_key
+    value = data.azurerm_cognitive_account.global.primary_access_key
     sensitive = true
 }
 
@@ -25,5 +25,15 @@ output "OPENAI_EMBEDDING_ENDPOINT" {
 
 output "OPENAI_EMBEDDING_KEY" {
     value = azurerm_cognitive_account.embedding.primary_access_key
+    sensitive = true
+}
+
+output "OPENAI_VISION_ENDPOINT" {
+    value = azurerm_cognitive_account.regional.endpoint
+    sensitive = false
+}
+
+output "OPENAI_VISION_KEY" {
+    value = azurerm_cognitive_account.regional.primary_access_key
     sensitive = true
 }

@@ -2,7 +2,7 @@ version: '3'
 
 env:
   DI_TITLE: "Offline Document Intelligence Demo"
-  DEFAULT_REGION: "westus"
+  DEFAULT_REGION: "eastus2"
 
 tasks:
   default:

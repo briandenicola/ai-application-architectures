@@ -4,7 +4,7 @@ dotenv: ['.env']
 
 env:
   AI_TITLE: openai_learnings
-  DEFAULT_REGION: "westus"
+  DEFAULT_REGION: "eastus2"
   MACHINE_LEARNING_WORKSPACE_PDELOY: false
 
 includes:
@@ -54,7 +54,7 @@ tasks:
   creds:
     cmds:
     - task: refresh
-    - jq -n --arg embeddingEndpoint {{.EMBED_ENDPOINT}} --arg embeddingKey {{.EMBED_KEY}} --arg endpoint {{.ENDPOINT}} --arg apiKey {{.KEY}} '{"OpenAI":$ARGS.named}' > src/settings.json
+    - jq -n --arg visionEndpoint {{.OPENAI_VISION_ENDPOINT}} --arg visionKey {{.OPENAI_VISION_KEY}}  --arg embeddingEndpoint {{.EMBED_ENDPOINT}} --arg embeddingKey {{.EMBED_KEY}} --arg endpoint {{.ENDPOINT}} --arg apiKey {{.KEY}} '{"OpenAI":$ARGS.named}' > src/settings.json
     vars:
       KEY: 
         sh: terraform -chdir=./infrastructure output -raw OPENAI_KEY
@@ -64,6 +64,10 @@ tasks:
         sh: terraform -chdir=./infrastructure output -raw OPENAI_EMBEDDING_KEY
       EMBED_ENDPOINT:
         sh: terraform -chdir=./infrastructure output -raw OPENAI_EMBEDDING_ENDPOINT
+      OPENAI_VISION_ENDPOINT:
+        sh: terraform -chdir=./infrastructure output -raw OPENAI_VISION_ENDPOINT
+      OPENAI_VISION_KEY:
+        sh: terraform -chdir=./infrastructure output -raw OPENAI_VISION_KEY
 
   jokester:
     desc: Tell me a Joke

@@ -1,6 +1,6 @@
 resource "azurerm_cognitive_deployment" "gpt" {
   name                 = "gpt-4o"
-  cognitive_account_id = azurerm_cognitive_account.this.id
+  cognitive_account_id = data.azurerm_cognitive_account.global.id
   model {
     format  = "OpenAI"
     name    = "gpt-4o"
@@ -8,31 +8,13 @@ resource "azurerm_cognitive_deployment" "gpt" {
   }
 
   sku {
-    name = "Standard"
+    name     = "GlobalStandard"
     capacity = 10
   }
 }
-
-# resource "azurerm_cognitive_deployment" "gpt_35_turbo" {
-#   name                 = "gpt-35-turbo"
-#   cognitive_account_id = azurerm_cognitive_account.this.id
-#   model {
-#     format  = "OpenAI"
-#     name    = "gpt-4.5-preview"
-#     version = "1106"
-#   }
-
-#   sku {
-#     name     = "Standard"
-#     capacity = 10
-
-#   }
-# }
-
-
-resource "azurerm_cognitive_deployment" "gpt4_turbo" {
-  name                 = "gpt-4-turbo"
-  cognitive_account_id = azurerm_cognitive_account.this.id
+resource "azurerm_cognitive_deployment" "gpt4_vision" {
+  name                 = "gpt4-vision"
+  cognitive_account_id = azurerm_cognitive_account.regional.id
   model {
     format  = "OpenAI"
     name    = "gpt-4"
