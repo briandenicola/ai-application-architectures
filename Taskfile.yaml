@@ -55,6 +55,8 @@ tasks:
     cmds:
     - task: refresh
     - jq -n --arg visionEndpoint {{.OPENAI_VISION_ENDPOINT}} --arg visionKey {{.OPENAI_VISION_KEY}}  --arg embeddingEndpoint {{.EMBED_ENDPOINT}} --arg embeddingKey {{.EMBED_KEY}} --arg endpoint {{.ENDPOINT}} --arg apiKey {{.KEY}} '{"OpenAI":$ARGS.named}' > src/settings.json
+    - echo AZURE_OPENAI_API_KEY={{.KEY}} > src/.env
+    - echo AZURE_OPENAI_ENDPOINT={{.ENDPOINT}} >> src/.env
     vars:
       KEY: 
         sh: terraform -chdir=./infrastructure output -raw OPENAI_KEY

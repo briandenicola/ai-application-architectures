@@ -19,6 +19,7 @@ variables.tfvars
 terraform.tfstate.d/
 
 # Settings
+src/.env
 src/settings.json
 
 # User-specific files
