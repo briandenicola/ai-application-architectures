@@ -1,23 +1,3 @@
-#   resource aiServicesConnection 'connections@2024-07-01-preview' = {
-#     name: '${aiHubName}-connection-AIServices'
-#     properties: {
-#       category: 'AIServices'
-#       target: aiServicesTarget
-#       // useWorkspaceManagedIdentity: true
-#       authType: 'ApiKey'
-#       isSharedToAll: true
-#       credentials: {
-#         key: '${listKeys(aiServicesId, '2022-10-01').key1}'
-#       }
-#       metadata: {
-#         ApiType: 'Azure'
-#         ResourceId: aiServicesId
-#         Location: modelLocation
-#       }
-#     }
-#   }
-# }
-
 resource "azapi_resource" "llm_to_agent_project_connection" {
   type      = "Microsoft.MachineLearningServices/workspaces/connections@2025-01-01-preview"
   name      = "Hub-to-AIServices"
