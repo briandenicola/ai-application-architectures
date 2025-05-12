@@ -25,3 +25,12 @@ resource "azurerm_monitor_diagnostic_setting" "bing" {
     category = "AllMetrics"
   }
 }
+
+data "azapi_resource_action" "bing_keys" {
+  type                   = "Microsoft.Bing/accounts@2025-05-01-preview"
+  resource_id            = azapi_resource.bing_grounding.id
+  action                 = "listKeys"
+  method                 = "POST"
+  response_export_values = ["*"]
+  depends_on             = [azapi_resource.bing_grounding]
+}

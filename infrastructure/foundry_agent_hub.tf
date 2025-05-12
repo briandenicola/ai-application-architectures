@@ -6,16 +6,7 @@ resource "azurerm_ai_foundry" "this" {
   storage_account_id    = azurerm_storage_account.this.id
   key_vault_id          = azurerm_key_vault.this.id
   container_registry_id = azurerm_container_registry.this.id
-
-  identity {
-    type = "SystemAssigned"
-  }
-}
-
-resource "azurerm_ai_foundry_project" "this" {
-  name               = local.project_name
-  location           = azurerm_ai_foundry.this.location
-  ai_services_hub_id = azurerm_ai_foundry.this.id
+  application_insights_id = azurerm_application_insights.this.id
 
   identity {
     type = "SystemAssigned"

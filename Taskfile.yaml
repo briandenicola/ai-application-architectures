@@ -5,7 +5,7 @@ dotenv: ['.env']
 env:
   AI_TITLE: openai_learnings
   DEFAULT_REGION: "eastus2"
-  MACHINE_LEARNING_WORKSPACE_PDELOY: false
+  MACHINE_LEARNING_WORKSPACE_DEPLOY: false
 
 includes:
   di: ./document-intelligence/Taskfile.yaml
@@ -37,7 +37,7 @@ tasks:
     - terraform -chdir=./infrastructure apply -auto-approve
       -var "region={{.REGION}}" 
       -var "tags={{.AI_TITLE}}"
-      -var "deploy_ai_workspace={{.MACHINE_LEARNING_WORKSPACE_PDELOY}}"
+      -var "deploy_ai_workspace={{.MACHINE_LEARNING_WORKSPACE_DEPLOY}}"
       -compact-warnings
     vars: 
       REGION: '{{default .DEFAULT_REGION .CLI_ARGS}}'
