@@ -4,7 +4,7 @@ resource "azapi_resource" "bing_grounding" {
   name                      = local.bing_name
   parent_id                 = azurerm_resource_group.this.id
   location                  = "Global"
-  
+
   body = {
     kind = "Bing.Grounding"
     sku = {
@@ -13,6 +13,7 @@ resource "azapi_resource" "bing_grounding" {
     properties = {
     }
   }
+  response_export_values = ["properties.endpoint"]
 }
 
 resource "azurerm_monitor_diagnostic_setting" "bing" {
