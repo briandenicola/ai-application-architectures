@@ -42,3 +42,16 @@ resource "azapi_resource" "bing_to_agent_project_connection" {
     }
   }
 }
+
+# data "azapi_resource_action" "rotate_openai_key1" {
+#   type        = "Microsoft.Bing/accounts@2025-05-01-preview"
+#   resource_id = azapi_resource.bing_grounding.id
+#   action      = "regenerateKey"
+#   method      = "POST"
+
+#   body = {
+#     keyName = "Key1"
+#   }
+
+#   response_export_values = ["*"]
+# }
