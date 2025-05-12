@@ -36,7 +36,6 @@ resource "azapi_resource" "global" {
     properties = {
       customSubDomainName = "${local.openai_name}-global",
       publicNetworkAccess = "Enabled",
-
     }
   }
 }
