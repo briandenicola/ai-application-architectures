@@ -53,7 +53,6 @@ tasks:
 
   creds:
     cmds:
-    - task: refresh
     - jq -n --arg visionEndpoint {{.OPENAI_VISION_ENDPOINT}} --arg visionKey {{.OPENAI_VISION_KEY}}  --arg embeddingEndpoint {{.EMBED_ENDPOINT}} --arg embeddingKey {{.EMBED_KEY}} --arg endpoint {{.ENDPOINT}} --arg apiKey {{.KEY}} '{"OpenAI":$ARGS.named}' > src/settings.json
     - echo AZURE_OPENAI_API_KEY={{.KEY}} > src/.env
     - echo AZURE_OPENAI_ENDPOINT={{.ENDPOINT}} >> src/.env
@@ -70,6 +69,16 @@ tasks:
         sh: terraform -chdir=./infrastructure output -raw OPENAI_VISION_ENDPOINT
       OPENAI_VISION_KEY:
         sh: terraform -chdir=./infrastructure output -raw OPENAI_VISION_KEY
+
+  agent:
+    desc: Basic Agent
+    dir: ./src/agents/basic
+    cmds:
+    - cmd: export PROJECT_CONNECTION_STRING="{{.PROJECT_CONNECTION_STRING}}" ; dotnet run
+      silent: false
+    vars:
+      PROJECT_CONNECTION_STRING:
+        sh: terraform -chdir=../../../infrastructure output -raw FOUNDRY_PROJECT_CONNECTION_STRING
 
   jokester:
     desc: Tell me a Joke
