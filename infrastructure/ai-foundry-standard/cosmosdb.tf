@@ -7,7 +7,7 @@ resource "azurerm_cosmosdb_account" "this" {
   offer_type                       = "Standard"
   kind                             = "GlobalDocumentDB"
   free_tier_enabled                = false
-  local_authentication_disabled    = true
+  local_authentication_disabled    = false
   public_network_access_enabled    = false
   automatic_failover_enabled       = false
   multiple_write_locations_enabled = false
@@ -24,13 +24,17 @@ resource "azurerm_cosmosdb_account" "this" {
 }
 
 resource "azurerm_private_endpoint" "pe_cosmosdb" {
-  name                = "${azurerm_cosmosdb_account.this.name}-private-endpoint"
+  depends_on = [
+    azapi_resource.ai_search,
+    azurerm_private_endpoint.pe_aisearch
+  ]
+  name                = "${azurerm_cosmosdb_account.this.name}-ep"
   resource_group_name = azurerm_resource_group.core.name
   location            = azurerm_resource_group.core.location
   subnet_id           = azurerm_subnet.private-endpoints.id
 
   private_service_connection {
-    name                           = "${azurerm_cosmosdb_account.this.name}-private-link-service-connection"
+    name                           = "${azurerm_cosmosdb_account.this.name}-ep"
     private_connection_resource_id = azurerm_cosmosdb_account.this.id
     subresource_names              = ["Sql"]
     is_manual_connection           = false

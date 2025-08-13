@@ -20,13 +20,18 @@ resource "azurerm_storage_account" "this" {
 }
 
 resource "azurerm_private_endpoint" "pe_storage" {
-  name                = "${azurerm_storage_account.this.name}-private-endpoint"
+  depends_on = [
+    azurerm_storage_account.this,
+    azurerm_private_endpoint.pe_storage
+  ]
+
+  name                = "${azurerm_storage_account.this.name}-ep"
   resource_group_name = azurerm_resource_group.core.name
   location            = azurerm_resource_group.core.location
   subnet_id           = azurerm_subnet.private-endpoints.id
 
   private_service_connection {
-    name                           = "${azurerm_storage_account.this.name}-private-link-service-connection"
+    name                           = "${azurerm_storage_account.this.name}-ep"
     private_connection_resource_id = azurerm_storage_account.this.id
     subresource_names              = ["blob"]
     is_manual_connection           = false

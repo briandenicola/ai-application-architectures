@@ -17,6 +17,13 @@ resource "azurerm_subnet" "agents" {
   resource_group_name  = azurerm_resource_group.core.name
   virtual_network_name = azurerm_virtual_network.this.name
   address_prefixes     = [local.agent_subnet_cidr]
+  delegation {
+    name = "agent-delegation"
+
+    service_delegation {
+      name = "Microsoft.App/environments"
+    }
+  }
 }
 
 resource "azurerm_network_security_group" "this" {

@@ -35,18 +35,20 @@ resource "azapi_resource" "ai_search" {
 }
 
 resource "azurerm_private_endpoint" "pe_aisearch" {
-  name                = "${azapi_resource.ai_search.name}-private-endpoint"
+  depends_on = [
+    azapi_resource.ai_search,
+    azurerm_private_endpoint.pe_storage
+  ]
+  name                = "${azapi_resource.ai_search.name}-ep"
   resource_group_name = azurerm_resource_group.core.name
   location            = azurerm_resource_group.core.location
   subnet_id           = azurerm_subnet.private-endpoints.id
 
   private_service_connection {
-    name                           = "${azapi_resource.ai_search.name}-private-link-service-connection"
+    name                           = "${azapi_resource.ai_search.name}-ep"
     private_connection_resource_id = azapi_resource.ai_search.id
-    subresource_names = [
-      "searchService"
-    ]
-    is_manual_connection = false
+    subresource_names              = ["searchService"]
+    is_manual_connection           = false
   }
 
   private_dns_zone_group {

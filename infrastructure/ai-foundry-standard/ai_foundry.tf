@@ -1,12 +1,11 @@
 resource "azapi_resource" "ai_foundry" {
-  depends_on = [ 
+  depends_on = [
     azapi_resource.ai_search,
-    azurerm_cosmosdb_account.this, 
-    azurerm_storage_account.this,  
+    azurerm_cosmosdb_account.this,
+    azurerm_storage_account.this,    
     azurerm_private_endpoint.pe_storage,
     azurerm_private_endpoint.pe_cosmosdb,
     azurerm_private_endpoint.pe_aisearch,
-    azurerm_private_endpoint.pe_aifoundry    
   ]
 
   type                      = "Microsoft.CognitiveServices/accounts@2025-06-01"
@@ -25,10 +24,10 @@ resource "azapi_resource" "ai_foundry" {
     }
 
     properties = {
-      disableLocalAuth = false
+      disableLocalAuth       = false
       allowProjectManagement = true
-      customSubDomainName = local.resource_name
-      publicNetworkAccess = "Disabled"
+      customSubDomainName    = local.resource_name
+      publicNetworkAccess    = "Disabled"
       networkAcls = {
         defaultAction = "Allow"
       }
@@ -48,16 +47,19 @@ resource "azapi_resource" "ai_foundry" {
 }
 
 resource "azurerm_private_endpoint" "pe_aifoundry" {
-  name                = "${azapi_resource.ai_foundry.name}-private-endpoint"
+  depends_on = [
+    azapi_resource.ai_foundry
+  ]
+  name                = "${azapi_resource.ai_foundry.name}-ep"
   resource_group_name = azurerm_resource_group.core.name
   location            = azurerm_resource_group.core.location
   subnet_id           = azurerm_subnet.private-endpoints.id
 
   private_service_connection {
-    name                           = "${azapi_resource.ai_foundry.name}-private-link-service-connection"
+    name                           = "${azapi_resource.ai_foundry.name}-ep"
     private_connection_resource_id = azapi_resource.ai_foundry.id
-    subresource_names = ["account"]
-    is_manual_connection = false
+    subresource_names              = ["account"]
+    is_manual_connection           = false
   }
 
   private_dns_zone_group {

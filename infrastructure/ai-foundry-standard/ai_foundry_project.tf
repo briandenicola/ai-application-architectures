@@ -1,11 +1,12 @@
 resource "azapi_resource" "ai_foundry_project" {
   depends_on = [
-    azapi_resource.ai_foundry,
+    azapi_resource.ai_foundry,    
+    azurerm_private_endpoint.pe_aifoundry 
   ]
 
   type                      = "Microsoft.CognitiveServices/accounts/projects@2025-06-01"
   name                      = local.project_name
-  parent_id                 = azurerm_resource_group.this.id
+  parent_id                 = azapi_resource.ai_foundry.id
   location                  = azurerm_resource_group.this.location
   schema_validation_enabled = false
 
