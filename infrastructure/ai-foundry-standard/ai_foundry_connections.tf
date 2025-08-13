@@ -1,4 +1,8 @@
 resource "azapi_resource" "cosmosdb_connection" {
+  depends_on = [
+    azapi_resource.ai_foundry_project,
+    azurerm_cosmosdb_account.this
+  ]
   type                      = "Microsoft.CognitiveServices/accounts/projects/connections@2025-06-01"
   name                      = azurerm_cosmosdb_account.this.name
   parent_id                 = azapi_resource.ai_foundry_project.id
@@ -24,6 +28,10 @@ resource "azapi_resource" "cosmosdb_connection" {
 }
 
 resource "azapi_resource" "storage_connection" {
+  depends_on = [
+    azapi_resource.ai_foundry_project,
+    azurerm_storage_account.this
+  ]
   type                      = "Microsoft.CognitiveServices/accounts/projects/connections@2025-06-01"
   name                      = azurerm_storage_account.this.name
   parent_id                 = azapi_resource.ai_foundry_project.id
@@ -50,14 +58,14 @@ resource "azapi_resource" "storage_connection" {
 }
 
 resource "azapi_resource" "aisearch_connection" {
+  depends_on = [
+    azapi_resource.ai_foundry_project,
+    azapi_resource.ai_search
+  ]
   type                      = "Microsoft.CognitiveServices/accounts/projects/connections@2025-06-01"
   name                      = azapi_resource.ai_search.name
   parent_id                 = azapi_resource.ai_foundry_project.id
   schema_validation_enabled = false
-
-  depends_on = [
-    azapi_resource.ai_foundry_project
-  ]
 
   body = {
     name = azapi_resource.ai_search.name

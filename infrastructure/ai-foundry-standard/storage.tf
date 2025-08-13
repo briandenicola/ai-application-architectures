@@ -7,7 +7,7 @@ resource "azurerm_storage_account" "this" {
   account_kind              = "StorageV2"
   account_tier              = "Standard"
   account_replication_type  = "ZRS"
-  shared_access_key_enabled = false
+  shared_access_key_enabled = true
 
   min_tls_version                 = "TLS1_2"
   allow_nested_items_to_be_public = false
@@ -26,7 +26,7 @@ resource "azurerm_private_endpoint" "pe_storage" {
   subnet_id           = azurerm_subnet.private-endpoints.id
 
   private_service_connection {
-    name                           = "${azurerm_storage_account.storage_account.name}-private-link-service-connection"
+    name                           = "${azurerm_storage_account.this.name}-private-link-service-connection"
     private_connection_resource_id = azurerm_storage_account.this.id
     subresource_names              = ["blob"]
     is_manual_connection           = false

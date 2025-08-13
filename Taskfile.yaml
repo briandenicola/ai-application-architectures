@@ -7,9 +7,20 @@ env:
   DEFAULT_REGION: "eastus2"
 
 includes:
-  di: ./infrastructure/document-intelligence/Taskfile.yaml
-  basic: ./infrastructure/ai-foundry-basic/Taskfile.yaml
-  standard: ./infrastructure/ai-foundry-standard/Taskfile.yaml
+  docintel: 
+    taskfile: ./infrastructure/document-intelligence/Taskfile.yaml
+    internal: false
+    dir: ./infrastructure/document-intelligence/
+
+  basic: 
+    taskfile: ./infrastructure/ai-foundry-basic/Taskfile.yaml
+    internal: false
+    dir: ./infrastructure/ai-foundry-basic/    
+
+  standard: 
+    taskfile: ./infrastructure/ai-foundry-standard/Taskfile.yaml
+    internal: false
+    dir: ./infrastructure/ai-foundry-standard/
 
 tasks:
   default: 

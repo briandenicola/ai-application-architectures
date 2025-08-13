@@ -1,4 +1,14 @@
 resource "azapi_resource" "ai_foundry" {
+  depends_on = [ 
+    azapi_resource.ai_search,
+    azurerm_cosmosdb_account.this, 
+    azurerm_storage_account.this,  
+    azurerm_private_endpoint.pe_storage,
+    azurerm_private_endpoint.pe_cosmosdb,
+    azurerm_private_endpoint.pe_aisearch,
+    azurerm_private_endpoint.pe_aifoundry    
+  ]
+
   type                      = "Microsoft.CognitiveServices/accounts@2025-06-01"
   name                      = local.ai_services_name
   parent_id                 = azurerm_resource_group.this.id
@@ -31,6 +41,10 @@ resource "azapi_resource" "ai_foundry" {
       ]
     }
   }
+
+  response_export_values = [
+    "properties.discovery_url"
+  ]
 }
 
 resource "azurerm_private_endpoint" "pe_aifoundry" {

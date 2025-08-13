@@ -1,10 +1,6 @@
 resource "azapi_resource" "ai_foundry_project" {
   depends_on = [
     azapi_resource.ai_foundry,
-    azurerm_private_endpoint.pe_storage,
-    azurerm_private_endpoint.pe_cosmosdb,
-    azurerm_private_endpoint.pe_aisearch,
-    azurerm_private_endpoint.pe_aifoundry
   ]
 
   type                      = "Microsoft.CognitiveServices/accounts/projects@2025-06-01"
