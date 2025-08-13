@@ -1,9 +1,7 @@
 version: '3'
 
 env:
-  AI_TITLE: openai_learnings
-  DEFAULT_REGION: "eastus2"
-  MACHINE_LEARNING_WORKSPACE_DEPLOY: false
+  AIF_STANDARD_TITLE: "AI Foundry - BYO Components Demo"
 
 tasks:
   default: 
@@ -11,7 +9,7 @@ tasks:
     - task --list 
   
   up: 
-    desc: Builds a Complete {{.AI_TITLE}} Environment
+    desc: Builds a Complete {{.AIF_STANDARD_TITLE}} Environment
     cmds:
     - task: init
     - task: apply 
@@ -20,28 +18,27 @@ tasks:
   init:
     desc: Initializes Terraform workspace
     cmds:
-    - terraform -chdir=./infrastructure workspace new {{.REGION}} || true
-    - terraform -chdir=./infrastructure workspace select {{.REGION}}
-    - terraform -chdir=./infrastructure init
+    - terraform workspace new {{.REGION}} || true
+    - terraform workspace select {{.REGION}}
+    - terraform init
     vars: 
       REGION: '{{default .DEFAULT_REGION .CLI_ARGS}}'
 
   apply:
     desc: Creates Azure infrastructure
     cmds:
-    - terraform -chdir=./infrastructure apply -auto-approve
+    - terraform apply -auto-approve
       -var "region={{.REGION}}" 
-      -var "tags={{.AI_TITLE}}"
-      -var "deploy_ai_workspace={{.MACHINE_LEARNING_WORKSPACE_DEPLOY}}"
+      -var "tags={{.AIF_STANDARD_TITLE}}"
       -compact-warnings
     vars: 
       REGION: '{{default .DEFAULT_REGION .CLI_ARGS}}'
 
   refresh:
     cmds:
-    - terraform -chdir=./infrastructure refresh
+    - terraform refresh
       -var "region={{.REGION}}" 
-      -var "tags={{.AI_TITLE}}"
+      -var "tags={{.AIF_STANDARD_TITLE}}"
       -compact-warnings
     vars: 
       REGION: '{{default .DEFAULT_REGION .CLI_ARGS}}'
@@ -49,73 +46,26 @@ tasks:
   creds:
     cmds:
     - jq -n --arg visionEndpoint {{.OPENAI_VISION_ENDPOINT}} --arg visionKey {{.OPENAI_VISION_KEY}}  --arg embeddingEndpoint {{.EMBED_ENDPOINT}} --arg embeddingKey {{.EMBED_KEY}} --arg endpoint {{.ENDPOINT}} --arg apiKey {{.KEY}} '{"OpenAI":$ARGS.named}' > src/settings.json
-    - echo AZURE_OPENAI_API_KEY={{.KEY}} > src/.env
-    - echo AZURE_OPENAI_ENDPOINT={{.ENDPOINT}} >> src/.env
+    - echo AZURE_OPENAI_API_KEY={{.KEY}} > ../../src/.env
+    - echo AZURE_OPENAI_ENDPOINT={{.ENDPOINT}} >> ../../src/.env
     vars:
       KEY: 
-        sh: terraform -chdir=./infrastructure output -raw OPENAI_KEY
+        sh: terraform output -raw OPENAI_KEY
       ENDPOINT:
-        sh: terraform -chdir=./infrastructure output -raw OPENAI_ENDPOINT
+        sh: terraform output -raw OPENAI_ENDPOINT
       EMBED_KEY: 
-        sh: terraform -chdir=./infrastructure output -raw OPENAI_EMBEDDING_KEY
+        sh: terraform output -raw OPENAI_EMBEDDING_KEY
       EMBED_ENDPOINT:
-        sh: terraform -chdir=./infrastructure output -raw OPENAI_EMBEDDING_ENDPOINT
+        sh: terraform output -raw OPENAI_EMBEDDING_ENDPOINT
       OPENAI_VISION_ENDPOINT:
-        sh: terraform -chdir=./infrastructure output -raw OPENAI_VISION_ENDPOINT
+        sh: terraform output -raw OPENAI_VISION_ENDPOINT
       OPENAI_VISION_KEY:
-        sh: terraform -chdir=./infrastructure output -raw OPENAI_VISION_KEY
-
-  agent:
-    desc: Basic Agent
-    dir: ./src/agents/basic
-    cmds:
-    - cmd: export PROJECT_CONNECTION_STRING="{{.PROJECT_CONNECTION_STRING}}" ; dotnet run
-      silent: false
-    vars:
-      PROJECT_CONNECTION_STRING:
-        sh: terraform -chdir=../../../infrastructure output -raw FOUNDRY_PROJECT_CONNECTION_STRING
-
-  jokester:
-    desc: Tell me a Joke
-    dir: ./src/jokester
-    cmds:
-    - dotnet run
-
-  coin:
-    desc: Analyze a Romain Coin
-    dir: ./src/ric_analyzer
-    cmds:
-    - dotnet run
-
-  otel:
-    desc: Semantic Kernel with Observability
-    dir: ./src/ric_analyzer_with_observability
-    cmds:
-    - docker run --rm -p 18888:18888 -p 4317:18889 -d --name aspire-dashboard  mcr.microsoft.com/dotnet/aspire-dashboard:8.1.0 > /dev/null 2>&1 || true
-    - cmd: dotnet run
-      silent: true
-    - task: aspire-dashboard
-  
-  aspire-dashboard:
-    desc: Gets Login Info for Aspire
-    cmds:
-    - cmd: echo Check Aspire Dashboard at {{.URL}} for more details
-      silent: true
-    vars:
-      URL:
-        sh: docker logs aspire-dashboard | grep -i "Login to the dashboard at" | awk '{print $6}' | sed 's/0\.0\.0\.0/localhost/'
-
-  article:
-    desc: Summarize a Podcast transcription
-    dir: ./src/summarize_article
-    cmds:
-    - dotnet run
+        sh: terraform output -raw OPENAI_VISION_KEY
 
   down:
     desc: Destroys all Azure resources and cleans up Terraform
-    dir: ./infrastructure
     cmds:       
-    - terraform destroy -var "region={{.REGION}}" -var "tags={{.AI_TITLE}}" -compact-warnings || true
+    - terraform destroy -var "region={{.REGION}}" -var "tags={{.AIF_STANDARD_TITLE}}" -compact-warnings || true
     - rm -rf terraform.tfstate.d .terraform.lock.hcl .terraform terraform.tfstate terraform.tfstate.backup .terraform.tfstate.lock.info || true
     vars: 
       REGION: '{{default .DEFAULT_REGION .CLI_ARGS}}'

@@ -1,7 +1,7 @@
 version: '3'
 
 env:
-  AI_TITLE: "AI Foundry - Basic Demo"
+  AIF_BASIC_TITLE: "AI Foundry - Basic Demo"
   MACHINE_LEARNING_WORKSPACE_DEPLOY: false
 
 tasks:
@@ -10,7 +10,7 @@ tasks:
     - task --list 
   
   up: 
-    desc: Builds a Complete {{.AI_TITLE}} Environment
+    desc: Builds a Complete {{.AIF_BASIC_TITLE}} Environment
     cmds:
     - task: init
     - task: apply 
@@ -30,7 +30,7 @@ tasks:
     cmds:
     - terraform apply -auto-approve
       -var "region={{.REGION}}" 
-      -var "tags={{.AI_TITLE}}"
+      -var "tags={{.AIF_BASIC_TITLE}}"
       -var "deploy_ai_workspace={{.MACHINE_LEARNING_WORKSPACE_DEPLOY}}"
       -compact-warnings
     vars: 
@@ -40,7 +40,7 @@ tasks:
     cmds:
     - terraform refresh
       -var "region={{.REGION}}" 
-      -var "tags={{.AI_TITLE}}"
+      -var "tags={{.AIF_BASIC_TITLE}}"
       -compact-warnings
     vars: 
       REGION: '{{default .DEFAULT_REGION .CLI_ARGS}}'
@@ -77,7 +77,7 @@ tasks:
   down:
     desc: Destroys all Azure resources and cleans up Terraform
     cmds:       
-    - terraform destroy -var "region={{.REGION}}" -var "tags={{.AI_TITLE}}" -compact-warnings || true
+    - terraform destroy -var "region={{.REGION}}" -var "tags={{.AIF_BASIC_TITLE}}" -compact-warnings || true
     - rm -rf terraform.tfstate.d .terraform.lock.hcl .terraform terraform.tfstate terraform.tfstate.backup .terraform.tfstate.lock.info || true
     vars: 
       REGION: '{{default .DEFAULT_REGION .CLI_ARGS}}'

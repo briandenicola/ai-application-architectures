@@ -37,7 +37,7 @@ resource "azurerm_monitor_diagnostic_setting" "regional" {
     }
   }
 
-  metric {
+  enabled_metric {
     category = "AllMetrics"
   }
 }
@@ -58,7 +58,7 @@ resource "azurerm_monitor_diagnostic_setting" "embedding" {
 
   }
 
-  metric {
+  enabled_metric {
     category = "AllMetrics"
   }
 }

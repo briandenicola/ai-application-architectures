@@ -6,8 +6,3 @@ variable "region" {
 variable "tags" {
   description = "Tags to apply to Resource Group"
 }
-
-variable "deploy_ai_workspace" {
-  description = "Deploy azurerm_machine_learning_workspace"
-  default = "false"
-}

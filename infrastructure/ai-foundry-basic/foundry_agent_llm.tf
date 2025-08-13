@@ -37,7 +37,7 @@ resource "azurerm_monitor_diagnostic_setting" "global" {
     }
   }
 
-  metric {
+  enabled_metric {
     category = "AllMetrics"
   }
 }

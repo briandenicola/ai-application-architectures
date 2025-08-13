@@ -21,7 +21,7 @@ resource "azurerm_monitor_diagnostic_setting" "bing" {
   target_resource_id         = azapi_resource.bing_grounding.id
   log_analytics_workspace_id = azurerm_log_analytics_workspace.this.id
 
-  metric {
+  enabled_metric {
     category = "AllMetrics"
   }
 }

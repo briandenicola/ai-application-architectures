@@ -27,7 +27,7 @@ resource "azurerm_monitor_diagnostic_setting" "ai_project" {
     }
   }
 
-  metric {
+  enabled_metric {
     category = "AllMetrics"
   }
 }
