@@ -42,7 +42,7 @@ resource "azapi_resource" "ai_foundry" {
   }
 
   response_export_values = [
-    "properties.discovery_url"
+    "properties.endpoint"
   ]
 }
 
