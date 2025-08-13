@@ -3,83 +3,19 @@ version: '3'
 dotenv: ['.env']
 
 env:
-  AI_TITLE: openai_learnings
+  DEFAULT_TITLE: openai_learnings
   DEFAULT_REGION: "eastus2"
-  MACHINE_LEARNING_WORKSPACE_DEPLOY: false
 
 includes:
   di: ./document-intelligence/Taskfile.yaml
+  basic: ./infrastructure/ai-foundry-basic/Taskfile.yaml
+  standard: ./infrastructure/ai-foundry-standard/Taskfile.yaml
 
 tasks:
   default: 
     cmds: 
     - task --list 
   
-  up: 
-    desc: Builds a Complete {{.AI_TITLE}} Environment
-    cmds:
-    - task: init
-    - task: apply 
-    - task: creds
-
-  init:
-    desc: Initializes Terraform workspace
-    cmds:
-    - terraform -chdir=./infrastructure workspace new {{.REGION}} || true
-    - terraform -chdir=./infrastructure workspace select {{.REGION}}
-    - terraform -chdir=./infrastructure init
-    vars: 
-      REGION: '{{default .DEFAULT_REGION .CLI_ARGS}}'
-
-  apply:
-    desc: Creates Azure infrastructure
-    cmds:
-    - terraform -chdir=./infrastructure apply -auto-approve
-      -var "region={{.REGION}}" 
-      -var "tags={{.AI_TITLE}}"
-      -var "deploy_ai_workspace={{.MACHINE_LEARNING_WORKSPACE_DEPLOY}}"
-      -compact-warnings
-    vars: 
-      REGION: '{{default .DEFAULT_REGION .CLI_ARGS}}'
-
-  refresh:
-    cmds:
-    - terraform -chdir=./infrastructure refresh
-      -var "region={{.REGION}}" 
-      -var "tags={{.AI_TITLE}}"
-      -compact-warnings
-    vars: 
-      REGION: '{{default .DEFAULT_REGION .CLI_ARGS}}'
-
-  creds:
-    cmds:
-    - jq -n --arg visionEndpoint {{.OPENAI_VISION_ENDPOINT}} --arg visionKey {{.OPENAI_VISION_KEY}}  --arg embeddingEndpoint {{.EMBED_ENDPOINT}} --arg embeddingKey {{.EMBED_KEY}} --arg endpoint {{.ENDPOINT}} --arg apiKey {{.KEY}} '{"OpenAI":$ARGS.named}' > src/settings.json
-    - echo AZURE_OPENAI_API_KEY={{.KEY}} > src/.env
-    - echo AZURE_OPENAI_ENDPOINT={{.ENDPOINT}} >> src/.env
-    vars:
-      KEY: 
-        sh: terraform -chdir=./infrastructure output -raw OPENAI_KEY
-      ENDPOINT:
-        sh: terraform -chdir=./infrastructure output -raw OPENAI_ENDPOINT
-      EMBED_KEY: 
-        sh: terraform -chdir=./infrastructure output -raw OPENAI_EMBEDDING_KEY
-      EMBED_ENDPOINT:
-        sh: terraform -chdir=./infrastructure output -raw OPENAI_EMBEDDING_ENDPOINT
-      OPENAI_VISION_ENDPOINT:
-        sh: terraform -chdir=./infrastructure output -raw OPENAI_VISION_ENDPOINT
-      OPENAI_VISION_KEY:
-        sh: terraform -chdir=./infrastructure output -raw OPENAI_VISION_KEY
-
-  agent:
-    desc: Basic Agent
-    dir: ./src/agents/basic
-    cmds:
-    - cmd: export PROJECT_CONNECTION_STRING="{{.PROJECT_CONNECTION_STRING}}" ; dotnet run
-      silent: false
-    vars:
-      PROJECT_CONNECTION_STRING:
-        sh: terraform -chdir=../../../infrastructure output -raw FOUNDRY_PROJECT_CONNECTION_STRING
-
   jokester:
     desc: Tell me a Joke
     dir: ./src/jokester
@@ -115,12 +51,3 @@ tasks:
     dir: ./src/summarize_article
     cmds:
     - dotnet run
-
-  down:
-    desc: Destroys all Azure resources and cleans up Terraform
-    dir: ./infrastructure
-    cmds:       
-    - terraform destroy -var "region={{.REGION}}" -var "tags={{.AI_TITLE}}" -compact-warnings || true
-    - rm -rf terraform.tfstate.d .terraform.lock.hcl .terraform terraform.tfstate terraform.tfstate.backup .terraform.tfstate.lock.info || true
-    vars: 
-      REGION: '{{default .DEFAULT_REGION .CLI_ARGS}}'
