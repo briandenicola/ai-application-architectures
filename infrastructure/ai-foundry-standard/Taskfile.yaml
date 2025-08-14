@@ -13,7 +13,6 @@ tasks:
     cmds:
     - task: init
     - task: apply 
-    - task: creds
 
   init:
     desc: Initializes Terraform workspace
@@ -42,25 +41,6 @@ tasks:
       -compact-warnings
     vars: 
       REGION: '{{default .DEFAULT_REGION .CLI_ARGS}}'
-
-  creds:
-    cmds:
-    - jq -n --arg visionEndpoint {{.OPENAI_VISION_ENDPOINT}} --arg visionKey {{.OPENAI_VISION_KEY}}  --arg embeddingEndpoint {{.EMBED_ENDPOINT}} --arg embeddingKey {{.EMBED_KEY}} --arg endpoint {{.ENDPOINT}} --arg apiKey {{.KEY}} '{"OpenAI":$ARGS.named}' > src/settings.json
-    - echo AZURE_OPENAI_API_KEY={{.KEY}} > ../../src/.env
-    - echo AZURE_OPENAI_ENDPOINT={{.ENDPOINT}} >> ../../src/.env
-    vars:
-      KEY: 
-        sh: terraform output -raw OPENAI_KEY
-      ENDPOINT:
-        sh: terraform output -raw OPENAI_ENDPOINT
-      EMBED_KEY: 
-        sh: terraform output -raw OPENAI_EMBEDDING_KEY
-      EMBED_ENDPOINT:
-        sh: terraform output -raw OPENAI_EMBEDDING_ENDPOINT
-      OPENAI_VISION_ENDPOINT:
-        sh: terraform output -raw OPENAI_VISION_ENDPOINT
-      OPENAI_VISION_KEY:
-        sh: terraform output -raw OPENAI_VISION_KEY
 
   down:
     desc: Destroys all Azure resources and cleans up Terraform

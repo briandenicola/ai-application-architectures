@@ -8,6 +8,7 @@ locals {
   capability_host_name = "${local.resource_name}-caphost"
   appinsights_name     = "${local.resource_name}-appinsights"
   cosmosdb_name        = "${local.resource_name}-db"
+  bing_name            = "${local.resource_name}-bing-grounding"
   vnet_name            = "${local.resource_name}-network"
   storage_account_name = "${replace(local.resource_name, "-", "")}sa"
   loganalytics_name    = "${local.resource_name}-logs"
