@@ -6,6 +6,7 @@ locals {
   search_service_name  = "${local.resource_name}-search"
   project_name         = "${local.resource_name}-aiproject"
   capability_host_name = "${local.resource_name}-caphost"
+  appinsights_name     = "${local.resource_name}-appinsights"
   cosmosdb_name        = "${local.resource_name}-db"
   vnet_name            = "${local.resource_name}-network"
   storage_account_name = "${replace(local.resource_name, "-", "")}sa"

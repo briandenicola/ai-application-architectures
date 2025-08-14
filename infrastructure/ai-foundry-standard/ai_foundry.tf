@@ -71,3 +71,27 @@ resource "azurerm_private_endpoint" "pe_aifoundry" {
     ]
   }
 }
+
+data "azurerm_monitor_diagnostic_categories" "ai" {
+  resource_id = azapi_resource.ai_foundry.id
+}
+
+resource "azurerm_monitor_diagnostic_setting" "ai" {
+  depends_on = [
+    data.azurerm_monitor_diagnostic_categories.ai
+  ]
+  name                       = "diag"
+  target_resource_id         = azapi_resource.ai_foundry.id
+  log_analytics_workspace_id = azurerm_log_analytics_workspace.this.id
+
+  dynamic "enabled_log" {
+    for_each = toset(data.azurerm_monitor_diagnostic_categories.ai.log_category_types)
+    content {
+      category = enabled_log.value
+    }
+  }
+
+  enabled_metric {
+    category = "AllMetrics"
+  }
+}
