@@ -46,6 +46,12 @@ resource "azapi_resource" "ai_foundry" {
   ]
 }
 
+data "azurerm_cognitive_account" "ai_foundry" {
+  depends_on          = [azapi_resource.ai_foundry]
+  name                = local.ai_services_name
+  resource_group_name = azurerm_resource_group.this.name
+}
+
 resource "azurerm_private_endpoint" "pe_aifoundry" {
   depends_on = [
     azapi_resource.ai_foundry

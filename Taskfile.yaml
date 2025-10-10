@@ -17,10 +17,10 @@ includes:
     internal: false
     dir: ./infrastructure/ai-foundry-basic/    
 
-  standard: 
-    taskfile: ./infrastructure/ai-foundry-standard/Taskfile.yaml
+  agents: 
+    taskfile: ./infrastructure/agent-service-standard/Taskfile.yaml
     internal: false
-    dir: ./infrastructure/ai-foundry-standard/
+    dir: ./infrastructure/agent-service-standard/
 
 tasks:
   default: 
