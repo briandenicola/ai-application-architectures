@@ -1,7 +1,7 @@
 version: '3'
 
 env:
-  AIF_BASIC_TITLE: "AI Foundry - Basic Demo"
+  AIF_BASIC_TITLE: "AI Foundry Hub - ML Workspaces"
   MACHINE_LEARNING_WORKSPACE_DEPLOY: false
 
 tasks:

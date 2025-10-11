@@ -25,13 +25,13 @@ resource "azurerm_cosmosdb_account" "this" {
 
 resource "azurerm_private_endpoint" "pe_cosmosdb" {
   depends_on = [
-    azapi_resource.ai_search,
+    azurerm_cosmosdb_account.this,
     azurerm_private_endpoint.pe_aisearch
   ]
   name                = "${azurerm_cosmosdb_account.this.name}-ep"
-  resource_group_name = azurerm_resource_group.core.name
-  location            = azurerm_resource_group.core.location
-  subnet_id           = azurerm_subnet.private-endpoints.id
+  resource_group_name = azurerm_resource_group.this.name
+  location            = azurerm_resource_group.this.location
+  subnet_id           = var.foundry_project.pe_subnet_id
 
   private_service_connection {
     name                           = "${azurerm_cosmosdb_account.this.name}-ep"
@@ -41,7 +41,9 @@ resource "azurerm_private_endpoint" "pe_cosmosdb" {
   }
 
   private_dns_zone_group {
-    name                 = azurerm_private_dns_zone.privatelink_documents_azure_com.name
-    private_dns_zone_ids = [azurerm_private_dns_zone.privatelink_documents_azure_com.id]
+    name                 = "privatelink.documents.azure.com"
+    private_dns_zone_ids = [
+      var.foundry_project.dns.cosmos_private_dns_zone_id
+    ]
   }
 }

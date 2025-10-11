@@ -1,0 +1,63 @@
+version: '3'
+
+env:
+  BASIC_TITLE: "AI Foundry Demo"
+
+tasks:
+  default: 
+    cmds: 
+    - task --list 
+  
+  up: 
+    desc: Builds a Complete {{.BASIC_TITLE}} Environment
+    cmds:
+    - task: init
+    - task: apply 
+    - task: creds
+
+  init:
+    desc: Initializes Terraform workspace
+    cmds:
+    - terraform workspace new {{.REGION}} || true
+    - terraform workspace select {{.REGION}}
+    - terraform init
+    vars: 
+      REGION: '{{default .DEFAULT_REGION .CLI_ARGS}}'
+
+  apply:
+    desc: Creates Azure infrastructure
+    cmds:
+    - terraform apply -auto-approve
+      -var "region={{.REGION}}" 
+      -var "tags={{.BASIC_TITLE}}"
+      -compact-warnings
+    vars: 
+      REGION: '{{default .DEFAULT_REGION .CLI_ARGS}}'
+
+  refresh:
+    cmds:
+    - terraform refresh
+      -var "region={{.REGION}}" 
+      -var "tags={{.BASIC_TITLE}}"
+      -compact-warnings
+    vars: 
+      REGION: '{{default .DEFAULT_REGION .CLI_ARGS}}'
+
+  creds:
+    cmds:
+    - jq -n --arg endpoint {{.ENDPOINT}} --arg apiKey {{.KEY}} '{"OpenAI":$ARGS.named}' > src/settings.json
+    - echo AZURE_OPENAI_API_KEY={{.KEY}} > ../../src/.env
+    - echo AZURE_OPENAI_ENDPOINT={{.ENDPOINT}} >> ../../src/.env
+    vars:
+      KEY: 
+        sh: terraform output -raw OPENAI_KEY
+      ENDPOINT:
+        sh: terraform output -raw OPENAI_ENDPOINT
+
+  down:
+    desc: Destroys all Azure resources and cleans up Terraform
+    cmds:       
+    - terraform destroy -var "region={{.REGION}}" -var "tags={{.BASIC_TITLE}}" -compact-warnings || true
+    - rm -rf terraform.tfstate.d .terraform.lock.hcl .terraform terraform.tfstate terraform.tfstate.backup .terraform.tfstate.lock.info || true
+    vars: 
+      REGION: '{{default .DEFAULT_REGION .CLI_ARGS}}'

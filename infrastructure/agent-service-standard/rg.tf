@@ -5,7 +5,7 @@ resource "azurerm_resource_group" "this" {
     Application = var.tags
     DeployedOn  = timestamp()
     AppName     = local.resource_name
-    Tier        = "Azure OpenAI; Azure AI Foundry; Azure Cosmos DB; Azure AI Search; Azure AI Foundry Capacity Host; Azure Storage;"
+    Tier        = "AI Foundry; Bing Grounding"
   }
 }
 

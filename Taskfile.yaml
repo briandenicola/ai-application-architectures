@@ -12,10 +12,20 @@ includes:
     internal: false
     dir: ./infrastructure/document-intelligence/
 
-  basic: 
-    taskfile: ./infrastructure/ai-foundry-basic/Taskfile.yaml
+  openai: 
+    taskfile: ./infrastructure/openai/Taskfile.yaml
     internal: false
-    dir: ./infrastructure/ai-foundry-basic/    
+    dir: ./infrastructure/openai/
+
+  ai-hub: 
+    taskfile: ./infrastructure/ai-hub/Taskfile.yaml
+    internal: false
+    dir: ./infrastructure/ai-hub/    
+
+  simple: 
+    taskfile: ./infrastructure/ai-foundry/Taskfile.yaml
+    internal: false
+    dir: ./infrastructure/ai-foundry/    
 
   agents: 
     taskfile: ./infrastructure/agent-service-standard/Taskfile.yaml
@@ -27,18 +37,6 @@ tasks:
     cmds: 
     - task --list 
   
-  jokester:
-    desc: Tell me a Joke
-    dir: ./src/jokester
-    cmds:
-    - dotnet run
-
-  coin:
-    desc: Analyze a Romain Coin
-    dir: ./src/ric_analyzer
-    cmds:
-    - dotnet run
-
   otel:
     desc: Semantic Kernel with Observability
     dir: ./src/ric_analyzer_with_observability
@@ -56,9 +54,3 @@ tasks:
     vars:
       URL:
         sh: docker logs aspire-dashboard | grep -i "Login to the dashboard at" | awk '{print $6}' | sed 's/0\.0\.0\.0/localhost/'
-
-  article:
-    desc: Summarize a Podcast transcription
-    dir: ./src/summarize_article
-    cmds:
-    - dotnet run

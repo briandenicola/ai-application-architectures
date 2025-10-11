@@ -1,12 +1,7 @@
 resource "azapi_resource" "ai_foundry_project" {
-  depends_on = [
-    azapi_resource.ai_foundry,    
-    azurerm_private_endpoint.pe_aifoundry 
-  ]
-
   type                      = "Microsoft.CognitiveServices/accounts/projects@2025-06-01"
-  name                      = local.project_name
-  parent_id                 = azapi_resource.ai_foundry.id
+  name                      = var.foundry_project.name
+  parent_id                 = var.foundry_project.ai_foundry_id
   location                  = azurerm_resource_group.this.location
   schema_validation_enabled = false
 
@@ -19,8 +14,8 @@ resource "azapi_resource" "ai_foundry_project" {
     }
 
     properties = {
-      displayName = "Demo Project"
-      description = "A project for the AI Foundry account with network secured deployed Agent"
+      displayName = var.foundry_project.name
+      description = var.foundry_project.tag
     }
   }
 

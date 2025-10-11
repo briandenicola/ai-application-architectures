@@ -22,13 +22,12 @@ resource "azurerm_storage_account" "this" {
 resource "azurerm_private_endpoint" "pe_storage" {
   depends_on = [
     azurerm_storage_account.this,
-    azurerm_private_endpoint.pe_storage
   ]
 
   name                = "${azurerm_storage_account.this.name}-ep"
-  resource_group_name = azurerm_resource_group.core.name
-  location            = azurerm_resource_group.core.location
-  subnet_id           = azurerm_subnet.private-endpoints.id
+  resource_group_name = azurerm_resource_group.this.name
+  location            = azurerm_resource_group.this.location
+  subnet_id           = var.foundry_project.pe_subnet_id
 
   private_service_connection {
     name                           = "${azurerm_storage_account.this.name}-ep"
@@ -38,7 +37,9 @@ resource "azurerm_private_endpoint" "pe_storage" {
   }
 
   private_dns_zone_group {
-    name                 = azurerm_private_dns_zone.privatelink_blob_core_windows_net.name
-    private_dns_zone_ids = [azurerm_private_dns_zone.privatelink_blob_core_windows_net.id]
+    name                 = "privatelink.blob.core.windows.net"
+    private_dns_zone_ids = [
+      var.foundry_project.dns.storage_private_dns_zone_id
+    ]
   }
 }

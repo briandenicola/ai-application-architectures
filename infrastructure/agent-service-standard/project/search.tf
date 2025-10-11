@@ -40,9 +40,9 @@ resource "azurerm_private_endpoint" "pe_aisearch" {
     azurerm_private_endpoint.pe_storage
   ]
   name                = "${azapi_resource.ai_search.name}-ep"
-  resource_group_name = azurerm_resource_group.core.name
-  location            = azurerm_resource_group.core.location
-  subnet_id           = azurerm_subnet.private-endpoints.id
+  resource_group_name = azurerm_resource_group.this.name
+  location            = azurerm_resource_group.this.location
+  subnet_id           = var.foundry_project.pe_subnet_id
 
   private_service_connection {
     name                           = "${azapi_resource.ai_search.name}-ep"
@@ -52,7 +52,9 @@ resource "azurerm_private_endpoint" "pe_aisearch" {
   }
 
   private_dns_zone_group {
-    name                 = azurerm_private_dns_zone.privatelink_search_windows_net.name
-    private_dns_zone_ids = [azurerm_private_dns_zone.privatelink_search_windows_net.id]
+    name                 = "privatelink.search.windows.net"
+    private_dns_zone_ids = [
+      var.foundry_project.dns.search_private_dns_zone_id
+    ]
   }
 }
