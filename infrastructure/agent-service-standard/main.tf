@@ -10,5 +10,8 @@ locals {
   vnet_cidr            = "192.168.0.0/16"
   pe_subnet_cidr       = cidrsubnet(local.vnet_cidr, 4, 1)
   agent_subnet_cidr    = cidrsubnet(local.vnet_cidr, 4, 2)
-  projects             = ["${local.resource_name}-projectA", "${local.resource_name}-projectB"]
+
+  # foreach is done in parallel and projects depend on ai_foundry parent resource.  For Demo purposes we are creating 2 projects statically.
+  project_1            = "${local.resource_name}-myproject1"
+  project_2            = "${local.resource_name}-myproject2"
 }

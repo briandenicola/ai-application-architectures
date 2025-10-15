@@ -1,6 +1,6 @@
 resource "azurerm_role_assignment" "cosmosdb_operator_ai_foundry_project" {
   depends_on = [
-    resource.time_sleep.wait_project_identities_1
+    resource.time_sleep.wait_project_identities
   ]
   scope                = azurerm_cosmosdb_account.this.id
   role_definition_name = "Cosmos DB Operator"
@@ -9,7 +9,7 @@ resource "azurerm_role_assignment" "cosmosdb_operator_ai_foundry_project" {
 
 resource "azurerm_role_assignment" "storage_blob_data_contributor_ai_foundry_project" {
   depends_on = [
-    resource.time_sleep.wait_project_identities_1
+    resource.time_sleep.wait_project_identities
   ]
   scope                = azurerm_storage_account.this.id
   role_definition_name = "Storage Blob Data Contributor"
@@ -18,7 +18,7 @@ resource "azurerm_role_assignment" "storage_blob_data_contributor_ai_foundry_pro
 
 resource "azurerm_role_assignment" "search_index_data_contributor_ai_foundry_project" {
   depends_on = [
-    resource.time_sleep.wait_project_identities_1
+    resource.time_sleep.wait_project_identities
   ]
   scope                = azapi_resource.ai_search.id
   role_definition_name = "Search Index Data Contributor"
@@ -27,7 +27,7 @@ resource "azurerm_role_assignment" "search_index_data_contributor_ai_foundry_pro
 
 resource "azurerm_role_assignment" "search_service_contributor_ai_foundry_project" {
   depends_on = [
-    resource.time_sleep.wait_project_identities_1
+    resource.time_sleep.wait_project_identities
   ]
   scope                = azapi_resource.ai_search.id
   role_definition_name = "Search Service Contributor"
@@ -36,7 +36,7 @@ resource "azurerm_role_assignment" "search_service_contributor_ai_foundry_projec
 
 resource "azurerm_cosmosdb_sql_role_assignment" "cosmosdb_db_sql_role_aifp_user_thread_message_store" {
   depends_on = [
-    azapi_resource.ai_foundry_project_capability_host_1
+    azapi_resource.ai_foundry_project_capability_host
   ]
   resource_group_name = azurerm_cosmosdb_account.this.resource_group_name
   account_name        = azurerm_cosmosdb_account.this.name
@@ -69,7 +69,7 @@ resource "azurerm_cosmosdb_sql_role_assignment" "cosmosdb_db_sql_role_aifp_entit
 
 resource "azurerm_role_assignment" "storage_blob_data_owner_ai_foundry_project" {
   depends_on = [
-    azapi_resource.ai_foundry_project_capability_host_1
+    azapi_resource.ai_foundry_project_capability_host
   ]
   scope                = azurerm_storage_account.this.id
   role_definition_name = "Storage Blob Data Owner"

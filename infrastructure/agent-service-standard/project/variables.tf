@@ -5,7 +5,7 @@ variable "foundry_project" {
     location      = string
     ai_foundry_id = string
     tag           = string
-    dns = ojbect({
+    dns = object({
       search_private_dns_zone_id  = string
       cosmos_private_dns_zone_id  = string
       storage_private_dns_zone_id = string

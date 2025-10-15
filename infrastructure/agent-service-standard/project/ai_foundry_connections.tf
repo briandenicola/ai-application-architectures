@@ -1,6 +1,6 @@
 resource "azapi_resource" "application_insights_connection" {
   depends_on = [
-    azapi_resource.ai_foundry_project_1,
+    azapi_resource.ai_foundry_project,
     azurerm_application_insights.this
   ]
   type                      = "Microsoft.CognitiveServices/accounts/projects/connections@2025-06-01"

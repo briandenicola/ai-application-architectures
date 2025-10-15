@@ -6,7 +6,7 @@ resource "azurerm_cognitive_account" "this" {
   name                  = local.foundry_name
   resource_group_name   = var.resource_group.name
   location              = var.resource_group.location
-  kind                  = "AIServices"
+  kind                  = "OpenAI"
   custom_subdomain_name = local.foundry_name
   sku_name              = "S0"
 }

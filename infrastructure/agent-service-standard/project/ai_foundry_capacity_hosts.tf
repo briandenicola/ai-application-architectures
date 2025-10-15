@@ -1,4 +1,4 @@
-resource "azapi_resource" "ai_foundry_project_capability_host_1" {
+resource "azapi_resource" "ai_foundry_project_capability_host" {
   depends_on = [
     azapi_resource.aisearch_connection,
     azapi_resource.cosmosdb_connection,

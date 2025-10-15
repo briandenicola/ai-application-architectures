@@ -1,15 +1,15 @@
 
-module "projects" {
+module "project_1" {
   depends_on = [
     azapi_resource.ai_foundry,
     azurerm_private_endpoint.pe_aifoundry
   ]
-  for_each = toset(local.projects)
   source   = "./project"
 
   foundry_project = {
-    name          = each.value
+    name          = local.project_1
     location      = local.location
+    resource_name = local.resource_name
     ai_foundry_id = azapi_resource.ai_foundry.id
     tag           = var.tags
     dns = {
@@ -23,14 +23,9 @@ module "projects" {
     }
     models = [
     {
-        name     = "gpt-4o"
-        version  = "2024-11-20"
-        sku_type = "OpenAI"
-    },
-    {
-        name     = "o1"
-        version  = "2024-12-17"
-        sku_type = "OpenAI"
+        name     = "gpt-4.1"
+        version  = "2025-04-14"
+        format = "OpenAI"
     }]
   }
 }

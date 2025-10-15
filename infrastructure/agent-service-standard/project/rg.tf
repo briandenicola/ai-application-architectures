@@ -1,5 +1,5 @@
 resource "azurerm_resource_group" "this" {
-  name     = "${var.foundry_project.name}_rg"
+  name     = local.project_rg_name
   location = var.foundry_project.location
   tags = {
     Application = var.foundry_project.tag

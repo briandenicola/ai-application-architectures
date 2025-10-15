@@ -1,13 +1,4 @@
 resource "azapi_resource" "ai_foundry" {
-  depends_on = [
-    azapi_resource.ai_search,
-    azurerm_cosmosdb_account.this,
-    azurerm_storage_account.this,    
-    azurerm_private_endpoint.pe_storage,
-    azurerm_private_endpoint.pe_cosmosdb,
-    azurerm_private_endpoint.pe_aisearch,
-  ]
-
   type                      = "Microsoft.CognitiveServices/accounts@2025-06-01"
   name                      = local.ai_services_name
   parent_id                 = azurerm_resource_group.this.id
