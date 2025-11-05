@@ -45,7 +45,7 @@ tasks:
 
   creds:
     cmds:
-    - jq -n --arg endpoint {{.ENDPOINT}} --arg apiKey {{.KEY}} '{"OpenAI":$ARGS.named}' > src/settings.json
+    - jq -n --arg endpoint {{.ENDPOINT}} --arg apiKey {{.KEY}} '{"OpenAI":$ARGS.named}' > ../../src/settings.json
     - echo AZURE_OPENAI_API_KEY={{.KEY}} > ../../src/.env
     - echo AZURE_OPENAI_ENDPOINT={{.ENDPOINT}} >> ../../src/.env
     vars:
