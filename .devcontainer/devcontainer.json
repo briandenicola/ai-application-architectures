@@ -14,15 +14,12 @@
 			"extensions": [
 				"ms-dotnettools.csharp",
 				"ms-azuretools.vscode-docker",
-				"ms-azuretools.vscode-dapr",
 				"ms-azuretools.vscode-azureterraform",
+				"ms-azuretools.vscode-azure-github-copilot",
 				"ms-vscode.powershell",
-				"ms-vscode.azure-account",
-				"ms-kubernetes-tools.aks-devx-tools",
 				"ms-kubernetes-tools.vscode-kubernetes-tools",
 				"github.vscode-pull-request-github",				
-				"github.copilot",
-				"mindaro.mindaro" 
+				"github.copilot"
 			]
 		}
 	},
