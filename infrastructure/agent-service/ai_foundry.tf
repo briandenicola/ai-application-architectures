@@ -19,7 +19,7 @@ resource "azapi_resource" "ai_foundry" {
       allowProjectManagement = true
       customSubDomainName    = local.resource_name
       publicNetworkAccess    = "Enabled"
-      restrictOutboundNetworkAccess = true
+      restrictOutboundNetworkAccess = false
       networkAcls = {
         defaultAction = "Allow"
       }

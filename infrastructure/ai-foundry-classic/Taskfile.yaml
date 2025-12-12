@@ -1,7 +1,7 @@
 version: '3'
 
 env:
-  AIF_STANDARD_TITLE: "AI Agent Service Classic - Standard"
+  BASIC_TITLE: "AI Foundry"
 
 tasks:
   default: 
@@ -9,10 +9,11 @@ tasks:
     - task --list 
   
   up: 
-    desc: Builds a Complete {{.AIF_STANDARD_TITLE}} Environment
+    desc: Builds a Complete {{.BASIC_TITLE}} Environment
     cmds:
     - task: init
     - task: apply 
+    - task: creds
 
   init:
     desc: Initializes Terraform workspace
@@ -28,7 +29,7 @@ tasks:
     cmds:
     - terraform apply -auto-approve
       -var "region={{.REGION}}" 
-      -var "tags={{.AIF_STANDARD_TITLE}}"
+      -var "tags={{.BASIC_TITLE}}"
       -compact-warnings
     vars: 
       REGION: '{{default .DEFAULT_REGION .CLI_ARGS}}'
@@ -37,7 +38,7 @@ tasks:
     cmds:
     - terraform refresh
       -var "region={{.REGION}}" 
-      -var "tags={{.AIF_STANDARD_TITLE}}"
+      -var "tags={{.BASIC_TITLE}}"
       -compact-warnings
     vars: 
       REGION: '{{default .DEFAULT_REGION .CLI_ARGS}}'
@@ -53,11 +54,10 @@ tasks:
       ENDPOINT:
         sh: terraform output -raw OPENAI_ENDPOINT
 
-
   down:
     desc: Destroys all Azure resources and cleans up Terraform
     cmds:       
-    - terraform destroy -var "region={{.REGION}}" -var "tags={{.AIF_STANDARD_TITLE}}" -compact-warnings || true
+    - terraform destroy -var "region={{.REGION}}" -var "tags={{.BASIC_TITLE}}" -compact-warnings || true
     - rm -rf terraform.tfstate.d .terraform.lock.hcl .terraform terraform.tfstate terraform.tfstate.backup .terraform.tfstate.lock.info || true
     vars: 
       REGION: '{{default .DEFAULT_REGION .CLI_ARGS}}'

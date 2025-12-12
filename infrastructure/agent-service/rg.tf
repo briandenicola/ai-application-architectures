@@ -20,17 +20,6 @@ resource "azurerm_resource_group" "logs" {
   }
 }
 
-resource "azurerm_resource_group" "dns" {
-  name     = "${local.resource_name}-dns_rg"
-  location = local.location
-  tags = {
-    Application = var.tags
-    DeployedOn  = timestamp()
-    AppName     = local.resource_name
-    Tier        = "Azure Private DNS Zones"
-  }
-}
-
 resource "azurerm_resource_group" "core" {
   name     = "${local.resource_name}-vnet_rg"
   location = local.location
