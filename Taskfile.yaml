@@ -27,10 +27,15 @@ includes:
     internal: false
     dir: ./infrastructure/ai-foundry/    
 
-  agents: 
-    taskfile: ./infrastructure/agent-service-standard/Taskfile.yaml
+  classic: 
+    taskfile: ./infrastructure/agent-service-classic/Taskfile.yaml
     internal: false
-    dir: ./infrastructure/agent-service-standard/
+    dir: ./infrastructure/agent-service-classic/
+
+  agents: 
+    taskfile: ./infrastructure/agent-service/Taskfile.yaml
+    internal: false
+    dir: ./infrastructure/agent-service/
 
 tasks:
   default: 
