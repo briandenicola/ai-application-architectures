@@ -1,3 +1,12 @@
+resource "random_string" "unique" {
+  length      = 5
+  min_numeric = 5
+  numeric     = true
+  special     = false
+  lower       = true
+  upper       = false
+}
+
 resource "azapi_resource" "ai_foundry" {
   type                      = "Microsoft.CognitiveServices/accounts@2025-10-01-preview"
   name                      = local.ai_services_name
@@ -15,13 +24,10 @@ resource "azapi_resource" "ai_foundry" {
     }
 
     properties = {
-      disableLocalAuth       = true
+      disableLocalAuth       = false
       allowProjectManagement = true
-      customSubDomainName    = local.resource_name
+      customSubDomainName    = "agentsvc${random_string.unique.result}"
       publicNetworkAccess    = "Enabled"
-      networkAcls = {
-        defaultAction = "Allow"
-      }
     }
   }
 

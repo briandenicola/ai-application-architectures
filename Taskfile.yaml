@@ -22,12 +22,12 @@ includes:
     internal: false
     dir: ./infrastructure/ai-hub/    
 
-  simple: 
-    taskfile: ./infrastructure/ai-foundry/Taskfile.yaml
+  ai-foundry: 
+    taskfile: ./infrastructure/ai-foundry-classic/Taskfile.yaml
     internal: false
-    dir: ./infrastructure/ai-foundry/    
+    dir: ./infrastructure/ai-foundry-classic/    
 
-  classic: 
+  classic-agents: 
     taskfile: ./infrastructure/agent-service-classic/Taskfile.yaml
     internal: false
     dir: ./infrastructure/agent-service-classic/
@@ -36,6 +36,11 @@ includes:
     taskfile: ./infrastructure/agent-service/Taskfile.yaml
     internal: false
     dir: ./infrastructure/agent-service/
+
+  msfoundry: 
+    taskfile: ./infrastructure/microsoft-foundry/Taskfile.yaml
+    internal: false
+    dir: ./infrastructure/microsoft-foundry/  
 
 tasks:
   default: 
