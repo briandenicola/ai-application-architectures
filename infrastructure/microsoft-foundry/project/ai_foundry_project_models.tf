@@ -13,8 +13,8 @@ resource "azapi_resource" "model_deployments" {
       }
     }
     sku = {
-      name     = "Standard"
-      capacity = 250
+      name     = "GlobalStandard"
+      capacity = 1
     }
   }
 }

@@ -17,12 +17,8 @@ resource "azapi_resource" "ai_foundry" {
     properties = {
       disableLocalAuth       = false
       allowProjectManagement = true
-      customSubDomainName    = local.resource_name
-      publicNetworkAccess    = "Enabled"
-      restrictOutboundNetworkAccess = false
-      networkAcls = {
-        defaultAction = "Allow"
-      }
+      customSubDomainName    = local.ai_services_name
+
       networkInjections = [
         {
           scenario                   = "agent"

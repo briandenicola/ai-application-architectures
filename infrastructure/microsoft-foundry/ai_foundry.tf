@@ -1,21 +1,12 @@
-resource "random_string" "unique" {
-  length      = 5
-  min_numeric = 5
-  numeric     = true
-  special     = false
-  lower       = true
-  upper       = false
-}
-
 resource "azapi_resource" "ai_foundry" {
-  type                      = "Microsoft.CognitiveServices/accounts@2025-10-01-preview"
+  type                      = "Microsoft.CognitiveServices/accounts@2025-06-01"
   name                      = local.ai_services_name
   parent_id                 = azurerm_resource_group.this.id
   location                  = azurerm_resource_group.this.location
-  schema_validation_enabled = false
+  #schema_validation_enabled = false
 
   body = {
-    kind = "AIServices",
+    kind = "AIServices"
     sku = {
       name = "S0"
     }
@@ -26,8 +17,7 @@ resource "azapi_resource" "ai_foundry" {
     properties = {
       disableLocalAuth       = false
       allowProjectManagement = true
-      customSubDomainName    = "agentsvc${random_string.unique.result}"
-      publicNetworkAccess    = "Enabled"
+      customSubDomainName    = local.ai_services_name
     }
   }
 
