@@ -1,7 +1,7 @@
 version: '3'
 
 env:
-  BASIC_TITLE: "AI Foundry"
+  BASIC_TITLE: "AI Foundry (Classic)"
 
 tasks:
   default: 
@@ -13,7 +13,6 @@ tasks:
     cmds:
     - task: init
     - task: apply 
-    - task: creds
 
   init:
     desc: Initializes Terraform workspace
@@ -42,17 +41,6 @@ tasks:
       -compact-warnings
     vars: 
       REGION: '{{default .DEFAULT_REGION .CLI_ARGS}}'
-
-  creds:
-    cmds:
-    - jq -n --arg endpoint {{.ENDPOINT}} --arg apiKey {{.KEY}} '{"OpenAI":$ARGS.named}' > ../../src/settings.json
-    - echo AZURE_OPENAI_API_KEY={{.KEY}} > ../../src/.env
-    - echo AZURE_OPENAI_ENDPOINT={{.ENDPOINT}} >> ../../src/.env
-    vars:
-      KEY: 
-        sh: terraform output -raw OPENAI_KEY
-      ENDPOINT:
-        sh: terraform output -raw OPENAI_ENDPOINT
 
   down:
     desc: Destroys all Azure resources and cleans up Terraform
