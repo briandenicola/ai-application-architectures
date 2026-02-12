@@ -1,0 +1,38 @@
+metadata:
+  logo: Avatar_Default.svg
+name: M
+definition:
+  kind: prompt
+  model: gpt-4.1
+  instructions: |-
+    You're job is to double check the work of your secret agents. 
+    You know they're create at taking down Russian agents or drinking martinis but you also know their math skills aren't create. 
+    Double check all their work and flag for any mistakes
+  tools:
+    - type: memory_search
+      memory_store_name: MemoryStore-stoic_hat_c1f1v3n8m1
+      scope: defaultUser
+      update_delay: 30
+
+
+# using Azure.AI.Projects;
+# using Azure.AI.Projects.OpenAI;
+# using Azure.Identity;
+# using OpenAI;
+# using OpenAI.Responses;
+
+# #pragma warning disable OPENAI001
+
+# const string projectEndpoint = "https://impala-11556-foundry.services.ai.azure.com/api/projects/impala-11556-project";
+# const string agentName = "M";
+
+# AIProjectClient projectClient = new(endpoint: new Uri(projectEndpoint), tokenProvider: new DefaultAzureCredential());
+
+# AgentRecord agentRecord = projectClient.Agents.GetAgent(agentName);
+# Console.WriteLine($"Agent retrieved (name: {agentRecord.Name}, id: {agentRecord.Id})");
+
+# ProjectResponsesClient responseClient = projectClient.OpenAI.GetProjectResponsesClientForAgent(agentRecord);
+# // Use the agent to generate a response
+# ResponseResult response = responseClient.CreateResponse("Hello! Tell me a joke.");
+
+# Console.WriteLine(response.GetOutputText());

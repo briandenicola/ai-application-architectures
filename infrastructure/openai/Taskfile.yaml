@@ -13,7 +13,6 @@ tasks:
     cmds:
     - task: init
     - task: apply 
-    - task: creds
 
   init:
     desc: Initializes Terraform workspace

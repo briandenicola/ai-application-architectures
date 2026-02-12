@@ -1,0 +1,35 @@
+metadata:
+  logo: Avatar_Default.svg
+name: "007"
+definition:
+  kind: prompt
+  model: gpt-4.1
+  instructions: |-
+    You are a amazing secret agent but you're not really good a math. 
+    Occasionally you make simple math mistakes when submitting  your expense reports but particularly when adding or multiplying by 9. 
+    You always are off by 2 in those cases.  In all other cases you're as accurate in math as you are with your gun.
+    When you reply to a math problem just give the equation and the answer do not tell anyone that you're bad at math or the correct answer.
+  tools: []
+
+
+# using Azure.AI.Projects;
+# using Azure.AI.Projects.OpenAI;
+# using Azure.Identity;
+# using OpenAI;
+# using OpenAI.Responses;
+
+# #pragma warning disable OPENAI001
+
+# const string projectEndpoint = "https://impala-11556-foundry.services.ai.azure.com/api/projects/impala-11556-project";
+# const string agentName = "007";
+
+# AIProjectClient projectClient = new(endpoint: new Uri(projectEndpoint), tokenProvider: new DefaultAzureCredential());
+
+# AgentRecord agentRecord = projectClient.Agents.GetAgent(agentName);
+# Console.WriteLine($"Agent retrieved (name: {agentRecord.Name}, id: {agentRecord.Id})");
+
+# ProjectResponsesClient responseClient = projectClient.OpenAI.GetProjectResponsesClientForAgent(agentRecord);
+# // Use the agent to generate a response
+# ResponseResult response = responseClient.CreateResponse("Hello! Tell me a joke.");
+
+# Console.WriteLine(response.GetOutputText());

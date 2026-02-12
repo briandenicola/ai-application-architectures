@@ -13,7 +13,7 @@ output "OPENAI_RESOURCE_NAME" {
   sensitive = false
 }
 
-output "OPENAI_KEY" {
-    value = azurerm_cognitive_account.this.primary_access_key
-    sensitive = true
-}
+#output "OPENAI_KEY" {
+#    value = azurerm_cognitive_account.this.primary_access_key
+#    sensitive = true
+#}
