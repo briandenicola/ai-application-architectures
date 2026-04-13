@@ -4,6 +4,9 @@ _or how I understand Agentic Applications as of 10/2025_
 ## Introduction
 In the fast-evolving world of AI, understanding the architecture behind intelligent systems can be daunting. But what if we could explain it using one of the most iconic films of all time? Enter The Godfather — a cinematic masterpiece that, surprisingly, offers a perfect metaphor for how orchestrated AI systems work today. 
 
+## Evolution of Microsoft's AI Deployment Strategy
+![Over the Years](./assets/years.png)
+
 ## Tool Based and MCP Focus Design
 ![Corleone Family AI Agents](./assets/mcp.png)
 
