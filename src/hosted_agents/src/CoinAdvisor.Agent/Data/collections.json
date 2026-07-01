@@ -1,0 +1,9 @@
+[
+  {
+    "userId": "demo-user",
+    "ownedCoins": [
+      { "coinId": "MD-1943-P", "name": "1943-P Mercury Dime", "theme": "Mercury Dime", "acquiredGrade": "AU55" },
+      { "coinId": "PS-1936", "name": "1936 Peace Dollar", "theme": "Peace Dollar", "acquiredGrade": "MS63" }
+    ]
+  }
+]

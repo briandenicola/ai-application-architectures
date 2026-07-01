@@ -1,0 +1,12 @@
+[
+  { "coinId": "MS-1921-D", "grade": "XF45", "fairMarketValue": 90.00, "authenticityRisk": "Low" },
+  { "coinId": "MS-1889-CC", "grade": "VF20", "fairMarketValue": 825.00, "authenticityRisk": "Low" },
+  { "coinId": "MD-1943-P", "grade": "AU55", "fairMarketValue": 13.00, "authenticityRisk": "Low" },
+  { "coinId": "MD-1916-D", "grade": "G4", "fairMarketValue": 1250.00, "authenticityRisk": "Medium" },
+  { "coinId": "RD-107AD", "grade": "Fine", "fairMarketValue": 140.00, "authenticityRisk": "Low" },
+  { "coinId": "RD-64AD", "grade": "VF", "fairMarketValue": 300.00, "authenticityRisk": "Medium" },
+  { "coinId": "PS-1936", "grade": "MS63", "fairMarketValue": 205.00, "authenticityRisk": "Low" },
+  { "coinId": "BE-1902", "grade": "F12", "fairMarketValue": 62.00, "authenticityRisk": "Low" },
+  { "coinId": "MD-1945-S", "grade": "AU50", "fairMarketValue": 8.50, "authenticityRisk": "Low" },
+  { "coinId": "GE-1913-V", "grade": "AU58", "fairMarketValue": 4200000.00, "authenticityRisk": "High" }
+]

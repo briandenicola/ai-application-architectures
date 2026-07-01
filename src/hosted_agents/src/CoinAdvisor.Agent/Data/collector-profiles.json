@@ -1,0 +1,12 @@
+[
+  {
+    "userId": "demo-user",
+    "displayName": "Brian",
+    "favoriteThemes": ["Mercury Dime", "Morgan Dollar"],
+    "favoriteCountries": ["United States"],
+    "preferredMetals": ["Silver"],
+    "typicalBudget": 200.00,
+    "minAcceptableGrade": "VF20",
+    "notes": "Working on completing a full set of Mercury Dimes by mint mark. Prefers circulated, honestly-graded coins over slabbed high-grade pieces."
+  }
+]

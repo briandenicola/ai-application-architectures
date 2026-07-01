@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:elbruno.com)",
+      "WebFetch(domain:github.com)",
+      "Bash(dotnet --list-sdks)",
+      "Bash(dotnet new *)",
+      "Bash(dotnet sln *)",
+      "Bash(dotnet add *)",
+      "Bash(dotnet build *)",
+      "Bash(find \"C:/Users/brdenico/.nuget/packages\" -iname \"Microsoft.Agents.AI.dll\" 2>/dev/null)",
+      "Bash(mkdir -p C:/Users/brdenico/AppData/Local/Temp/claude/D--Code-agent-idea/de5f95e8-6592-46c7-bdad-e348f988c857/scratchpad/api-probe)",
+      "Bash(dotnet run *)"
+    ]
+  }
+}

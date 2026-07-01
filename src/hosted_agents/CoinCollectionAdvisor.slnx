@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/CoinAdvisor.Agent/CoinAdvisor.Agent.csproj" />
+    <Project Path="src/CoinAdvisor.Client/CoinAdvisor.Client.csproj" />
+  </Folder>
+</Solution>

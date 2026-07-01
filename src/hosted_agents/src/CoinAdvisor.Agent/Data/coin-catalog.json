@@ -1,0 +1,122 @@
+[
+  {
+    "coinId": "MS-1921-D",
+    "name": "1921-D Morgan Dollar",
+    "country": "United States",
+    "year": 1921,
+    "mint": "Denver",
+    "metal": "Silver",
+    "theme": "Morgan Dollar",
+    "grade": "XF45",
+    "askingPrice": 95.00,
+    "listedBy": "Heritage Coin Co."
+  },
+  {
+    "coinId": "MS-1889-CC",
+    "name": "1889-CC Morgan Dollar",
+    "country": "United States",
+    "year": 1889,
+    "mint": "Carson City",
+    "metal": "Silver",
+    "theme": "Morgan Dollar",
+    "grade": "VF20",
+    "askingPrice": 850.00,
+    "listedBy": "Carson Rarities"
+  },
+  {
+    "coinId": "MD-1943-P",
+    "name": "1943-P Mercury Dime",
+    "country": "United States",
+    "year": 1943,
+    "mint": "Philadelphia",
+    "metal": "Silver",
+    "theme": "Mercury Dime",
+    "grade": "AU55",
+    "askingPrice": 12.50,
+    "listedBy": "Liberty Bell Coins"
+  },
+  {
+    "coinId": "MD-1916-D",
+    "name": "1916-D Mercury Dime",
+    "country": "United States",
+    "year": 1916,
+    "mint": "Denver",
+    "metal": "Silver",
+    "theme": "Mercury Dime",
+    "grade": "G4",
+    "askingPrice": 1450.00,
+    "listedBy": "Key Date Rarities"
+  },
+  {
+    "coinId": "RD-107AD",
+    "name": "Trajan Denarius",
+    "country": "Roman Empire",
+    "year": 107,
+    "mint": "Rome",
+    "metal": "Silver",
+    "theme": "Ancient Roman",
+    "grade": "Fine",
+    "askingPrice": 145.00,
+    "listedBy": "Ancient Coin Traders"
+  },
+  {
+    "coinId": "RD-64AD",
+    "name": "Nero Denarius",
+    "country": "Roman Empire",
+    "year": 64,
+    "mint": "Rome",
+    "metal": "Silver",
+    "theme": "Ancient Roman",
+    "grade": "VF",
+    "askingPrice": 320.00,
+    "listedBy": "Ancient Coin Traders"
+  },
+  {
+    "coinId": "PS-1936",
+    "name": "1936 Peace Dollar",
+    "country": "United States",
+    "year": 1936,
+    "mint": "Philadelphia",
+    "metal": "Silver",
+    "theme": "Peace Dollar",
+    "grade": "MS63",
+    "askingPrice": 210.00,
+    "listedBy": "Heritage Coin Co."
+  },
+  {
+    "coinId": "BE-1902",
+    "name": "1902 Barber Half Dollar",
+    "country": "United States",
+    "year": 1902,
+    "mint": "Philadelphia",
+    "metal": "Silver",
+    "theme": "Barber Half Dollar",
+    "grade": "F12",
+    "askingPrice": 65.00,
+    "listedBy": "Liberty Bell Coins"
+  },
+  {
+    "coinId": "MD-1945-S",
+    "name": "1945-S Mercury Dime",
+    "country": "United States",
+    "year": 1945,
+    "mint": "San Francisco",
+    "metal": "Silver",
+    "theme": "Mercury Dime",
+    "grade": "AU50",
+    "askingPrice": 9.00,
+    "listedBy": "Liberty Bell Coins"
+  },
+  {
+    "coinId": "GE-1913-V",
+    "name": "1913 V Nickel (Type 2)",
+    "country": "United States",
+    "year": 1913,
+    "mint": "Philadelphia",
+    "metal": "Copper-Nickel",
+    "theme": "Liberty Head Nickel",
+    "grade": "AU58",
+    "askingPrice": 21000.00,
+    "listedBy": "Key Date Rarities"
+  }
+]
