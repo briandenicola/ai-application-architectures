@@ -27,6 +27,7 @@ tasks:
     desc: Creates Azure infrastructure
     cmds:
     - terraform apply -auto-approve
+      -parallelism=1
       -var "region={{.REGION}}" 
       -var "tags={{.MF_VNEXT_TITLE}}"
       -compact-warnings

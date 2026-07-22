@@ -9,6 +9,10 @@ terraform {
       source  = "Azure/azapi"
       version = "~> 2.5"
     }
+    time = {
+      source  = "hashicorp/time"
+      version = "~> 0.13"
+    }
   }
 }
 
@@ -22,5 +26,6 @@ provider "azurerm" {
     resource_group {
       prevent_deletion_if_contains_resources = false
     }
-  }    
+  }
+
 }
