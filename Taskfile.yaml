@@ -46,6 +46,11 @@ includes:
     taskfile: ./infrastructure/microsoft-foundry-managed-vnet/Taskfile.yaml
     internal: false
     dir: ./infrastructure/microsoft-foundry-managed-vnet/  
+  
+  managed-compute: 
+    taskfile: ./infrastructure/microsoft-foundry-managed-compute/Taskfile.yaml
+    internal: false
+    dir: ./infrastructure/microsoft-foundry-managed-compute/  
 
 tasks:
   default: 
