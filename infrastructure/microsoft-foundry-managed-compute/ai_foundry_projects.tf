@@ -27,11 +27,19 @@ module "project_1" {
 
     models = [
       {
-        name = "snowflake--snowflake-arctic-embed-l-v2"
+        name     = "snowflake--snowflake-arctic-embed-l-v2"
         sku      = "A100_80GB"
         capacity = 1
         model    = "azureml://registries/azure-huggingface/models/snowflake--snowflake-arctic-embed-l-v2.0/versions/1"
         template = "azureml://registries/azure-huggingface/deploymenttemplates/snowflake--snowflake-arctic-embed-l-v20--nvidia-a100/labels/latest"
-    }]
+      },
+      {
+        name     = "nvidia--nvidia-nemotron-3-nano-30b-a3b-fp8"
+        sku      = "H100_80GB"
+        capacity = 1
+        model    = "azureml://registries/azure-huggingface/models/nvidia--nvidia-nemotron-3-nano-30b-a3b-fp8/versions/3"        
+        template = "azureml://registries/azure-huggingface/deploymenttemplates/nvidia--nvidia-nemotron-3-nano-30b-a3b-fp8--256k-nvidia-h100/labels/latest"
+      }
+    ]
   }
 }
