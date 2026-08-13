@@ -11,3 +11,8 @@ resource "random_password" "password" {
   length  = 25
   special = true
 }
+
+resource "random_integer" "vnet_cidr" {
+  min = 10
+  max = 250
+}

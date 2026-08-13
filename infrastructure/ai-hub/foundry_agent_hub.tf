@@ -1,15 +1,31 @@
 resource "azurerm_ai_foundry" "this" {
-  depends_on            = [azurerm_role_assignment.key_user, azurerm_role_assignment.storage_owner]
-  name                  = local.hub_name
-  location              = local.location
-  resource_group_name   = azurerm_resource_group.this.name
-  storage_account_id    = azurerm_storage_account.this.id
-  key_vault_id          = azurerm_key_vault.this.id
-  container_registry_id = azurerm_container_registry.this.id
-  application_insights_id = azurerm_application_insights.this.id
+  depends_on                   = [azurerm_role_assignment.key_user, azurerm_role_assignment.storage_owner]
+  name                         = local.hub_name
+  location                     = local.location
+  resource_group_name          = azurerm_resource_group.this.name
+  storage_account_id           = azurerm_storage_account.this.id
+  key_vault_id                 = azurerm_key_vault.this.id
+  container_registry_id        = azurerm_container_registry.this.id
+  application_insights_id      = azurerm_application_insights.this.id
+  high_business_impact_enabled = true
+  public_network_access        = "Disabled"
+  managed_network {
+    isolation_mode = "AllowOnlyApprovedOutbound"
+  }
 
   identity {
     type = "SystemAssigned"
+  }
+}
+
+resource "azapi_update_resource" "hub_identity_datastores" {
+  type        = "Microsoft.MachineLearningServices/workspaces@2024-10-01"
+  resource_id = azurerm_ai_foundry.this.id
+
+  body = {
+    properties = {
+      systemDatastoresAuthMode = "Identity"
+    }
   }
 }
 

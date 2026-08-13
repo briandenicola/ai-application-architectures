@@ -31,14 +31,3 @@ resource "azurerm_resource_group" "core" {
   }
 }
 
-resource "azurerm_resource_group" "ml" {
-  count    = var.deploy_ai_workspace == "true" ? 1 : 0
-  name     = "${local.resource_name}-ml_rg"
-  location = local.location
-  tags = {
-    Application = var.tags
-    DeployedOn  = timestamp()
-    AppName     = local.resource_name
-    Tier        = "Azure Machine Learning Hub"
-  }
-}
