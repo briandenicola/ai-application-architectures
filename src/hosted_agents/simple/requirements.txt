@@ -1,0 +1,7 @@
+langchain-azure-ai[tools,hosting]>=1.2.9
+langchain>=1.4
+langchain-openai>=1.6
+langgraph>=1.2
+azure-ai-projects>=2.4.0
+azure-identity>=1.25
+python-dotenv
