@@ -22,6 +22,7 @@ from azure.ai.agentserver.core import get_request_context
 from azure.ai.projects import AIProjectClient
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from dotenv import load_dotenv
+from langchain_azure_ai.callbacks.tracers.auto_instrument import enable_auto_tracing
 from langchain_azure_ai.chat_history import AzureAIMemoryChatMessageHistory
 from langchain_azure_ai.tools import AzureAIProjectToolbox
 from langchain_core.chat_history import InMemoryChatMessageHistory
@@ -34,6 +35,12 @@ from langgraph.prebuilt import ToolNode
 
 load_dotenv()
 logging.basicConfig(level=logging.INFO)
+# The Azure Monitor exporter logs its own HTTP calls; at INFO those records are
+# themselves collected and exported, which loops. Keep the SDK loggers quiet.
+for _noisy in ("azure.core.pipeline.policies.http_logging_policy",
+               "azure.monitor.opentelemetry.exporter",
+               "azure.identity"):
+    logging.getLogger(_noisy).setLevel(logging.WARNING)
 log = logging.getLogger("demo-agent")
 
 # FOUNDRY_PROJECT_ENDPOINT is injected by the platform (and by `azd ai agent run`).
@@ -44,6 +51,24 @@ STORE = os.environ.get("MEMORY_STORE_NAME", "demo-memory")
 LOCAL_USER = os.environ.get("LOCAL_USER_ID", "local-dev")  # used when no platform user header
 
 _cred = DefaultAzureCredential()
+
+
+# ---------- tracing -----------------------------------------------------------
+def start_tracing() -> None:
+    """Send LangGraph/GenAI spans to Application Insights.
+
+    The connection string is resolved from the project's AppInsights connection,
+    so no instrumentation key has to live in azure.yaml. Never fatal: a tracing
+    problem must not take the agent down.
+    """
+    try:
+        enable_auto_tracing(project_endpoint=ENDPOINT, credential=_cred)
+        log.info("tracing enabled -> Application Insights")
+    except Exception as e:
+        log.warning("tracing disabled (%s): %s", type(e).__name__, e)
+
+
+start_tracing()
 
 SYSTEM = """You are a concise demo assistant.
 - Use web_search for public or current information.
@@ -117,7 +142,16 @@ def _tool_error(err: Exception) -> str:
 
 
 async def load_tools() -> list[BaseTool]:
-    tools = await AzureAIProjectToolbox(project_endpoint=ENDPOINT, toolbox_name=TOOLBOX).get_tools()
+    # tools/list fails wholesale if any source is unreachable -- e.g. the
+    # SharePoint MCP server rejects callers with no delegated user context.
+    # Start with whatever we can get rather than crashing before readiness.
+    try:
+        tools = await AzureAIProjectToolbox(
+            project_endpoint=ENDPOINT, toolbox_name=TOOLBOX
+        ).get_tools()
+    except Exception as e:
+        log.warning("toolbox '%s' unavailable, starting with no tools: %s", TOOLBOX, e)
+        return []
     for t in tools:
         t.handle_tool_error = _tool_error
         # Some MCP servers omit "properties" on object schemas, which OpenAI rejects.

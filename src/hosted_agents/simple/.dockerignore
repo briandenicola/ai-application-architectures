@@ -3,6 +3,8 @@
 .venv/
 venv/
 .env
+**/.env
+.azure/
 .git/
 .vscode/
 .idea/

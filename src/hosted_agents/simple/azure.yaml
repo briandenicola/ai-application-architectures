@@ -46,8 +46,8 @@ services:
 
   demo-agent:
     host: azure.ai.agent
-    project: src/demo-agent
-    language: docker                         # build from src/demo-agent/Dockerfile
+    project: .
+    language: docker                         # build from ./Dockerfile
     kind: hosted
     name: foundry-langgraph-demo
     displayName: LangGraph + Toolbox + Memory demo
@@ -64,6 +64,15 @@ services:
       AZURE_AI_MODEL_DEPLOYMENT_NAME: gpt-5.4-mini
       TOOLBOX_NAME: demo-tools
       MEMORY_STORE_NAME: demo-memory
+      # Tracing -> Application Insights. The connection string comes from the azd
+      # environment (gitignored); main.py falls back to resolving it from the
+      # project's AppInsights connection if it is ever unset.
+      APPLICATION_INSIGHTS_CONNECTION_STRING: ${APPLICATION_INSIGHTS_CONNECTION_STRING}
+      OTEL_AUTO_CONFIGURE_AZURE_MONITOR: 'true'
+      AZURE_TRACING_ALL_LANGGRAPH_NODES: 'true'
+      AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED: 'true'
+      AZURE_TRACING_PROVIDER_NAME: azure.ai.openai
+      AZURE_TRACING_AGENT_ID: foundry-langgraph-demo
     container:
       resources:
         cpu: '0.5'
