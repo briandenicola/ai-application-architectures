@@ -1,0 +1,15 @@
+# Default owner for everything in this repository.
+* @briandenicola
+
+# The Foundry evals demo.
+/src/evals/ @briandenicola
+
+# Changes to any of these silently weaken the quality gate.
+# They should never merge without a deliberate review.
+/src/evals/datasets/              @briandenicola
+/src/evals/evaluators/            @briandenicola
+/src/evals/evals.config.yaml      @briandenicola
+/src/evals/.specify/memory/       @briandenicola
+
+# CI and security configuration.
+/.github/ @briandenicola

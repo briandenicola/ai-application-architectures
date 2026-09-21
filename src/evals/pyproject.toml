@@ -1,0 +1,57 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "meridian-foundry-evals"
+version = "0.1.0"
+description = "Microsoft Foundry Evaluations demo — wealth management advisor agent"
+requires-python = ">=3.10"
+dependencies = [
+    "azure-identity>=1.19.0",
+    "azure-search-documents>=11.6.0",
+    "azure-ai-projects>=1.0.0",
+    "azure-ai-agents>=1.0.0",
+    "azure-ai-evaluation>=1.10.0",
+    "pyyaml>=6.0.2",
+    "rich>=13.9.0",
+    "httpx>=0.28.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3.0",
+    "ruff>=0.8.0",
+    "pyright>=1.1.390",
+    "python-frontmatter>=1.1.0",
+]
+
+[tool.setuptools]
+# This is a harness, not a library. Without this, setuptools' flat-layout
+# auto-discovery treats corpus/, infra/, specs/ etc. as packages and refuses
+# to build. `pip install -e .` here exists only to resolve dependencies;
+# scripts are run by path.
+py-modules = []
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "S"]
+ignore = ["S101"]  # assert is fine in tests
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S105", "S106"]
+
+[tool.pyright]
+typeCheckingMode = "basic"
+pythonVersion = "3.10"
+include = ["scripts", "tests"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+markers = [
+    "live: requires a deployed Azure environment (deselect with '-m \"not live\"')",
+]

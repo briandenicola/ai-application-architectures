@@ -1,0 +1,88 @@
+name: Evals Quality Gate
+
+# Local-only checks for the Foundry evals demo: lint, format, types, tests,
+# secret scan, and Bicep compilation. These require no Azure subscription.
+#
+# The agent evaluation itself is NOT run here — it needs a deployed environment.
+# See src/evals/docs/day-2.md for the OIDC-authenticated workflow that runs it.
+
+on:
+  push:
+    branches: [main]
+    paths: ["src/evals/**", ".github/workflows/evals-quality-gate.yml"]
+  pull_request:
+    branches: [main]
+    paths: ["src/evals/**", ".github/workflows/evals-quality-gate.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: src/evals
+
+jobs:
+  python:
+    name: Lint, type-check and test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install
+        run: python -m pip install -e ".[dev]"
+
+      - name: Lint
+        run: python -m ruff check .
+
+      - name: Format check
+        run: python -m ruff format --check .
+
+      - name: Type check
+        run: python -m pyright
+
+      - name: Test
+        # Includes the corpus, dataset, agent-parity and gate invariants.
+        # -p no:randomly is not used; ordering must not matter.
+        run: python -m pytest -q
+
+      - name: Assert the gate tests actually ran
+        # A silently skipped gate test is indistinguishable from a passing one.
+        # This is the failure docs/threat-model.md rates highest.
+        run: |
+          python -m pytest tests/test_gate.py -q --collect-only \
+            | tee /tmp/collected.txt
+          if ! grep -q "test_gate.py" /tmp/collected.txt; then
+            echo "::error::tests/test_gate.py collected no tests"
+            exit 1
+          fi
+          if python -m pytest tests/test_gate.py -q 2>&1 | grep -qE "[0-9]+ skipped"; then
+            echo "::error::gate tests were skipped — treat as a failure"
+            exit 1
+          fi
+
+  bicep:
+    name: Bicep compiles
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build templates
+        run: az bicep build --file infra/main.bicep --stdout > /dev/null
+
+  secrets:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

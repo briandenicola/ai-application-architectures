@@ -1,0 +1,14 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "environmentName": { "value": "${AZURE_ENV_NAME}" },
+    "location": { "value": "${AZURE_LOCATION}" },
+    "principalId": { "value": "${AZURE_PRINCIPAL_ID}" },
+    "principalType": { "value": "${AZURE_PRINCIPAL_TYPE=User}" },
+    "agentModelName": { "value": "${AZURE_AI_AGENT_MODEL_DEPLOYMENT=gpt-5.5}" },
+    "judgeModelName": { "value": "${AZURE_AI_JUDGE_MODEL_DEPLOYMENT=gpt-5.4-mini}" },
+    "embeddingModelName": { "value": "${AZURE_AI_EMBEDDING_DEPLOYMENT=text-embedding-3-large}" },
+    "searchIndexName": { "value": "${AZURE_SEARCH_INDEX=meridian-docs}" }
+  }
+}

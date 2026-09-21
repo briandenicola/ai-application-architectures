@@ -1,0 +1,60 @@
+# Meridian Foundry Evals — single tunable surface.
+# Nothing environment-specific is hardcoded in Python. See specs/001/data-model.md §4.
+
+project:
+  endpoint: ${AZURE_AI_PROJECT_ENDPOINT}
+  api_version: "2026-04-01" # pinned — never "latest"
+
+models:
+  agent:
+    deployment: ${AZURE_AI_AGENT_MODEL_DEPLOYMENT}
+    version: "2026-04-24"
+    temperature: 0.0
+    seed: 20260921
+  judge:
+    deployment: ${AZURE_AI_JUDGE_MODEL_DEPLOYMENT}
+    version: "2026-03-17"
+    temperature: 0.0
+  embedding:
+    deployment: ${AZURE_AI_EMBEDDING_DEPLOYMENT}
+    version: "1"
+
+knowledge:
+  # Documents are pushed directly into this index — no blob staging.
+  # See docs/adr/0004-index-push-over-blob-indexer.md.
+  index: meridian-docs
+  search_endpoint: ${AZURE_SEARCH_ENDPOINT}
+  knowledge_source: meridian-docs-source
+  knowledge_base: meridian-kb
+  reranker_threshold: 2.0
+  expected_document_count: 12
+  # Used by create_agents.py to prove grounding works at run time, because the
+  # agent API does not validate tools at creation. See ADR-0005.
+  smoke_question: What is the annual advisory fee on a $2.5M account?
+
+agents:
+  - name: meridian-advisor-v1
+    definition: agents/v1-naive.agent.yaml
+  - name: meridian-advisor-v2
+    definition: agents/v2-hardened.agent.yaml
+
+dataset: datasets/meridian-golden-v1.jsonl
+
+evaluators:
+  builtin:
+    - groundedness
+    - relevance
+    - retrieval
+    - intent_resolution
+    - task_adherence
+  custom:
+    - evaluators/compliance_safe_answer.yaml
+
+# The numbers that go on screen. Ship / don't ship.
+thresholds:
+  groundedness: 4.0
+  relevance: 4.0
+  retrieval: 3.5
+  intent_resolution: 4.0
+  task_adherence: 4.0
+  compliance_safe_answer: 1.0

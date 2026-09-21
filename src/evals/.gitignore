@@ -1,0 +1,20 @@
+# Foundry Evals Demo — local artifacts
+.azure/
+.env
+!.env.example
+results/
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.pyright/
+
+# Azure / IaC
+*.bicepparam.local
+infra/*.local.json
+*.egg-info/

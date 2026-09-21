@@ -1,0 +1,32 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
+name: meridian-foundry-evals
+metadata:
+  template: meridian-foundry-evals@0.1.0
+
+infra:
+  provider: bicep
+  path: infra
+  module: main
+
+hooks:
+  postprovision:
+    posix:
+      shell: sh
+      continueOnError: false
+      interactive: false
+      run: ./scripts/postprovision.sh
+    windows:
+      shell: pwsh
+      continueOnError: false
+      interactive: false
+      run: ./scripts/postprovision.ps1
+
+  postdown:
+    posix:
+      shell: sh
+      continueOnError: false
+      run: python3 ./scripts/verify_teardown.py
+    windows:
+      shell: pwsh
+      continueOnError: false
+      run: python ./scripts/verify_teardown.py
