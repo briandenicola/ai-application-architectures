@@ -33,11 +33,20 @@ python scripts/index_corpus.py
 python scripts/setup_knowledge.py
 python scripts/create_agents.py
 
+# Seed the Foundry-side evaluation assets. The evaluator catalog entry and the
+# golden dataset must exist before anyone can create a run in the portal, and
+# the demo is run FROM the portal -- azd seeds, the presenter evaluates.
+python scripts/seed_evaluator.py
+python scripts/seed_dataset.py
+
 echo
 echo "✓ Demo environment ready."
 echo "  Portal:  ${AZURE_AI_PROJECT_ENDPOINT:-<run: azd env get-values>}"
 echo
-echo "  Next:"
+echo "  Next — either run the gate from the terminal:"
 echo "    python scripts/run_eval.py --agent meridian-advisor-v1   # expect exit 1"
 echo "    python scripts/run_eval.py --agent meridian-advisor-v2   # expect exit 0"
+echo
+echo "  …or create the run in the portal against the seeded dataset and"
+echo "  evaluators. Both paths execute inside Foundry and produce the same run."
 echo

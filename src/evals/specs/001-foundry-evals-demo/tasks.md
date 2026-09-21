@@ -10,7 +10,7 @@ confirmation before execution.
 
 | ID | Task | Exit condition |
 |----|------|----------------|
-| **T0.1** ⛔ | Verify `centralus` supports `gpt-5.5`, `gpt-5.4-mini`, `text-embedding-3-large` and that quota exists | Model + quota confirmed, or region changed to the fallback and `evals.config.yaml` updated (resolves O1) |
+| **T0.1** ⛔ | Verify `centralus` supports `gpt-5.5`, `gpt-4.1-mini`, `text-embedding-3-large` and that quota exists | Model + quota confirmed, or region changed to the fallback and `evals.config.yaml` updated (resolves O1) |
 | **T0.2** ⛔ | Pin and record tool versions: `azd`, `az`, Bicep CLI, `azd ai` extension, Python | `docs/prerequisites.md` lists exact versions (resolves O2) |
 | **T0.3** | Decide Bicep vs. REST for knowledge source/base at the pinned API version | ADR-0002 written (resolves O3) |
 | **T0.4** | Clean up stray `.azure/simple/` azd env in `src/evals` | Directory removed or relocated; `.gitignore` covers `.azure/` (resolves O5) |

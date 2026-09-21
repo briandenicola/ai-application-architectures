@@ -25,7 +25,7 @@ az cognitiveservices account deployment list \
   -o table
 ```
 
-☐ `gpt-5.5`, `gpt-5.4-mini`, `text-embedding-3-large` all `Succeeded`.
+☐ `gpt-5.5`, `gpt-4.1-mini`, `text-embedding-3-large` all `Succeeded`.
 
 ## 3. Corpus is intact — 30s
 

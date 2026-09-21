@@ -27,7 +27,7 @@ azd extension install microsoft.azd.ai
 |-------------|-------|
 | Subscription with Contributor + User Access Administrator | The RBAC module creates role assignments; Contributor alone is not enough |
 | Region | `centralus` by default — **verify model availability first (T0.1)** |
-| Model quota | `gpt-5.5` 50k TPM, `gpt-5.4-mini` 100k TPM, `text-embedding-3-large` 50k TPM |
+| Model quota | `gpt-5.5` 50k TPM, `gpt-4.1-mini` 100k TPM, `text-embedding-3-large` 50k TPM |
 
 ### Verified in `centralus` (2026-09-21)
 
@@ -37,7 +37,7 @@ All three models deploy on **`GlobalStandard`**. `Standard` is *not* offered for
 | Model | Version | SKU |
 |---|---|---|
 | `gpt-5.5` | `2026-04-24` | GlobalStandard |
-| `gpt-5.4-mini` | `2026-03-17` | GlobalStandard |
+| `gpt-4.1-mini` | `2025-04-14` | GlobalStandard |
 | `text-embedding-3-large` | `1` | GlobalStandard |
 
 Model versions and SKUs are region-specific. Re-run the checks below when you
@@ -51,7 +51,7 @@ change region — a version that exists in one region often does not in another.
 # Are the models available in the target region?
 az cognitiveservices model list \
   --location centralus \
-  --query "[?contains(model.name,'gpt-5.5') || contains(model.name,'gpt-5.4-mini')].{name:model.name,version:model.version,sku:model.skus[0].name}" \
+  --query "[?contains(model.name,'gpt-5.5') || contains(model.name,'gpt-4.1-mini')].{name:model.name,version:model.version,sku:model.skus[0].name}" \
   -o table
 
 # Is there quota for them?

@@ -18,8 +18,8 @@ flowchart TB
         subgraph foundry["Microsoft Foundry"]
             v1["Prompt Agent v1<br/>naive"]
             v2["Prompt Agent v2<br/>hardened"]
-            models["Model deployments<br/>gpt-5.5 · gpt-5.4-mini · embedding-3-large"]
-            evals["Evaluations<br/>5 built-in + 1 custom rubric"]
+            models["Model deployments<br/>gpt-5.5 · gpt-4.1-mini · embedding-3-large"]
+            evals["Evaluations<br/>4 built-in + 1 custom rubric"]
         end
 
         obs["Log Analytics<br/>Application Insights"]
@@ -69,26 +69,40 @@ is what makes the stale-document trap visible in the portal.
 
 ## The evaluation path
 
+Evaluation executes **inside Foundry**. Nothing scores locally — `run_eval.py`
+creates a run and reads the result back. The same run appears in the portal.
+See ADR-0006.
+
 ```mermaid
 sequenceDiagram
+    participant R as run_eval.py / portal
+    participant F as Foundry evaluation service
     participant D as Golden dataset (30 cases)
     participant A as Agent under test
-    participant KB as Foundry IQ
-    participant J as Judge model (gpt-5.4-mini)
+    participant KB as Azure AI Search index
+    participant J as Judge model (gpt-4.1-mini)
     participant G as Quality gate
 
+    R->>F: create run (target = azure_ai_agent, dataset, evaluators)
     loop each case
-        D->>A: query
+        F->>D: read case
+        F->>A: query
         A->>KB: retrieve
         KB-->>A: context + citations
-        A-->>J: response + context + citations + case metadata
-        J-->>J: 5 built-in evaluators
-        J-->>J: compliance_safe_answer rubric
-        J-->>G: scores + per-case reasons
+        A-->>F: response (tool OUTPUTS are not exposed)
+        F->>J: response + ground_truth + case metadata
+        J-->>F: 4 built-in evaluators
+        J-->>F: compliance_safe_answer rubric
     end
-    G->>G: compare means to thresholds
-    G-->>D: verdict + exit code (0 pass / 1 fail)
+    F-->>R: per-case scores + reasons
+    R->>G: compare means to thresholds
+    G-->>R: verdict + exit code (0 pass / 1 fail)
 ```
+
+Two consequences of Foundry not exposing tool outputs to evaluators:
+groundedness is scored against the golden set's `ground_truth` rather than the
+context this run actually retrieved, and `retrieval` is not scored at all — it
+would grade the golden set we wrote and could never fail. ADR-0006 covers both.
 
 The agent and the judge use **different** models. A model grading its own output
 is a weaker signal, and it is the first thing a sceptical architect will probe.

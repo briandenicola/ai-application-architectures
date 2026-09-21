@@ -121,9 +121,9 @@ subscription — that is a day-2 task, not a claim this repository should make.
 
 ### Neutral
 - Reproducibility for the agent now rests on the pinned model version and a fixed
-  prompt rather than `temperature: 0.0`. The judge model (`gpt-5.4-mini`) **does**
-  accept `temperature: 0.0`, so scoring stability — the part that actually
-  decides pass or fail — is preserved.
+  prompt rather than `temperature: 0.0`. The judge model (`gpt-4.1-mini`, see
+  ADR-0006) **does** accept `temperature: 0.0` and a `seed`, so scoring
+  stability — the part that actually decides pass or fail — is preserved.
 
 ## Revisit when
 

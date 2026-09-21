@@ -17,7 +17,7 @@ the environment and nothing else.
 | `AZURE_AI_PROJECT_NAME` | string | Foundry project name |
 | `AZURE_AI_PROJECT_ENDPOINT` | string | `https://<acct>.services.ai.azure.com/api/projects/<proj>` |
 | `AZURE_AI_AGENT_MODEL_DEPLOYMENT` | string | `gpt-5.5` |
-| `AZURE_AI_JUDGE_MODEL_DEPLOYMENT` | string | `gpt-5.4-mini` |
+| `AZURE_AI_JUDGE_MODEL_DEPLOYMENT` | string | `gpt-4.1-mini` |
 | `AZURE_AI_EMBEDDING_DEPLOYMENT` | string | `text-embedding-3-large` |
 | `AZURE_SEARCH_NAME` | string | AI Search service name |
 | `AZURE_SEARCH_ENDPOINT` | string | `https://<name>.search.windows.net` |
