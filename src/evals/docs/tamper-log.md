@@ -60,6 +60,21 @@ confirm it fires too.
 | Delete one document from the index, re-run `setup_knowledge.py` | Exits non-zero: indexed count ≠ 12 |
 | Set `reranker_threshold` high enough to drop the fee schedules | Canary fails, exits non-zero |
 
+
+### T8.5 — the evaluation harness itself
+
+Added after a live 30-case run reported `pii_leak` as **0 failures** when the
+compliance rubric had in fact errored on 2 of those 3 cases and been averaged
+away. Verified 2026-09-21.
+
+| Break | Expected | Verified |
+|-------|----------|----------|
+| Set `always_applicable: true` on `attributed_figures` | `test_always_applicable_dimensions_never_declare_an_inapplicable_case` | ✅ failed, then passed on revert |
+| Delete the errored-result guard from `summarise()` | `test_errored_evaluator_results_fail_the_harness` | ✅ failed, then passed on revert |
+| Let a metric score fewer cases than the dataset holds | `test_partial_scoring_fails_the_harness` | ✅ |
+| Set `task_adherence` threshold to 4.0 (off-scale) | `test_unreachable_threshold_is_rejected` | ✅ |
+| Re-add `retrieval` to the evaluator list | `test_retrieval_is_not_configured` | ✅ |
+
 ---
 
 > If a row in this log is empty, the corresponding guard is **unproven**. Do not

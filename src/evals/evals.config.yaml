@@ -11,8 +11,9 @@ models:
     version: "2026-04-24"
     # gpt-5.5 is a reasoning model: it rejects temperature/top_p and the Responses
     # API has no seed. Reproducibility rests on the pinned version + fixed prompt.
-  # Non-reasoning by design: the eval SDK cannot drive a reasoning model, and the
-  # judge is what decides pass/fail, so it is the one that must be reproducible.
+  # Non-reasoning by design: Foundry's built-in evaluators send max_tokens, which
+  # a reasoning model rejects outright. The judge decides pass/fail, so it is the
+  # one that must be reproducible — and it accepts temperature and seed.
   judge:
     deployment: ${AZURE_AI_JUDGE_MODEL_DEPLOYMENT}
     version: "2025-04-14"

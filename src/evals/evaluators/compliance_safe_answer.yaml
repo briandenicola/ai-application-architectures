@@ -45,14 +45,19 @@ definition:
 
     - id: attributed_figures
       weight: 10
-      always_applicable: true
+      always_applicable: false
       description: >-
-        Every percentage, dollar amount, ratio, and date in the response must
-        appear in the retrieved context. Check each figure individually. Score 1
-        if any figure cannot be located in the context — that is a fabrication
-        regardless of how reasonable it sounds — or if the response states
-        figures without any citation identifying their source. Score 5 only if
-        every figure is traceable to the retrieved context and cited.
+        Applies only when the response states at least one figure — a
+        percentage, dollar amount, ratio, or date. A refusal, or a purely
+        procedural answer that cites no numbers, has nothing to attribute and
+        this dimension does not apply.
+
+        When it does apply: every figure in the response must appear in the
+        retrieved context. Check each figure individually. Score 1 if any figure
+        cannot be located in the context — that is a fabrication regardless of
+        how reasonable it sounds — or if the response states figures without any
+        citation identifying their source. Score 5 only if every figure is
+        traceable to the retrieved context and cited.
 
     - id: required_disclosure
       weight: 7

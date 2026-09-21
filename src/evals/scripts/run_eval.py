@@ -314,15 +314,68 @@ def score_from_result(entry: dict[str, Any]) -> float | None:
     return None
 
 
+def response_text(sample: dict[str, Any]) -> str:
+    """Pull the agent's final answer out of the sample transcript.
+
+    `sample.output` is a message LIST, not an `output_text` string. The last
+    assistant turn holds the answer; earlier ones hold tool calls, and their
+    content is a JSON blob rather than prose. Reading the wrong key silently
+    stores an empty response on every case, which strips the demo of the one
+    artifact a client most wants to see: what the agent actually said.
+    """
+    direct = sample.get("output_text")
+    if isinstance(direct, str) and direct.strip():
+        return direct.strip()
+
+    output = sample.get("output")
+    if isinstance(output, str):
+        return output.strip()
+    if not isinstance(output, list):
+        return ""
+
+    for message in reversed(output):
+        if not isinstance(message, dict) or message.get("role") != "assistant":
+            continue
+        content = message.get("content")
+        if not isinstance(content, str) or not content.strip():
+            continue
+        # Tool-call turns serialise a JSON array into content. Those are not the
+        # answer, and rendering one would be actively misleading.
+        stripped = content.strip()
+        if stripped.startswith("["):
+            try:
+                parsed = json.loads(stripped)
+            except json.JSONDecodeError:
+                return stripped
+            texts = [
+                part.get("text")
+                for part in parsed
+                if isinstance(part, dict) and isinstance(part.get("text"), str)
+            ]
+            if texts:
+                return "\n".join(t.strip() for t in texts if t.strip())
+            continue
+        return stripped
+    return ""
+
+
 def parse_case(item: dict[str, Any], thresholds: dict[str, float]) -> dict[str, Any]:
     source = item.get("datasource_item") or {}
     sample = item.get("sample") or {}
 
     scores: dict[str, Any] = {}
     reasons: dict[str, str] = {}
+    errors: dict[str, str] = {}
     for entry in item.get("results", []) or []:
         name = entry.get("name") or entry.get("testing_criteria")
         if not name:
+            continue
+        if entry.get("status") == "error":
+            # An evaluator that errored produced NO verdict. Recording it is what
+            # keeps summarise() from averaging over the survivors and reporting a
+            # clean pass rate for a metric that never ran. See the pii_leak case.
+            detail = ((entry.get("sample") or {}).get("error") or {}).get("message", "")
+            errors[name] = detail or "evaluator reported status=error"
             continue
         score = score_from_result(entry)
         passed = result_passed(entry)
@@ -349,9 +402,10 @@ def parse_case(item: dict[str, Any], thresholds: dict[str, float]) -> dict[str, 
         "case_id": source.get("case_id"),
         "failure_tag": source.get("failure_tag"),
         "query": source.get("query"),
-        "response": sample.get("output_text", ""),
+        "response": response_text(sample),
         "citations": [],
         "scores": scores,
+        "evaluator_errors": errors,
         "compliance_reason": reasons.get(CUSTOM_METRIC, ""),
         "reasons": reasons,
         "verdict": "fail" if failed else "pass",
@@ -521,12 +575,36 @@ def summarise(
     cases: list[dict[str, Any]] = raw.get("cases", [])
     by_case_id = {c["case_id"]: c for c in cases}
 
+    # An evaluator that errored returns no verdict. Averaging over the survivors
+    # yields a confident score for a metric that did not run on every case --
+    # observed live: the compliance rubric errored on 2 of 3 pii_leak cases and
+    # the scorecard reported that mode as 0 failures. A gate that cannot tell
+    # "passed" from "never ran" protects nothing, so this is a HARNESS failure
+    # (exit 2), deliberately distinct from a quality failure (exit 1).
+    errored = [
+        (c["case_id"], name, msg)
+        for c in cases
+        for name, msg in (c.get("evaluator_errors") or {}).items()
+    ]
+    if errored:
+        lines = "\n".join(f"  {cid}  {name}: {msg}" for cid, name, msg in errored[:10])
+        more = f"\n  …and {len(errored) - 10} more" if len(errored) > 10 else ""
+        fail(
+            f"{len(errored)} evaluator result(s) errored server-side — the gate "
+            f"cannot be judged on partial scoring:\n{lines}{more}"
+        )
+
     metrics: dict[str, Any] = {}
     for name, threshold in thresholds.items():
         scores = [c["scores"].get(name) for c in cases if name in c.get("scores", {})]
         scores = [s for s in scores if s is not None]
         if not scores:
             fail(f"Evaluator '{name}' returned no scores — cannot judge the gate")
+        if len(scores) != len(cases):
+            fail(
+                f"Evaluator '{name}' scored only {len(scores)} of {len(cases)} cases. "
+                "A metric that skipped cases cannot gate a release."
+            )
 
         if name == "compliance_safe_answer":
             value = sum(1 for s in scores if s) / len(scores)
@@ -554,6 +632,8 @@ def summarise(
 
     return {
         "run_id": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H-%M-%SZ"),
+        "foundry_eval_id": raw.get("eval_id", ""),
+        "foundry_run_id": raw.get("run_id", ""),
         "agent": agent_name,
         "agent_revision": raw.get("agent_revision", "unknown"),
         "dataset": dataset_path.name,
