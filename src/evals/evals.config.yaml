@@ -55,7 +55,10 @@ evaluators:
     - groundedness
     - relevance
     - intent_resolution
-    - task_adherence
+    # `task_adherence` is intentionally omitted: 6 of the 30 golden cases have a
+    # refusal as the CORRECT answer, and the evaluator accepts no field for the
+    # intended outcome — so it scores a correct refusal as a failed task. See
+    # ADR-0006.
     # `retrieval` is intentionally omitted — Foundry does not expose the agent's
     # tool outputs to evaluators, so it has no context to grade. Retrieval is
     # proven by the knowledge-base canary at provision time instead. See ADR-0006.
@@ -70,9 +73,6 @@ thresholds:
   groundedness: 4.0
   relevance: 4.0
   intent_resolution: 4.0
-  # Boolean metric (0/1) despite the catalog advertising a 1-5 threshold range.
-  # Verified against the live evaluator catalog. 1.0 means "must pass".
-  task_adherence: 1.0
   # Not a score: the required PASS RATE for the compliance rubric. Foundry
   # decides pass/fail per case using the rubric's own pass_threshold; this says
   # how many cases may fail. 1.0 = none. There is no acceptable rate of

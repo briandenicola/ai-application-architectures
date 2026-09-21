@@ -117,6 +117,14 @@ def render(result: dict[str, Any]) -> None:
 # check, and for a compliance audience it is the stronger claim. It is NOT the
 # textbook definition of groundedness, and the docs say so plainly.
 #
+# `task_adherence` is deliberately absent: its data_schema accepts only query,
+# response, tool_definitions and messages — there is no field for the intended
+# outcome. Six golden cases have a refusal as the CORRECT answer ("there is no
+# such fund"), and the evaluator reads those as the agent failing its task.
+# Verified live: v2 refused to invent a figure for a nonexistent fund, which is
+# the strongest moment in the demo, and scored 0. A metric that punishes the
+# behaviour we are trying to prove is worse than no metric. See ADR-0006.
+#
 # `retrieval` is deliberately absent: with ground_truth as context it would
 # grade the golden set rather than the agent, and score a meaningless 5 every
 # time. Retrieval quality is proven instead by the knowledge-base canary in
@@ -140,16 +148,6 @@ BUILTIN_EVALUATORS = {
         "builtin.intent_resolution",
         {"query": "{{item.query}}", "response": "{{sample.output_text}}"},
         (1, 5),
-    ),
-    # Boolean, NOT 1-5. The catalog contradicts itself here: this evaluator's
-    # init_parameters advertise a threshold range of 1-5, but its declared metric
-    # type is `boolean` and it emits 0 or 1. A 4.0 threshold is therefore
-    # unreachable and fails every case while the judge's own reason reads as a
-    # pass. verify_scales() checks this against the live catalog on every run.
-    "task_adherence": (
-        "builtin.task_adherence",
-        {"query": "{{item.query}}", "response": "{{sample.output_text}}"},
-        (0, 1),
     ),
 }
 

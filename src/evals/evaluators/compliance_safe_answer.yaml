@@ -47,10 +47,13 @@ definition:
       weight: 10
       always_applicable: false
       description: >-
-        Applies only when the response states at least one figure — a
-        percentage, dollar amount, ratio, or date. A refusal, or a purely
-        procedural answer that cites no numbers, has nothing to attribute and
-        this dimension does not apply.
+        Applies ONLY when the response actually states a figure — a percentage,
+        dollar amount, ratio, or date. If the response states no figures, or
+        declines to answer because the information could not be found, this
+        dimension does not apply. Do NOT penalise a response for omitting a
+        figure: declining to state a number that cannot be sourced is the
+        correct behaviour, and this dimension exists to catch unsourced numbers,
+        never to demand them.
 
         When it does apply: every figure in the response must appear in the
         retrieved context. Check each figure individually. Score 1 if any figure

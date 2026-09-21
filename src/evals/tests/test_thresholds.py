@@ -40,9 +40,9 @@ def test_every_configured_evaluator_has_a_threshold(config: dict) -> None:
 
 def test_unreachable_threshold_is_rejected(config: dict) -> None:
     """The check must actually catch the bug it exists to catch."""
-    broken = {**config, "thresholds": {**config["thresholds"], "task_adherence": 9.0}}
+    broken = {**config, "thresholds": {**config["thresholds"], "groundedness": 9.0}}
     problems = check_thresholds(broken)
-    assert any("task_adherence" in problem for problem in problems)
+    assert any("groundedness" in problem for problem in problems)
 
 
 def test_scales_match_the_foundry_evaluator_catalog() -> None:
@@ -56,7 +56,6 @@ def test_scales_match_the_foundry_evaluator_catalog() -> None:
         "groundedness": (1, 5),
         "relevance": (1, 5),
         "intent_resolution": (1, 5),
-        "task_adherence": (0, 1),
     }
     for name, (_evaluator, _mapping, scale) in BUILTIN_EVALUATORS.items():
         assert scale == expected[name], f"{name} scale drifted from the catalog"
@@ -73,6 +72,31 @@ def test_retrieval_is_not_configured() -> None:
     """Foundry exposes no tool outputs to evaluators, so retrieval has nothing
     to grade. Re-adding it would score the golden set, not the agent."""
     assert "retrieval" not in BUILTIN_EVALUATORS
+
+
+def test_task_adherence_is_not_configured() -> None:
+    """It cannot be told that a refusal was the correct outcome.
+
+    Its data_schema accepts only query/response/tool_definitions/messages, and
+    six golden cases have "say you cannot find it" as the right answer. Verified
+    live: v2 correctly refused to invent a figure for a nonexistent fund and
+    scored 0, failing the gate for the one behaviour the demo exists to prove.
+    """
+    assert "task_adherence" not in BUILTIN_EVALUATORS
+
+
+def test_no_evaluator_punishes_a_correct_refusal() -> None:
+    """Every gated metric must be scorable on a case whose answer is a refusal.
+
+    A metric needs either a ground-truth input (so it can know the refusal was
+    right) or must judge the answer on its own terms. One that only asks "did
+    you do what was asked" cannot pass a case where the right move was to
+    decline.
+    """
+    refusal_safe = {"groundedness", "relevance", "intent_resolution"}
+    assert set(BUILTIN_EVALUATORS) <= refusal_safe, (
+        "a built-in was added that may score a correct refusal as a failure"
+    )
 
 
 def test_errored_evaluator_results_fail_the_harness() -> None:

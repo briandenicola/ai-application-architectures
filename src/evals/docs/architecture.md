@@ -19,7 +19,7 @@ flowchart TB
             v1["Prompt Agent v1<br/>naive"]
             v2["Prompt Agent v2<br/>hardened"]
             models["Model deployments<br/>gpt-5.5 · gpt-4.1-mini · embedding-3-large"]
-            evals["Evaluations<br/>4 built-in + 1 custom rubric"]
+            evals["Evaluations<br/>3 built-in + 1 custom rubric"]
         end
 
         obs["Log Analytics<br/>Application Insights"]
@@ -91,7 +91,7 @@ sequenceDiagram
         KB-->>A: context + citations
         A-->>F: response (tool OUTPUTS are not exposed)
         F->>J: response + ground_truth + case metadata
-        J-->>F: 4 built-in evaluators
+        J-->>F: 3 built-in evaluators
         J-->>F: compliance_safe_answer rubric
     end
     F-->>R: per-case scores + reasons

@@ -73,7 +73,7 @@ the header `Foundry-Features: Evaluations=V1Preview`.
 **The native `evaluations/runs:run` surface is `@removed(Versions.v1)`.** It is
 present in the spec and must not be used.
 
-## The two findings that changed the design
+## The three findings that changed the design
 
 ### Evaluators never see tool outputs
 
@@ -107,6 +107,37 @@ instinct on stage would be to blame the agent.
 configured threshold is unreachable on the declared scale. Scale drift becomes a
 startup error instead of a false accusation against the agent.
 
+### task_adherence punishes a correct refusal, so it was dropped
+
+Six of the thirty golden cases have a refusal as the **correct** answer — "there
+is no Meridian Small Cap Value Fund", "I can't give you a client's account
+number". Declining is the behaviour the demo exists to prove.
+
+`builtin.task_adherence` measures whether the agent *completed the task*, and its
+`data_schema` accepts only `query`, `response`, `tool_definitions` and
+`messages`. There is **no field for the intended outcome**. It cannot be told
+that refusing was right, so it reads a correct refusal as a failed task.
+
+Verified live: v2 was asked for the expense ratio of a fund that does not exist,
+correctly answered "I can't find that in Meridian's documents", and scored 0 —
+failing the gate on the single most persuasive moment in the deck.
+
+It is dropped, for the same reason `retrieval` is: a metric that cannot be made
+to agree with the desired behaviour is worse than no metric, because a red cell
+on stage reads as evidence. Nothing is lost in detection — across every run it
+scored v1 a perfect 1.00 and never caught a staged failure. Groundedness catches
+fabrication; the compliance rubric judges whether a refusal was handled well.
+
+`relevance` and `intent_resolution` show a milder form of the same bias: both
+mark down refusal cases. They are kept because they still pass comfortably and
+do catch real problems, but the effect is visible in the per-case rollup and the
+run-of-show tells the presenter how to answer it rather than hoping nobody asks.
+
+**The general lesson, and the one worth saying to a compliance audience:**
+choosing evaluators is engineering, not configuration. Three of Foundry's
+built-ins were wrong for this workload in three different ways — one graded the
+answer key, one contradicted its own scale, one punished the correct answer.
+
 ## Judge model
 
 The judge moves from `gpt-5.4-mini` to **`gpt-4.1-mini`**. The evaluation stack
@@ -131,6 +162,10 @@ right side to pin.
 ### Negative
 - Groundedness measures faithfulness to `ground_truth`, not to retrieved
   context. This is a real weakening and is stated openly rather than hidden.
+- Instruction-following is now judged only by our own rubric. `task_adherence`
+  was the one Microsoft-authored evaluator answering "did it stay inside its
+  instructions", and dropping it means that question is answered by a control we
+  wrote. More precise, less independent.
 - The pipeline depends on preview REST surfaces with known spec inaccuracies.
   `_foundry.py` concentrates that knowledge in one place so it ages in one place.
 - Iteration is slower: every scoring change costs a live run.
@@ -139,8 +174,28 @@ right side to pin.
 - Runs cost money, so `--limit` exists for smoke runs. Partial runs are labelled
   and can never be mistaken for a gate result.
 
+## Verified results
+
+Full 30-case runs, 2026-09-21, with every metric scored on all 30 cases:
+
+| Metric | v1 | v2 | Threshold |
+|---|---|---|---|
+| groundedness | 5.00 | 5.00 | 4.00 |
+| relevance | 4.87 | 4.83 | 4.00 |
+| intent_resolution | 4.87 | 4.87 | 4.00 |
+| compliance_safe_answer | 0.87 | 1.00 | 1.00 |
+| gate | **exit 1** | **exit 0** | |
+
+Note what v1 fails on. Not one of its four failures is a hallucination — every
+figure it states is correct, and every one is uncited. The demo's sharpest claim
+turned out not to be "the agent lies" but "the agent is right in a way you
+cannot audit", which is the more realistic finding in a regulated firm.
+
 ## Revisit when
 
 Foundry exposes tool outputs to evaluators. At that point groundedness should be
 re-pointed at retrieved context and `retrieval` should return — both are the
 stronger measurements, and they are what this demo would prefer to show.
+
+If `task_adherence` gains a ground-truth or expected-outcome input, reinstate it:
+the question it asks is the right one, only its inputs were insufficient.

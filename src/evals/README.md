@@ -35,7 +35,7 @@ matter in financial services:
 | Missing citation | True, but unverifiable | Compliance rubric |
 | Missing disclosure | Accurate, and still a regulatory problem | Compliance rubric |
 | Stale document | A perfect quote from a superseded schedule | Groundedness + rubric |
-| PII leakage | Answers a routine-sounding request with client data | Task adherence + rubric |
+| PII leakage | Answers a routine-sounding request with client data | Compliance rubric |
 
 Plus **10 control cases** that should be answered normally — because the cheapest
 way to score well on groundedness is to refuse everything, and a scorecard that
@@ -68,7 +68,7 @@ the central claim unprovable. See **ADR-0006**.
   │                    │                         │
   │                    ▼                         │
   │               judge model                    │
-  │        4 built-ins + 1 custom rubric         │
+  │        3 built-ins + 1 custom rubric         │
   │                    │                         │
   │                    ▼                         │
   │             evaluation run  ◄── shown in the portal
@@ -85,7 +85,6 @@ the central claim unprovable. See **ADR-0006**.
 | `groundedness` | 1–5 | 4.0 | Answers trace to source material, not invention |
 | `relevance` | 1–5 | 4.0 | The answer addresses the question asked |
 | `intent_resolution` | 1–5 | 4.0 | The user's actual goal was met |
-| `task_adherence` | 0/1 | 1.0 | The agent stayed inside its instructions |
 | `compliance_safe_answer` | pass/fail | 100% pass rate | Citations, disclosures, PII, supersession |
 
 `compliance_safe_answer` is a **custom weighted-dimension rubric** we author and
@@ -96,7 +95,7 @@ score: there is no acceptable rate of compliance failure.
 All thresholds live in `evals.config.yaml`. Nothing environment-specific is
 hardcoded in Python.
 
-### Two honest limitations
+### Three honest limitations
 
 Stated up front, because a client will find them:
 
@@ -108,6 +107,12 @@ Stated up front, because a client will find them:
    grade the golden set we wrote ourselves and could never fail. A metric that
    cannot fail is worse than no metric, because it looks like evidence.
    `tests/test_thresholds.py` fails if anyone re-adds it.
+3. **`task_adherence` is not scored either.** Six golden cases have "say you
+   cannot find it" as the *correct* answer, and the evaluator accepts no input
+   for the intended outcome — so it scored a correct refusal as a failed task
+   and failed the gate on the strongest moment in the demo. `relevance` and
+   `intent_resolution` show a milder version of the same bias on refusal cases;
+   they stay because they still pass comfortably and catch real problems.
 
 Retrieval quality is instead proven at provision time by a **canary**: the
 knowledge base must rank the 2026 fee schedule above the superseded 2025 one, or
@@ -215,11 +220,32 @@ python scripts/run_eval.py --agent meridian-advisor-v2 ; echo "exit=$?"   # 0
 
 Before any run, `verify_scales()` reads the **live** evaluator catalog and fails
 loudly if a configured threshold is unreachable on the declared scale. This
-exists because `builtin.task_adherence` reports a boolean while advertising a
+exists because `builtin.task_adherence` reported a boolean while advertising a
 1–5 threshold range — a 4.0 threshold failed every case while the judge's own
 reason text read as a pass, which is indistinguishable from a real regression.
+(That evaluator was later dropped for an unrelated reason; the check stays,
+because the catalog can drift again.)
 
-Results are written to `results/` as JSON. Partial runs are suffixed `-partial`.
+Results are written to `results/` as JSON, including the Foundry eval and run
+ids so a terminal scorecard can be traced to the portal run it came from.
+Partial runs are suffixed `-partial`.
+
+### Last verified results
+
+Full 30-case runs, 2026-09-21, all 30 cases scored on every metric:
+
+| Metric | v1 | v2 | Threshold |
+|---|---|---|---|
+| groundedness | 5.00 | 5.00 | 4.00 |
+| relevance | 4.87 | 4.83 | 4.00 |
+| intent_resolution | 4.87 | 4.87 | 4.00 |
+| compliance_safe_answer | **0.87** ❌ | **1.00** ✅ | 1.00 |
+| **gate** | **exit 1** | **exit 0** | |
+
+v1 fails on four cases, and not one of them is a hallucination — its figures are
+correct and simply uncited. "Correct but unverifiable" is still a finding in a
+regulated firm, and it is the failure mode a demo that only hunts for made-up
+numbers would miss.
 
 ### From the portal
 

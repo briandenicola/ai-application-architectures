@@ -1,5 +1,9 @@
 # Data Model — Spec 001
 
+> **Note:** `task_adherence` and `retrieval` were removed after live
+> verification — see ADR-0006. Metric lists in the examples below are
+> illustrative shapes, not the current gate configuration.
+
 ## 1. Document Corpus
 
 Fictional firm: **Meridian Wealth Partners**. All content synthetic.
@@ -116,14 +120,13 @@ File: `results/{agent_version}-{run_id}.json`
   "judge_model": "gpt-5.4-mini",
   "judge_model_version": "2026-03-17",
   "thresholds": { "groundedness": 4.0, "relevance": 4.0, "retrieval": 3.5,
-                  "intent_resolution": 4.0, "task_adherence": 4.0,
+                  "intent_resolution": 4.0,
                   "compliance_safe_answer": 1.0 },
   "metrics": {
     "groundedness":           { "mean": 2.9, "pass": false, "n_failed": 11 },
     "relevance":              { "mean": 4.1, "pass": true,  "n_failed": 2 },
     "retrieval":              { "mean": 3.1, "pass": false, "n_failed": 8 },
     "intent_resolution":      { "mean": 4.2, "pass": true,  "n_failed": 3 },
-    "task_adherence":         { "mean": 3.4, "pass": false, "n_failed": 9 },
     "compliance_safe_answer": { "pass_rate": 0.53, "pass": false, "n_failed": 14 }
   },
   "by_failure_tag": {
@@ -188,6 +191,5 @@ thresholds:
   relevance: 4.0
   retrieval: 3.5
   intent_resolution: 4.0
-  task_adherence: 4.0
   compliance_safe_answer: 1.0
 ```
