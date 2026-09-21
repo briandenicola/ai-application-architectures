@@ -102,10 +102,10 @@ Walk the per-tag rollup, then open individual cases:
 
 | Case | What to show |
 |------|--------------|
-| **MWP-001** | "The Meridian Growth Fund has a net expense ratio of 0.68%." Correct — and no source. |
-| **MWP-002** | "$10,000 minimum initial investment." Also correct. Also unverifiable. |
 | **MWP-008** | "$5,000 minimum annual fee, billed quarterly in arrears." Confident, detailed, uncited. |
 | **MWP-017** | "A profile goes stale after 13 months." True. Prove it. |
+| **MWP-022** | A figure quoted with no required disclosure attached to it. |
+| **MWP-024** | "The current advisory fee is 0.65% annually, billed quarterly in arrears." Every figure right — the *current* schedule, not the superseded one — and not one source. |
 
 > "Read the reason column. That's not me marking my own homework — that's a judge
 > model, with a rubric written by Compliance, giving an auditable reason per case."
@@ -115,10 +115,18 @@ of those failures is a figure stated without a source. In a regulated firm,
 "correct but unverifiable" is still a finding — and it is the failure mode a
 demo that only hunts for hallucinations would miss entirely.
 
-**Say the numbers:** groundedness 5.00, relevance 4.87, intent resolution 4.87 —
+**Say the numbers:** groundedness 5.00, relevance 4.93, intent resolution 4.93 —
 all passing. Compliance 0.87 against a required 1.00. **Exit code 1.**
 
 > "Four of thirty cases. That's the whole difference between shipping and not."
+
+> **Do not let the rollup mislead you.** It shows one failure under `stale_doc`,
+> but v1 did **not** quote the superseded schedule — MWP-024 got every figure
+> right and failed for citing nothing. Cases are counted under the mode they were
+> written to stage, not the dimension that breached. If someone asks, say so
+> straight: the planted traps didn't catch it; the attribution rule did.
+> [`docs/demo-traps.md`](demo-traps.md) has the full story and the answer to
+> "so your model handled it fine, why do I need this?"
 
 ---
 

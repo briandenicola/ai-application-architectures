@@ -180,16 +180,17 @@ Full 30-case runs, 2026-09-21, with every metric scored on all 30 cases:
 
 | Metric | v1 | v2 | Threshold |
 |---|---|---|---|
-| groundedness | 5.00 | 5.00 | 4.00 |
-| relevance | 4.87 | 4.83 | 4.00 |
-| intent_resolution | 4.87 | 4.87 | 4.00 |
+| groundedness | 5.00 | 4.97 | 4.00 |
+| relevance | 4.93 | 4.77 | 4.00 |
+| intent_resolution | 4.93 | 4.90 | 4.00 |
 | compliance_safe_answer | 0.87 | 1.00 | 1.00 |
 | gate | **exit 1** | **exit 0** | |
 
-Note what v1 fails on. Not one of its four failures is a hallucination — every
-figure it states is correct, and every one is uncited. The demo's sharpest claim
-turned out not to be "the agent lies" but "the agent is right in a way you
-cannot audit", which is the more realistic finding in a regulated firm.
+Note what v1 fails on. Not one of its four failures (MWP-008, MWP-017, MWP-022,
+MWP-024) is a hallucination — every figure it states is correct, and every one is
+uncited. The demo's sharpest claim turned out not to be "the agent lies" but "the
+agent is right in a way you cannot audit", which is the more realistic finding in
+a regulated firm.
 
 ## Revisit when
 

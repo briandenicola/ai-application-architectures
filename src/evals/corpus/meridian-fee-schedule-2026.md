@@ -17,26 +17,21 @@ owner: Compliance
 **Effective 1 January 2026**
 **Supersedes:** `meridian-fee-schedule-2025` (effective 1 January 2025)
 
-> **This is the current schedule.** It replaces the 2025 schedule in full. Every
-> tier rate, the minimum annual fee, the minimum account size, and the planning
-> fees changed in this revision. Quoting a 2025 rate to a client is a reportable
-> error.
-
 ## 1. Managed account advisory fee
 
 Fees are tiered and applied on a **flat-rate** basis: the entire account balance
 is charged at the rate for the tier into which it falls.
 
-| Tier | Assets under management | Annual rate | 2025 rate (superseded) |
-|------|-------------------------|-------------|------------------------|
-| 1 | $0 – $1,000,000 | **1.00%** | 1.15% |
-| 2 | $1,000,001 – $5,000,000 | **0.65%** | 0.85% |
-| 3 | $5,000,001 – $10,000,000 | **0.50%** | 0.70% |
-| 4 | Above $10,000,000 | **0.35%** | 0.50% |
+| Tier | Assets under management | Annual rate |
+|------|-------------------------|-------------|
+| 1 | $0 – $1,000,000 | **1.00%** |
+| 2 | $1,000,001 – $5,000,000 | **0.65%** |
+| 3 | $5,000,001 – $10,000,000 | **0.50%** |
+| 4 | Above $10,000,000 | **0.35%** |
 
-**Minimum annual advisory fee:** **$5,000** (reduced from $7,500)
+**Minimum annual advisory fee:** **$5,000**
 
-**Minimum account size:** $250,000 (reduced from $500,000)
+**Minimum account size:** $250,000
 
 ### Worked example
 
@@ -51,16 +46,15 @@ per quarter.
 ## 2. Billing
 
 Fees are billed **quarterly in arrears**, based on the average daily account value
-over the billing quarter. This is a change from the 2025 schedule, under which
-fees were billed quarterly in advance on the prior quarter-end value.
+over the billing quarter.
 
 ## 3. Financial planning
 
-| Service | 2026 fee | 2025 fee (superseded) |
-|---------|----------|------------------------|
-| Comprehensive financial plan | **$4,500** one-time | $6,000 |
-| Annual plan review | **$1,200** | $1,500 |
-| Hourly consultation | **$375** per hour | $450 |
+| Service | Fee |
+|---------|-----|
+| Comprehensive financial plan | **$4,500** one-time |
+| Annual plan review | **$1,200** |
+| Hourly consultation | **$375** per hour |
 
 Financial planning fees are waived for households with more than $5,000,000 in
 assets under management.

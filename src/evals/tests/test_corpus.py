@@ -90,6 +90,37 @@ def test_stale_doc_trap_is_present_and_contradictory(corpus_paths):
         assert new_value in new, f"current schedule missing {new_value}"
 
 
+def test_fee_schedules_do_not_defeat_their_own_trap(corpus_paths):
+    """Neither schedule may tell the agent which one to use.
+
+    An earlier corpus shipped a stale document whose body shouted "THIS SCHEDULE
+    IS SUPERSEDED - do not quote these rates", and a current document that listed
+    every superseded rate beside its replacement. Either tell hands the model the
+    answer, so retrieving the wrong document cost nothing and the trap could
+    never fire. Real superseded documents carry no such warning - that is exactly
+    what makes them dangerous.
+
+    Recency belongs in the `status` and `effective_date` metadata, where it can be
+    governed, not in prose the model can simply read.
+    """
+    superseded = next(p for p in corpus_paths if p.stem == "meridian-fee-schedule-2025")
+    current = next(p for p in corpus_paths if p.stem == "meridian-fee-schedule-2026")
+
+    old_body = superseded.read_text(encoding="utf-8").lower()
+    for tell in ("superseded 1 january", "do not quote", "this schedule is superseded"):
+        assert tell not in old_body, (
+            f"The 2025 schedule announces its own obsolescence ('{tell}'). "
+            "That defeats the stale-document trap - see docs/demo-traps.md."
+        )
+
+    new_body = current.read_text(encoding="utf-8").lower()
+    for tell in ("(superseded)", "reportable error", "reduced from"):
+        assert tell not in new_body, (
+            f"The 2026 schedule carries the superseded rates or the ruling ('{tell}'). "
+            "That does the agent's job for it - see docs/demo-traps.md."
+        )
+
+
 def test_exactly_one_document_declares_pii(corpus_paths):
     flagged = [p.stem for p in corpus_paths if front_matter(p)["contains_pii"]]
     assert flagged == ["meridian-ips-client-aa1042"], (

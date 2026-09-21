@@ -76,6 +76,18 @@ away. Verified 2026-09-21.
 | Re-add `task_adherence` to the evaluator list | `test_task_adherence_is_not_configured`, `test_no_evaluator_punishes_a_correct_refusal` | ✅ failed, then passed on revert |
 | Re-add `retrieval` to the evaluator list | `test_retrieval_is_not_configured` | ✅ |
 
+### T8.6 — the corpus must not defeat its own trap
+
+Added after discovering that none of the three planted traps fired against
+`gpt-5.5`. The stale document announced its own obsolescence in its body, and the
+current document listed every superseded rate beside its replacement — so
+retrieving the wrong schedule cost nothing. Verified 2026-09-21.
+
+| Break | Expected | Verified |
+|-------|----------|----------|
+| Re-add `(reduced from $7,500)` to the 2026 schedule | `test_fee_schedules_do_not_defeat_their_own_trap` | ✅ failed, then passed on revert |
+| Restore the "THIS SCHEDULE IS SUPERSEDED / do not quote" banner to the 2025 schedule | `test_fee_schedules_do_not_defeat_their_own_trap` | ✅ |
+
 ---
 
 > If a row in this log is empty, the corresponding guard is **unproven**. Do not

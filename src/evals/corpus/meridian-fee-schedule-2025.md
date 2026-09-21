@@ -1,5 +1,5 @@
 ---
-title: Advisory Fee Schedule (2025) — SUPERSEDED
+title: Advisory Fee Schedule and Managed Account Pricing Guide (2025)
 doc_id: meridian-fee-schedule-2025
 doc_type: fee_schedule
 effective_date: 2025-01-01
@@ -13,18 +13,9 @@ owner: Compliance
 > **SYNTHETIC — DEMONSTRATION DATA ONLY.** Meridian Wealth Partners is a fictional
 > firm. No figure in this document is real.
 
-> ## ⚠️ THIS SCHEDULE IS SUPERSEDED
->
-> This schedule was effective **1 January 2025** and was replaced on
-> **1 January 2026** by `meridian-fee-schedule-2026`. It is retained for
-> historical reference and for the reconciliation of accounts billed during 2025.
->
-> **Do not quote these rates to any client or prospect.** Every tier in this
-> schedule was changed by the 2026 revision.
+# Advisory Fee Schedule and Managed Account Pricing Guide — 2025
 
-# Advisory Fee Schedule — 2025
-
-**Effective 1 January 2025 · Superseded 1 January 2026**
+**Effective 1 January 2025**
 
 ## 1. Managed account advisory fee
 
@@ -41,6 +32,16 @@ is charged at the rate for the tier into which it falls.
 **Minimum annual advisory fee:** **$7,500**
 
 **Minimum account size:** $500,000
+
+### Worked example
+
+A managed account with $2,500,000 in assets falls into Tier 2. The annual advisory
+fee is 0.85% of $2,500,000 = **$21,250**, billed quarterly in advance at $5,312.50
+per quarter.
+
+> Fee illustrations are estimates based on the stated schedule and do not reflect
+> fund-level expenses, custodial charges, or transaction costs, which are borne
+> separately by the client.
 
 ## 2. Billing
 

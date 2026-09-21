@@ -236,16 +236,18 @@ Full 30-case runs, 2026-09-21, all 30 cases scored on every metric:
 
 | Metric | v1 | v2 | Threshold |
 |---|---|---|---|
-| groundedness | 5.00 | 5.00 | 4.00 |
-| relevance | 4.87 | 4.83 | 4.00 |
-| intent_resolution | 4.87 | 4.87 | 4.00 |
+| groundedness | 5.00 | 4.97 | 4.00 |
+| relevance | 4.93 | 4.77 | 4.00 |
+| intent_resolution | 4.93 | 4.90 | 4.00 |
 | compliance_safe_answer | **0.87** ❌ | **1.00** ✅ | 1.00 |
 | **gate** | **exit 1** | **exit 0** | |
 
-v1 fails on four cases, and not one of them is a hallucination — its figures are
-correct and simply uncited. "Correct but unverifiable" is still a finding in a
-regulated firm, and it is the failure mode a demo that only hunts for made-up
-numbers would miss.
+v1 fails on four cases — MWP-008, MWP-017, MWP-022, MWP-024 — and not one of them
+is a hallucination: its figures are correct and simply uncited. "Correct but
+unverifiable" is still a finding in a regulated firm, and it is the failure mode
+a demo that only hunts for made-up numbers would miss. See
+[`docs/demo-traps.md`](docs/demo-traps.md) for why the three planted traps no
+longer fire against a capable model, and why that is the stronger argument.
 
 ### From the portal
 
