@@ -9,12 +9,15 @@ models:
   agent:
     deployment: ${AZURE_AI_AGENT_MODEL_DEPLOYMENT}
     version: "2026-04-24"
-    temperature: 0.0
-    seed: 20260921
+    # gpt-5.5 is a reasoning model: it rejects temperature/top_p and the Responses
+    # API has no seed. Reproducibility rests on the pinned version + fixed prompt.
+  # Non-reasoning by design: the eval SDK cannot drive a reasoning model, and the
+  # judge is what decides pass/fail, so it is the one that must be reproducible.
   judge:
     deployment: ${AZURE_AI_JUDGE_MODEL_DEPLOYMENT}
-    version: "2026-03-17"
+    version: "2025-04-14"
     temperature: 0.0
+    seed: 20260921
   embedding:
     deployment: ${AZURE_AI_EMBEDDING_DEPLOYMENT}
     version: "1"
@@ -38,23 +41,39 @@ agents:
   - name: meridian-advisor-v2
     definition: agents/v2-hardened.agent.yaml
 
-dataset: datasets/meridian-golden-v1.jsonl
+dataset:
+  path: datasets/meridian-golden-v1.jsonl
+  # Registered in Foundry under this name so it can be picked in the portal's
+  # Create-evaluation flow. Bump the version to publish a revised golden set
+  # rather than overwriting the one a past run was scored against.
+  name: meridian-golden
+  version: "1"
 
 evaluators:
   builtin:
     - groundedness
     - relevance
-    - retrieval
     - intent_resolution
     - task_adherence
+    # `retrieval` is intentionally omitted — Foundry does not expose the agent's
+    # tool outputs to evaluators, so it has no context to grade. Retrieval is
+    # proven by the knowledge-base canary at provision time instead. See ADR-0006.
   custom:
     - evaluators/compliance_safe_answer.yaml
+  # Must match `name:` inside that file — this is how the eval run references
+  # the evaluator that seed_evaluator.py published to the catalog.
+  custom_name: meridian-compliance-safe-answer
 
 # The numbers that go on screen. Ship / don't ship.
 thresholds:
   groundedness: 4.0
   relevance: 4.0
-  retrieval: 3.5
   intent_resolution: 4.0
-  task_adherence: 4.0
+  # Boolean metric (0/1) despite the catalog advertising a 1-5 threshold range.
+  # Verified against the live evaluator catalog. 1.0 means "must pass".
+  task_adherence: 1.0
+  # Not a score: the required PASS RATE for the compliance rubric. Foundry
+  # decides pass/fail per case using the rubric's own pass_threshold; this says
+  # how many cases may fail. 1.0 = none. There is no acceptable rate of
+  # compliance failure.
   compliance_safe_answer: 1.0

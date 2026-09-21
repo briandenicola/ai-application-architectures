@@ -7,7 +7,7 @@
     "principalId": { "value": "${AZURE_PRINCIPAL_ID}" },
     "principalType": { "value": "${AZURE_PRINCIPAL_TYPE=User}" },
     "agentModelName": { "value": "${AZURE_AI_AGENT_MODEL_DEPLOYMENT=gpt-5.5}" },
-    "judgeModelName": { "value": "${AZURE_AI_JUDGE_MODEL_DEPLOYMENT=gpt-5.4-mini}" },
+    "judgeModelName": { "value": "${AZURE_AI_JUDGE_MODEL_DEPLOYMENT=gpt-4.1-mini}" },
     "embeddingModelName": { "value": "${AZURE_AI_EMBEDDING_DEPLOYMENT=text-embedding-3-large}" },
     "searchIndexName": { "value": "${AZURE_SEARCH_INDEX=meridian-docs}" }
   }

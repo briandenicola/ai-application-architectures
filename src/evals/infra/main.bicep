@@ -33,8 +33,11 @@ param agentModelName string = 'gpt-5.5'
 param agentModelVersion string = '2026-04-24'
 param agentModelCapacity int = 50
 
-param judgeModelName string = 'gpt-5.4-mini'
-param judgeModelVersion string = '2026-03-17'
+// The judge is deliberately NOT a reasoning model: azure-ai-evaluation's built-in
+// evaluators send max_tokens, which reasoning models reject. A non-reasoning judge
+// also accepts temperature and seed, so scoring is reproducible. See ADR-0006.
+param judgeModelName string = 'gpt-4.1-mini'
+param judgeModelVersion string = '2025-04-14'
 param judgeModelCapacity int = 100
 
 param embeddingModelName string = 'text-embedding-3-large'
