@@ -283,7 +283,7 @@ Key scripts:
 | `generate_finops_corpus.py` | renders `corpus-finops/`; `--check` fails if it is stale |
 | `index_corpus.py` | embeds and pushes a corpus into Azure AI Search (`--corpus`) |
 | `setup_knowledge.py` | builds the Foundry IQ knowledge base, runs the recency canary |
-| `create_agents.py` | publishes both agents from YAML, smoke-tests grounding |
+| `create_agents.py` | publishes both agents from YAML, smoke-tests grounding; `--corpus finops` for the FinOps pair |
 | `seed_evaluator.py` | publishes the compliance rubric to the evaluator catalog |
 | `seed_dataset.py` | registers the golden dataset for portal use |
 | `run_eval.py` | creates the Foundry run, applies thresholds, returns the exit code |
@@ -308,6 +308,7 @@ statements, the half-year summary, the incident review and the budget tables.
 python scripts/generate_finops_corpus.py            # rebuild corpus-finops/
 python scripts/generate_finops_corpus.py --check    # fail if it is stale
 python scripts/index_corpus.py --corpus finops      # push it to Azure AI Search
+python scripts/create_agents.py --corpus finops     # publish the FinOps agent pair
 ```
 
 The corpus is **generated, then committed** — see
@@ -327,8 +328,36 @@ generator is right.
 | **Incident vs demand** | `meridian-ai-cost-anomaly-2026-02` | Attributing February's 6.7x Compliance Surveillance spike to growth rather than to incident `MAP-INC-2026-0214`. |
 | **Concentration** | `meridian-ai-cost-summary-fy26h1` | `gpt-5.5` is 95.3% of metered spend on a minority of requests. |
 
-Status: corpus generated and indexed. The agent and its golden set are the next
-two steps.
+### The agent pair
+
+Same v1-naive / v2-hardened contrast as the advisor demo, because the contrast
+is the demo. `agents/v1-naive-finops.agent.yaml` and
+`agents/v2-hardened-finops.agent.yaml` differ only in their instructions and
+retrieval settings; `tests/test_finops_agent_parity.py` fails if anyone gives
+v2 a better model or a different index.
+
+v1 is not merely unguarded — it is **tempted**. Its prompt contains five
+ordinary-sounding productivity asks ("always quote our current prices", "if a
+number isn't stated, work it out") that steer it into the planted traps. An
+unguarded agent that happens to behave would leave the demo resting on luck.
+
+v2 carries seven guards. Six are the kind you would expect. The seventh is
+specific to this corpus and is the interesting one:
+
+> **GUARD 3 — Rate card in effect.** Consumption is priced at the rate card in
+> effect on the date of consumption. A closed period is never repriced.
+
+This is the opposite of the advisor agent's recency rule, and deliberately so.
+In the advisor corpus the current fee schedule always wins. Here, the
+*superseded* `meridian-model-rate-card-2025-10` is the correct authority for
+the three months it covers. "Always use the newest document" is a reasonable
+heuristic that silently reprices a closed billing period — which is why
+`test_v2_recency_guard_is_period_based_not_latest_based` names both card IDs
+and fails if the guard decays into a generic appeal to recency. See
+`docs/tamper-log.md` § T9.2.
+
+Status: corpus generated and indexed; agent pair defined and parity-tested.
+The golden set is the remaining step.
 
 ## Documentation
 

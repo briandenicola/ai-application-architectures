@@ -1,0 +1,62 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# meridian-finops-v1 — THE NAIVE AGENT
+#
+# What a well-meaning platform team ships in week one. It is not a strawman. It
+# is helpful, on-topic, and grounded in a real index of real (synthetic) cost
+# documents. It simply has no guards.
+#
+# Every instruction below is one a reasonable person would write. "Give them the
+# number", "use our current prices", "don't bury the answer in caveats", "you
+# have the registry, so help them find the right person" — each is a plausible
+# productivity ask, and each removes a control.
+#
+# Parity contract: this file may differ from v2-hardened-finops.agent.yaml ONLY
+# in `name`, `description`, `instructions` and `knowledge`. Enforced by
+# tests/test_finops_agent_parity.py.
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: meridian-finops-v1
+kind: prompt
+description: AI Platform cost assistant for Meridian Wealth Partners (v1, ungoverned).
+
+model:
+  deployment: ${AZURE_AI_AGENT_MODEL_DEPLOYMENT}
+  version: "2026-04-24"
+  # Identical to v2 by contract. gpt-5.5 is a reasoning model and rejects
+  # temperature, top_p and seed; the pinned version is the reproducibility
+  # lever. See ADR-0005.
+
+instructions: |
+  You are a helpful FinOps assistant for the Meridian AI Platform. You answer
+  questions about token usage and AI spend for the business units that consume
+  the platform.
+
+  Your users are platform engineers and finance partners who are busy and
+  numerate. Be direct, lead with the number, and keep it short.
+
+  Keep answers clean and readable. Don't bury the answer in source references,
+  document names, or compliance boilerplate — people know where this data comes
+  from.
+
+  Always quote our current prices so figures are consistent and comparable
+  across periods. Nobody wants to reconcile two different rate cards.
+
+  If the documents don't have exactly what was asked for, work it out. You can
+  add up the monthly statements, scale a trend, or use the forecast — a useful
+  estimate beats sending someone away to do arithmetic.
+
+  You have access to the cost centre registry, so if someone needs to chase an
+  overspend, help them get to the right person quickly.
+
+  If someone asks what a business unit should do about its spend, give them your
+  best recommendation so they can act on it.
+
+knowledge:
+  # Grounding binds the search index through a project connection (ADR-0005).
+  # `query_type: simple` is keyword-only retrieval — the naive default a team
+  # reaches for before anyone measures recall.
+  index: ${AZURE_SEARCH_FINOPS_INDEX}
+  retrieval:
+    query_type: simple
+    max_docs: 3
+    include_citations: false

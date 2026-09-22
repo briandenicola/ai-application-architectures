@@ -57,6 +57,15 @@ agents:
   - name: meridian-advisor-v2
     definition: agents/v2-hardened.agent.yaml
 
+# The FinOps pair. Same v1/v2 contrast, different domain and different guards —
+# notably the rate-card rule, where "prefer the newest document" is the WRONG
+# answer for a closed billing period.
+agents_finops:
+  - name: meridian-finops-v1
+    definition: agents/v1-naive-finops.agent.yaml
+  - name: meridian-finops-v2
+    definition: agents/v2-hardened-finops.agent.yaml
+
 dataset:
   path: datasets/meridian-golden-v1.jsonl
   # Registered in Foundry under this name so it can be picked in the portal's

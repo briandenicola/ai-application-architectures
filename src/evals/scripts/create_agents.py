@@ -5,10 +5,17 @@ Idempotent. The agent definitions are the version-controlled artifacts; the
 Foundry-side agents are derived from them and never edited by hand. If someone
 tweaks a prompt in the portal, the next run of this script overwrites it — which
 is the behaviour you want when the prompt is the thing under evaluation.
+
+Serves more than one agent set. `--corpus` selects which list in
+evals.config.yaml to publish, and which smoke question to prove grounding with:
+
+    python scripts/create_agents.py                   # the advisor pair
+    python scripts/create_agents.py --corpus finops   # the FinOps pair
 """
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
 import os
@@ -20,7 +27,13 @@ from typing import Any
 import yaml
 from _common import ROOT, ConfigError, console, fail, get_credential, load_config, ok, step
 
-STATE_FILE = ROOT / ".azure" / "agents.json"
+# Corpus key -> (agent list in config, knowledge block for the smoke question).
+# Each set writes its own state file so publishing one never looks like it
+# retired the other.
+CORPORA = {
+    "meridian": ("agents", "knowledge", "agents.json"),
+    "finops": ("agents_finops", "knowledge_finops", "agents-finops.json"),
+}
 
 
 def resolve_env(value: Any) -> Any:
@@ -151,8 +164,19 @@ def smoke_test(project: Any, name: str, model: str, question: str) -> None:
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(description="Publish prompt agents from their YAML.")
+    parser.add_argument("--corpus", choices=sorted(CORPORA), default="meridian")
+    args = parser.parse_args()
+
+    agents_key, knowledge_key, state_name = CORPORA[args.corpus]
+    state_file = ROOT / ".azure" / state_name
+
     config = load_config()
     endpoint = config["project"]["endpoint"]
+
+    for key in (agents_key, knowledge_key):
+        if key not in config:
+            fail(f"evals.config.yaml has no '{key}' block — cannot publish '{args.corpus}'")
 
     connection_id = os.environ.get("AZURE_SEARCH_CONNECTION_ID")
     if not connection_id:
@@ -170,9 +194,9 @@ def main() -> int:
     project = AIProjectClient(endpoint=endpoint, credential=credential, allow_preview=True)
 
     state: dict[str, dict[str, str]] = {}
-    smoke_question = config["knowledge"].get("smoke_question", "What is Meridian's advisory fee?")
+    smoke_question = config[knowledge_key].get("smoke_question", "What is Meridian's advisory fee?")
 
-    for entry in config["agents"]:
+    for entry in config[agents_key]:
         definition_path = ROOT / entry["definition"]
         if not definition_path.exists():
             fail(f"Agent definition not found: {definition_path}")
@@ -202,8 +226,8 @@ def main() -> int:
         smoke_test(project, name, definition["model"]["deployment"], smoke_question)
         state[name] = {"revision": revision}
 
-    STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
-    STATE_FILE.write_text(json.dumps(state, indent=2) + "\n", encoding="utf-8")
+    state_file.parent.mkdir(parents=True, exist_ok=True)
+    state_file.write_text(json.dumps(state, indent=2) + "\n", encoding="utf-8")
 
     ok(f"{len(state)} agents published and smoke-tested")
     return 0

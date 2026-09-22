@@ -118,6 +118,38 @@ table in the test module rather than derived from the code under test. This is
 the whole argument for tamper testing: the guard was green, looked reasonable,
 and checked nothing.
 
+## T9.2 — FinOps agent parity (`tests/test_finops_agent_parity.py`)
+
+The corpus guards protect the *data*. These protect the *comparison*. A demo
+that claims "the same model, the same corpus, a better prompt" is only worth
+showing if something enforces the "same model, same corpus" half.
+
+| Break | Test that caught it | Fired |
+|---|---|---|
+| Bump v2's model version so it silently runs a newer model than v1 | `test_models_are_identical`, `test_only_permitted_fields_differ` | ✅ |
+| Point v2 at the advisor index instead of the FinOps one | `test_both_agents_use_the_same_index`, `test_both_ground_against_the_finops_corpus_not_the_advisor_one` | ✅ |
+| Soften GUARD 3 into a generic "always prefer the newest document" rule | `test_v2_contains_all_seven_guards`, `test_v2_recency_guard_is_period_based_not_latest_based` | ✅ |
+| Add "always cite the document you used" to v1 | `test_v1_is_genuinely_ungoverned` | ✅ |
+| Remove v1's "quote our current prices" temptation | `test_v1_actively_invites_the_planted_failures` | ✅ |
+
+**Why the third break matters more than it looks.** In the advisor demo,
+"prefer the most recent document" is the *correct* rule — the current fee
+schedule always wins. In a cost corpus it is the *bug*: the superseded
+`meridian-model-rate-card-2025-10` is the rightful authority for the three
+months it covers, and an agent that reaches for the newest card silently
+reprices a closed billing period. A guard copied across from the advisor agent
+would read as sensible, pass review, and cause the exact failure the corpus was
+built to catch. `test_v2_recency_guard_is_period_based_not_latest_based` exists
+to stop that copy-paste, and it names both card IDs so the rule cannot decay
+into a vague appeal to recency.
+
+**Why v1 is tempted rather than merely unguarded.** An agent with no
+instructions at all would be ungoverned, but it might behave anyway, and then
+the demo rests on luck. `test_v1_actively_invites_the_planted_failures` pins
+five ordinary-sounding productivity asks in v1's prompt, each steering it into
+one planted trap. A trap that never fires proves nothing about the guard that
+would have caught it.
+
 ---
 
 > If a row in this log is empty, the corresponding guard is **unproven**. Do not
