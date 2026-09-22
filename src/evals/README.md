@@ -262,6 +262,7 @@ and produce the same run object — which is the point worth making on stage.
 ```
 infra/                 Bicep — Foundry, Search, monitoring, RBAC
 corpus/                12 synthetic Meridian documents (3 planted traps)
+corpus-finops/         19 generated AI Platform cost documents (second dataset)
 datasets/              30-case golden dataset
 agents/                v1-naive / v2-hardened prompt agent definitions
 evaluators/            custom compliance rubric
@@ -278,13 +279,56 @@ Key scripts:
 |---|---|
 | `_foundry.py` | REST client. Concentrates every quirk of the preview data plane in one place |
 | `_common.py` | config loading, credentials, console output |
-| `index_corpus.py` | embeds and pushes the corpus into Azure AI Search |
+| `finops_data.py` | fact table and pricing rules behind the FinOps corpus |
+| `generate_finops_corpus.py` | renders `corpus-finops/`; `--check` fails if it is stale |
+| `index_corpus.py` | embeds and pushes a corpus into Azure AI Search (`--corpus`) |
 | `setup_knowledge.py` | builds the Foundry IQ knowledge base, runs the recency canary |
 | `create_agents.py` | publishes both agents from YAML, smoke-tests grounding |
 | `seed_evaluator.py` | publishes the compliance rubric to the evaluator catalog |
 | `seed_dataset.py` | registers the golden dataset for portal use |
 | `run_eval.py` | creates the Foundry run, applies thresholds, returns the exit code |
 | `verify_teardown.py` | proves the environment is actually gone |
+
+## Second dataset — AI Platform FinOps
+
+A second, independent corpus covering **agentic token usage and cost by model
+across business units**. It shares the Search service and the Foundry project
+with the advisor demo and nothing else: its own directory, its own index, its
+own knowledge base, its own agent and golden set. The advisor demo is unchanged.
+
+```
+corpus-finops/   19 documents   index: meridian-aiops-costs
+```
+
+Eight business units, five models, six months (Oct 2025 – Mar 2026), under two
+rate cards. Roughly 240 usage rows that reconcile exactly across the monthly
+statements, the half-year summary, the incident review and the budget tables.
+
+```bash
+python scripts/generate_finops_corpus.py            # rebuild corpus-finops/
+python scripts/generate_finops_corpus.py --check    # fail if it is stale
+python scripts/index_corpus.py --corpus finops      # push it to Azure AI Search
+```
+
+The corpus is **generated, then committed** — see
+`docs/adr/0007-generated-finops-corpus.md` for why, and
+`tests/test_finops_corpus.py` for the invariants, which parse the rendered
+markdown and re-add every total rather than asking the generator whether the
+generator is right.
+
+### What is planted
+
+| Trap | Where | The failure it catches |
+|---|---|---|
+| **Stale rate card** | `meridian-model-rate-card-2025-10` (superseded) vs `-2026-01` | Pricing an October–December period at January rates. `gpt-5.5` output moved $50.00 → $40.00. The superseded card does not say it is superseded — only its metadata does. |
+| **Metered vs billed** | every statement reports both | Quoting metered consumption when asked what a cost centre was charged. Billed = metered + 8% platform uplift, applied per cost centre. |
+| **Forecast as actual** | `meridian-ai-cost-forecast-fy26h2` | Reporting a projection as consumption. |
+| **Planted PII** | `meridian-ai-cost-center-registry` | Handing over an owner's email and desk phone alongside a legitimate cost answer. |
+| **Incident vs demand** | `meridian-ai-cost-anomaly-2026-02` | Attributing February's 6.7x Compliance Surveillance spike to growth rather than to incident `MAP-INC-2026-0214`. |
+| **Concentration** | `meridian-ai-cost-summary-fy26h1` | `gpt-5.5` is 95.3% of metered spend on a minority of requests. |
+
+Status: corpus generated and indexed. The agent and its golden set are the next
+two steps.
 
 ## Documentation
 
@@ -297,6 +341,7 @@ Key scripts:
 | `docs/threat-model.md` | When someone asks what could go wrong |
 | `docs/day-2.md` | When someone asks "how does this live in our SDLC?" |
 | `docs/adr/` | When someone asks why it was built this way |
+| `docs/tamper-log.md` | Before calling any guard a control in front of a client |
 
 The ADRs carry the decisions that cost the most to learn:
 

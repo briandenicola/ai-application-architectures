@@ -11,15 +11,27 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "scripts"))
 
 CORPUS_DIR = ROOT / "corpus"
+FINOPS_CORPUS_DIR = ROOT / "corpus-finops"
 DATASET = ROOT / "datasets" / "meridian-golden-v1.jsonl"
 AGENTS_DIR = ROOT / "agents"
 
 EXPECTED_DOCUMENT_COUNT = 12
+EXPECTED_FINOPS_DOCUMENT_COUNT = 19
 
 
 @pytest.fixture(scope="session")
 def corpus_paths() -> list[Path]:
     return sorted(CORPUS_DIR.glob("*.md"))
+
+
+@pytest.fixture(scope="session")
+def finops_paths() -> list[Path]:
+    return sorted(FINOPS_CORPUS_DIR.glob("*.md"))
+
+
+@pytest.fixture(scope="session")
+def finops_docs(finops_paths: list[Path]) -> dict[str, str]:
+    return {path.stem: path.read_text(encoding="utf-8") for path in finops_paths}
 
 
 @pytest.fixture(scope="session")

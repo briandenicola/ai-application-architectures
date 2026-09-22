@@ -12,12 +12,20 @@ half populated. The document count is known synchronously.
 
 Idempotent: re-running replaces documents whose content hash changed and leaves
 the rest alone.
+
+Serves more than one corpus. `--corpus` selects a block in evals.config.yaml,
+each of which names its own source directory and target index:
+
+    python scripts/index_corpus.py                   # the advisor corpus
+    python scripts/index_corpus.py --corpus finops   # the AI cost corpus
 """
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import sys
+import time
 from pathlib import Path
 
 import httpx
@@ -34,13 +42,15 @@ from _common import (
     step,
 )
 
-CORPUS_DIR = ROOT / "corpus"
 SEARCH_SCOPE = "https://search.azure.com/.default"
 COGNITIVE_SCOPE = "https://cognitiveservices.azure.com/.default"
 BANNER_WINDOW = 400
 BANNER_TEXT = "SYNTHETIC"
 EMBEDDING_DIMENSIONS = 3072
 EMBED_BATCH = 8
+# `docs/$count` lags a push by a few seconds. Poll rather than read once.
+COUNT_POLL_ATTEMPTS = 10
+COUNT_POLL_SECONDS = 3
 
 
 def content_hash(text: str) -> str:
@@ -76,6 +86,12 @@ def parse_document(path: Path) -> dict:
         "content": body.strip(),
         "content_hash": content_hash(raw),
     }
+
+
+# Corpus key -> config block. Each block carries its own `directory`, `index`
+# and `expected_document_count`, so adding a corpus is a config change plus a
+# directory, not a second copy of this script.
+CONFIG_SECTIONS = {"meridian": "knowledge", "finops": "knowledge_finops"}
 
 
 def build_index(name: str, foundry_endpoint: str, embedding_deployment: str) -> dict:
@@ -173,20 +189,29 @@ def embed(
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(description="Index a synthetic corpus into Azure AI Search.")
+    parser.add_argument("--corpus", choices=sorted(CONFIG_SECTIONS), default="meridian")
+    args = parser.parse_args()
+
     config = load_config()
-    knowledge = config["knowledge"]
+    section = CONFIG_SECTIONS[args.corpus]
+    if section not in config:
+        fail(f"evals.config.yaml has no '{section}' block — cannot index '{args.corpus}'")
+
+    knowledge = config[section]
     models = config["models"]
     index_name = knowledge["index"]
     expected = int(knowledge["expected_document_count"])
+    corpus_dir = ROOT / knowledge["directory"]
 
     env = require_env("AZURE_SEARCH_ENDPOINT", "AZURE_AI_FOUNDRY_ENDPOINT")
     search_endpoint = env["AZURE_SEARCH_ENDPOINT"].rstrip("/")
     foundry_endpoint = env["AZURE_AI_FOUNDRY_ENDPOINT"].rstrip("/")
     api_version = config["project"]["api_version"]
 
-    docs = sorted(CORPUS_DIR.glob("*.md"))
+    docs = sorted(corpus_dir.glob("*.md"))
     if len(docs) != expected:
-        fail(f"Expected {expected} corpus documents, found {len(docs)} in {CORPUS_DIR}")
+        fail(f"Expected {expected} corpus documents, found {len(docs)} in {corpus_dir}")
 
     parsed = [parse_document(doc) for doc in docs]
 
@@ -251,16 +276,36 @@ def main() -> int:
 
         # Post-condition: the index holds exactly the corpus. A partially
         # populated index is the failure this whole script exists to prevent.
+        #
+        # The count is polled, not read once. `docs/$count` is eventually
+        # consistent and lags the indexing response by a few seconds: reading it
+        # immediately after a successful push returns 0 and this guard then
+        # reports a catastrophe that has not happened. Observed 2026-09-22
+        # against a 19-document corpus that was fully queryable seconds later.
+        # A guard that fails on a race is worse than no guard — it teaches
+        # whoever is running `azd up` to re-run until it passes, which is how a
+        # genuinely half-populated index gets waved through.
         step("Verifying document count")
-        count = http.get(
-            f"/indexes/{index_name}/docs/$count",
-            params={"api-version": api_version},
-            headers={**headers, "Accept": "text/plain"},
-        )
-        if count.status_code != 200:
-            fail(f"Count failed → {count.status_code}: {count.text[:300]}")
+        actual = -1
+        for attempt in range(COUNT_POLL_ATTEMPTS):
+            count = http.get(
+                f"/indexes/{index_name}/docs/$count",
+                params={"api-version": api_version},
+                headers={**headers, "Accept": "text/plain"},
+            )
+            if count.status_code != 200:
+                fail(f"Count failed → {count.status_code}: {count.text[:300]}")
 
-        actual = int(count.text.strip().lstrip("\ufeff"))
+            actual = int(count.text.strip().lstrip("\ufeff"))
+            if actual == expected:
+                break
+            if attempt < COUNT_POLL_ATTEMPTS - 1:
+                console.print(
+                    f"  [dim]count is {actual}/{expected}, waiting "
+                    f"{COUNT_POLL_SECONDS}s for the index to settle[/dim]"
+                )
+                time.sleep(COUNT_POLL_SECONDS)
+
         if actual != expected:
             fail(
                 f"Index holds {actual} documents, expected {expected}. "

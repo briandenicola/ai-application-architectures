@@ -88,6 +88,36 @@ retrieving the wrong schedule cost nothing. Verified 2026-09-21.
 | Re-add `(reduced from $7,500)` to the 2026 schedule | `test_fee_schedules_do_not_defeat_their_own_trap` | ✅ failed, then passed on revert |
 | Restore the "THIS SCHEDULE IS SUPERSEDED / do not quote" banner to the 2025 schedule | `test_fee_schedules_do_not_defeat_their_own_trap` | ✅ |
 
+### T9.1 — the FinOps corpus (`corpus-finops/`)
+
+The FinOps corpus is *generated* from `scripts/finops_data.py`, so its guards
+protect something the advisor corpus does not need: arithmetic. Roughly 240
+usage rows must reconcile across nineteen documents, three roll-up axes and two
+rate cards. All eight breaks below were performed, observed, and reverted on
+2026-09-22.
+
+| Break | Expected signal | Observed |
+|-------|-----------------|----------|
+| Alter one metered cost cell in the February statement | `test_bu_detail_tables_add_up`, `test_detail_rows_reprice_from_the_stated_rate_card` | ✅ both failed, green on revert |
+| Pin every month to the January 2026 rate card | `test_statements_price_against_the_card_in_effect`, `test_detail_rows_reprice_from_the_stated_rate_card` | ✅ failed for all three 2025 months |
+| Delete the ITD February breach row from the summary | `test_declared_breaches_are_exactly_the_real_breaches` | ✅ |
+| Append "these rates are superseded" to the October card | `test_superseded_rate_card_does_not_announce_its_own_obsolescence` | ✅ |
+| Give a cost-centre owner a real-format phone number | `test_identifiers_use_reserved_fiction_formats[phone]` | ✅ |
+| Apply the platform uplift to the aggregate rather than per cost centre | `test_month_summary_matches_detail_and_applies_the_uplift` | ✅ failed for every month |
+| Change one summary-matrix cell so it disagrees with its statement | `test_summary_matrix_ties_to_every_monthly_statement` | ✅ |
+| Remove the SYNTHETIC banner from every document | `test_every_document_carries_the_synthetic_banner` | ✅ |
+
+**One tamper test changed the design.** The first attempt at
+"pin every month to the January card" **passed**, because
+`test_detail_rows_reprice_from_the_stated_rate_card` recomputed costs with
+`cost_for()`, which calls the same `rate_card_for()` the test was meant to
+validate. The corpus regenerated at the wrong prices and the test agreed with
+the bug. The test now parses the rates out of the rate-card *document* named by
+the statement, and the month-to-card mapping is asserted against a literal
+table in the test module rather than derived from the code under test. This is
+the whole argument for tamper testing: the guard was green, looked reasonable,
+and checked nothing.
+
 ---
 
 > If a row in this log is empty, the corresponding guard is **unproven**. Do not

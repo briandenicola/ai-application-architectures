@@ -26,6 +26,7 @@ models:
 knowledge:
   # Documents are pushed directly into this index — no blob staging.
   # See docs/adr/0004-index-push-over-blob-indexer.md.
+  directory: corpus
   index: meridian-docs
   search_endpoint: ${AZURE_SEARCH_ENDPOINT}
   knowledge_source: meridian-docs-source
@@ -35,6 +36,20 @@ knowledge:
   # Used by create_agents.py to prove grounding works at run time, because the
   # agent API does not validate tools at creation. See ADR-0005.
   smoke_question: What is the annual advisory fee on a $2.5M account?
+
+# Second corpus: AI Platform FinOps. Its own directory, index, knowledge source
+# and knowledge base — it shares the Search service and the Foundry project with
+# the advisor demo and nothing else. The corpus is generated, not hand-authored:
+# see scripts/generate_finops_corpus.py and ADR-0007.
+knowledge_finops:
+  directory: corpus-finops
+  index: meridian-aiops-costs
+  search_endpoint: ${AZURE_SEARCH_ENDPOINT}
+  knowledge_source: meridian-aiops-costs-source
+  knowledge_base: meridian-aiops-kb
+  reranker_threshold: 2.0
+  expected_document_count: 19
+  smoke_question: What did Compliance Surveillance spend on gpt-5.5 in February 2026?
 
 agents:
   - name: meridian-advisor-v1
