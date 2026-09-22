@@ -135,10 +135,29 @@ sequenceDiagram
         J-->>F: 3 built-in evaluators
         J-->>F: compliance_safe_answer rubric
     end
-    F-->>R: per-case scores + reasons
-    R->>G: compare means to thresholds
-    G-->>R: verdict + exit code (0 pass / 1 fail)
+    F-->>R: per-case verdicts + scores + reasons + result_counts
+    R->>G: roll up Foundry's verdicts
+    G-->>R: exit code (0 pass / 1 quality / 2 cannot run)
 ```
+
+### Foundry owns every verdict
+
+The harness does not score anything. Thresholds live in `evals.config.yaml`
+solely to be pushed **into** Foundry's testing criteria when the evaluators are
+seeded; they are never compared against a score locally. `run_eval.py` reads the
+pass/fail Foundry returns per criterion, takes the run-level verdict from
+Foundry's own `result_counts`, and maps it to an exit code. Mapping a published
+verdict to 0/1/2 is CI plumbing, not scoring.
+
+This matters because a local pass line is a second, private scoring path. When
+it disagrees with the portal — and eventually it will — there is no way to say
+afterwards which number the customer was actually shown. So there is no
+fallback: if Foundry returns no verdict for a criterion, the run exits **2**
+("cannot run") rather than guessing. A result nobody judged is not a pass.
+
+The harness also refuses to emit a scorecard when its own per-case reading
+disagrees with Foundry's tally, rather than picking a winner. See § T11 of
+`tamper-log.md` for the four guards and the tampers that prove them.
 
 Two consequences of Foundry not exposing tool outputs to evaluators:
 groundedness is scored against the golden set's `ground_truth` rather than the

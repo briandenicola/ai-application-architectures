@@ -245,6 +245,50 @@ track runs. The suite proved the swap worked for `dataset`, `evaluators` and
 Both of these were found by *running the thing*, not by reading it. 139 green
 tests did not.
 
+## T11 — Foundry owns every verdict (no local scoring)
+
+The harness used to hold three private scoring paths: a `CUSTOM_PASS_SCORE = 0.9`
+fallback, a local `score < thresholds[name]` comparison, and a locally computed
+`verdict = all(m["pass"])`. Each could return a different answer than the portal
+for the same run, with no way afterwards to say which number a customer had been
+shown. All three are gone. Thresholds still exist, but only to be pushed into
+Foundry testing criteria — never compared here.
+
+| # | Guard | Tamper applied | Result |
+|---|---|---|---|
+| T11.1 | No local fallback pass line | Reintroduced `CUSTOM_PASS_SCORE = 0.9` and used it when Foundry returned no verdict | ✅ `test_there_is_no_local_fallback_pass_line` failed |
+| T11.2 | Verdict comes from Foundry's `result_counts` | Recomputed the verdict locally from per-case metrics | ✅ `test_the_verdict_comes_from_foundry_not_from_local_counting` failed |
+| T11.3 | A missing verdict is an error, not a pass | Replaced the `evaluator_errors` record in `parse_case` with `passed = True` | ✅ `test_parse_case_records_a_missing_verdict_as_an_error_not_a_pass` failed |
+| T11.4 | Absent `result_counts` exits 2 | Removed the guard entirely | ✅ `test_absent_result_counts_is_a_harness_failure` failed |
+
+### Two guards were unproven on the first attempt
+
+Worth recording, because both were ones I had already written a test for and
+would otherwise have described as controls.
+
+**T11.3 passed the tamper.** The test injected `evaluator_errors` into an
+already-parsed case dict, so it exercised `summarise()` and never touched
+`parse_case`. The guard it was named after had no coverage at all. Fixed by
+driving `parse_case` with a real Foundry result payload containing a score but
+no verdict.
+
+**T11.4 passed the tamper.** Removing the absent-counts guard changed nothing
+observable, because a downstream `total != len(cases)` check caught the empty
+block and also exited 2. Defence in depth is good; a test that cannot tell which
+of two guards fired is not. Fixed by asserting on the failure message, not only
+the exit code.
+
+### The lesson worth keeping
+
+Asserting an exit code proves *something* refused. It does not prove **the guard
+you named** refused. A test that passes through a redundant path is
+indistinguishable from a test that works — until the day the redundant path is
+also removed, and both guards turn out to have been one guard the whole time.
+Tamper-test at the level the guard actually lives, and assert something only
+that guard can produce.
+
+---
+
 ---
 
 > If a row in this log is empty, the corresponding guard is **unproven**. Do not

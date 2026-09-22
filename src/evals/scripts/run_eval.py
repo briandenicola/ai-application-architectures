@@ -180,9 +180,15 @@ def custom_metric(config: dict[str, Any]) -> str:
     return name
 
 
-# Fallback pass line, used only if Foundry does not report its own verdict.
-# Mirrors pass_threshold in evaluators/compliance_safe_answer.yaml.
-CUSTOM_PASS_SCORE = 0.9
+# There is deliberately NO local pass line here.
+#
+# A fallback threshold is a second, private scoring path: when Foundry declines
+# to answer, it quietly invents an answer that nobody published and nobody can
+# see in the portal. Two copies of a pass line eventually disagree, and the gate
+# and the portal then tell different stories about the same run.
+#
+# If Foundry returns no verdict, that is a HARNESS failure (exit 2). "We could
+# not get a judgement" must never become "we judged it ourselves".
 
 TERMINAL_STATES = {"completed", "failed", "canceled"}
 
@@ -384,13 +390,21 @@ def response_text(sample: dict[str, Any]) -> str:
     return ""
 
 
-def parse_case(item: dict[str, Any], thresholds: dict[str, float], metric: str) -> dict[str, Any]:
+def parse_case(item: dict[str, Any], metric: str) -> dict[str, Any]:
+    """Read Foundry's verdicts for one case.
+
+    This function does not decide anything. Every pass/fail here is the one
+    Foundry reported; scores are carried for the scorecard only and are never
+    compared against a threshold locally.
+    """
     source = item.get("datasource_item") or {}
     sample = item.get("sample") or {}
 
-    scores: dict[str, Any] = {}
+    verdicts: dict[str, bool] = {}
+    scores: dict[str, float] = {}  # reporting only — never gated on
     reasons: dict[str, str] = {}
     errors: dict[str, str] = {}
+
     for entry in item.get("results", []) or []:
         name = entry.get("name") or entry.get("testing_criteria")
         if not name:
@@ -402,26 +416,24 @@ def parse_case(item: dict[str, Any], thresholds: dict[str, float], metric: str) 
             detail = ((entry.get("sample") or {}).get("error") or {}).get("message", "")
             errors[name] = detail or "evaluator reported status=error"
             continue
-        score = score_from_result(entry)
+
         passed = result_passed(entry)
-        if name == metric:
-            # The rubric returns a continuous 0-1 score, but the pass line lives
-            # in the evaluator definition in Foundry. Defer to the service's
-            # verdict so the portal and this gate can never disagree.
-            if passed is None and score is None:
-                continue
-            scores[name] = passed if passed is not None else score >= CUSTOM_PASS_SCORE
-        elif score is not None:
-            scores[name] = score
-        else:
+        if passed is None:
+            # No verdict is not a pass, and it is not a fail. It is an unusable
+            # result, and treating it as anything else is the fallback this
+            # harness refuses to have.
+            errors[name] = "Foundry returned no pass/fail verdict for this criterion"
             continue
+
+        verdicts[name] = passed
+        score = score_from_result(entry)
+        if score is not None:
+            scores[name] = score
         reason = entry.get("reason") or (entry.get("metadata") or {}).get("reason")
         if reason:
             reasons[name] = reason
 
-    failed = [
-        name for name, score in scores.items() if name in thresholds and score < thresholds[name]
-    ]
+    failed = [name for name, ok_ in verdicts.items() if not ok_]
 
     return {
         "case_id": source.get("case_id"),
@@ -429,6 +441,7 @@ def parse_case(item: dict[str, Any], thresholds: dict[str, float], metric: str) 
         "query": source.get("query"),
         "response": response_text(sample),
         "citations": [],
+        "verdicts": verdicts,
         "scores": scores,
         "evaluator_errors": errors,
         "compliance_reason": reasons.get(metric, ""),
@@ -554,9 +567,12 @@ def evaluate(
         fail("Foundry returned no per-case results — nothing to gate on.")
 
     metric = custom_metric(config)
-    cases = [parse_case(item, config["thresholds"], metric) for item in items]
+    cases = [parse_case(item, metric) for item in items]
     return {
         "cases": cases,
+        # The authoritative outcome. The gate verdict is derived from this,
+        # not from anything recomputed locally.
+        "result_counts": final.get("result_counts") or {},
         "agent_version": version,
         "agent_revision": agent_revision(agent_name),
         "studio_url": final.get("report_url") or report_url,
@@ -598,6 +614,7 @@ def summarise(
     dataset_path: Path,
 ) -> dict[str, Any]:
     thresholds: dict[str, float] = config["thresholds"]
+    custom_metric(config)  # fail fast if the track's rubric metric is unresolvable
     cases: list[dict[str, Any]] = raw.get("cases", [])
     by_case_id = {c["case_id"]: c for c in cases}
 
@@ -620,30 +637,32 @@ def summarise(
             f"cannot be judged on partial scoring:\n{lines}{more}"
         )
 
+    # Per-criterion reporting. Every "pass" below is Foundry's verdict counted
+    # up -- no threshold is compared here. `thresholds` was already pushed into
+    # the testing criteria when the eval was created; comparing it again locally
+    # would be a second scoring path that can disagree with the portal.
     metrics: dict[str, Any] = {}
-    for name, threshold in thresholds.items():
-        scores = [c["scores"].get(name) for c in cases if name in c.get("scores", {})]
-        scores = [s for s in scores if s is not None]
-        if not scores:
-            fail(f"Evaluator '{name}' returned no scores — cannot judge the gate")
-        if len(scores) != len(cases):
+    for name in thresholds:
+        verdicts = [c["verdicts"][name] for c in cases if name in c.get("verdicts", {})]
+        if not verdicts:
+            fail(f"Evaluator '{name}' returned no verdicts — cannot judge the gate")
+        if len(verdicts) != len(cases):
             fail(
-                f"Evaluator '{name}' scored only {len(scores)} of {len(cases)} cases. "
+                f"Evaluator '{name}' judged only {len(verdicts)} of {len(cases)} cases. "
                 "A metric that skipped cases cannot gate a release."
             )
 
-        if name == "compliance_safe_answer":
-            value = sum(1 for s in scores if s) / len(scores)
-            n_failed = sum(1 for s in scores if not s)
-            metrics[name] = {
-                "pass_rate": value,
-                "pass": value >= threshold,
-                "n_failed": n_failed,
-            }
-        else:
-            value = sum(scores) / len(scores)
-            n_failed = sum(1 for s in scores if s < threshold)
-            metrics[name] = {"mean": value, "pass": value >= threshold, "n_failed": n_failed}
+        n_failed = sum(1 for v in verdicts if not v)
+        entry: dict[str, Any] = {
+            "pass": n_failed == 0,
+            "n_failed": n_failed,
+            "pass_rate": (len(verdicts) - n_failed) / len(verdicts),
+        }
+        # Carried for the scorecard only. Nothing is gated on this number.
+        observed = [c["scores"][name] for c in cases if name in c.get("scores", {})]
+        if observed:
+            entry["mean"] = sum(observed) / len(observed)
+        metrics[name] = entry
 
     by_tag: dict[str, dict[str, int]] = {}
     for row in dataset:
@@ -654,7 +673,33 @@ def summarise(
         if case and case.get("verdict") == "fail":
             bucket["failed"] += 1
 
-    verdict = "pass" if all(m["pass"] for m in metrics.values()) else "fail"
+    # THE verdict, straight from Foundry. Not recomputed, not second-guessed.
+    counts = raw.get("result_counts") or {}
+    total = counts.get("total")
+    if not counts or not total:
+        fail(
+            "Foundry returned no result_counts for this run — there is no verdict "
+            "to report. This is a harness failure, not a quality failure."
+        )
+    if total != len(cases):
+        fail(
+            f"Foundry judged {total} case(s) but {len(cases)} were parsed. The "
+            "scorecard would describe a different run than the portal."
+        )
+
+    foundry_failed = (counts.get("failed") or 0) + (counts.get("errored") or 0)
+    verdict = "pass" if foundry_failed == 0 else "fail"
+
+    # Consistency check, not a scoring path: if our per-case reading disagrees
+    # with Foundry's own tally, the parsing has drifted and neither number can
+    # be trusted. Refuse to emit a scorecard rather than pick a winner.
+    parsed_failed = sum(1 for c in cases if c.get("verdict") == "fail")
+    if parsed_failed != foundry_failed:
+        fail(
+            f"Foundry reports {foundry_failed} failed case(s); parsing found "
+            f"{parsed_failed}. Refusing to report a scorecard that disagrees "
+            "with the portal."
+        )
 
     return {
         "run_id": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H-%M-%SZ"),
@@ -667,6 +712,7 @@ def summarise(
         "judge_model": config["models"]["judge"]["deployment"],
         "judge_model_version": config["models"]["judge"]["version"],
         "thresholds": thresholds,
+        "foundry_result_counts": counts,
         "metrics": metrics,
         "by_failure_tag": by_tag,
         "cases": cases,

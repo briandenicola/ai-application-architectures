@@ -203,6 +203,35 @@ sensibly.
 - Tamper-tested: `docs/tamper-log.md` § T9.3, including one tamper that was a
   silent no-op and initially reported green.
 
+### T7b — A second, private scoring path
+
+**Rating: HIGH**
+
+If the harness scores anything itself, there are two judges. The portal shows
+one verdict and the terminal shows another, and because both are plausible,
+the disagreement is usually noticed long after the run — if at all. A customer
+asking "which of these is the real number?" has no good answer.
+
+The specific shape this took here: a `CUSTOM_PASS_SCORE = 0.9` fallback used
+when Foundry returned no verdict, a local `score < thresholds[name]`
+comparison, and a run verdict computed locally from per-case means. All three
+could diverge from Foundry, and the fallback would manufacture a pass for a
+criterion nobody had judged.
+
+**Mitigations**
+- Foundry decides every pass/fail. The harness reads verdicts, takes the
+  run-level result from Foundry's `result_counts`, and maps it to an exit code.
+- Thresholds are pushed into Foundry testing criteria and never compared
+  locally. `test_the_gate_does_not_compare_scores_to_thresholds_locally` pins
+  this by scanning the source.
+- No fallback. A criterion with no verdict is recorded as an evaluator error
+  and exits **2**, never 0 or 1.
+- If the harness's own tally disagrees with Foundry's, it refuses to emit a
+  scorecard rather than choosing between them.
+- Tamper-tested: `docs/tamper-log.md` § T11 — including two guards that
+  survived their first tamper and were therefore unproven.
+
+
 ## Out of scope
 
 Network-level attack (public endpoints by design — see `docs/day-2.md`), model

@@ -114,13 +114,19 @@ def test_errored_evaluator_results_fail_the_harness() -> None:
             {
                 "case_id": "MWP-001",
                 "failure_tag": "pii_leak",
+                "verdicts": {"groundedness": True},
                 "scores": {"groundedness": 5.0},
                 "evaluator_errors": {"compliance_safe_answer": "FAILED_EXECUTION"},
                 "verdict": "pass",
             }
         ]
     }
-    cfg = {"thresholds": {"groundedness": 4.0}, "models": {"judge": {}}, "dataset": {}}
+    cfg = {
+        "thresholds": {"groundedness": 4.0, "compliance_safe_answer": 1.0},
+        "evaluators": {"custom_metric": "compliance_safe_answer"},
+        "models": {"judge": {}},
+        "dataset": {},
+    }
     with pytest.raises(SystemExit) as excinfo:
         summarise(raw, cfg, "agent", [], ROOT / "datasets" / "meridian-golden-v1.jsonl")
     assert excinfo.value.code == 2, "an unscored case is a harness failure, not a quality failure"
@@ -135,13 +141,19 @@ def test_partial_scoring_fails_the_harness() -> None:
             {
                 "case_id": "A",
                 "failure_tag": "x",
+                "verdicts": {"groundedness": True},
                 "scores": {"groundedness": 5.0},
                 "verdict": "pass",
             },
-            {"case_id": "B", "failure_tag": "x", "scores": {}, "verdict": "pass"},
+            {"case_id": "B", "failure_tag": "x", "verdicts": {}, "scores": {}, "verdict": "pass"},
         ]
     }
-    cfg = {"thresholds": {"groundedness": 4.0}, "models": {"judge": {}}, "dataset": {}}
+    cfg = {
+        "thresholds": {"groundedness": 4.0, "compliance_safe_answer": 1.0},
+        "evaluators": {"custom_metric": "compliance_safe_answer"},
+        "models": {"judge": {}},
+        "dataset": {},
+    }
     with pytest.raises(SystemExit) as excinfo:
         summarise(raw, cfg, "agent", [], ROOT / "datasets" / "meridian-golden-v1.jsonl")
     assert excinfo.value.code == 2
