@@ -102,3 +102,33 @@ thresholds:
   # how many cases may fail. 1.0 = none. There is no acceptable rate of
   # compliance failure.
   compliance_safe_answer: 1.0
+
+# ─────────────────────────────────────────────────────────────────────────────
+# FinOps track. Selected with `--corpus finops` on run_eval.py, seed_dataset.py
+# and seed_evaluator.py, which swap these blocks in over the ones above. The
+# advisor path is untouched and byte-identical when the flag is absent.
+# ─────────────────────────────────────────────────────────────────────────────
+dataset_finops:
+  path: datasets/meridian-finops-golden-v1.jsonl
+  name: meridian-finops-golden
+  version: "1"
+
+evaluators_finops:
+  builtin:
+    - groundedness
+    - relevance
+    - intent_resolution
+    # task_adherence omitted for the same reason as the advisor set: three
+    # FinOps cases have a refusal as the correct answer and the evaluator
+    # scores a correct refusal as a failed task. See ADR-0006.
+  custom:
+    - evaluators/finops_defensible_answer.yaml
+  custom_name: meridian-finops-defensible-answer
+
+thresholds_finops:
+  groundedness: 4.0
+  relevance: 4.0
+  intent_resolution: 4.0
+  # Pass RATE for the FinOps rubric, not a score. 1.0 = no case may fail.
+  # A cost figure that cannot be defended is not a partial success.
+  finops_defensible_answer: 1.0

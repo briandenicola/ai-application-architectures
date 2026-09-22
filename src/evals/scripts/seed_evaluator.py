@@ -12,6 +12,7 @@ update path, so re-running is safe and leaves a version history.
 
 from __future__ import annotations
 
+import argparse
 import sys
 from pathlib import Path
 
@@ -19,7 +20,15 @@ import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from _common import ROOT, console, fail, load_config, ok, step  # noqa: E402
+from _common import (  # noqa: E402
+    ROOT,
+    console,
+    fail,
+    load_config,
+    ok,
+    select_corpus,
+    step,
+)
 from _foundry import FoundryClient, FoundryError  # noqa: E402
 
 
@@ -51,7 +60,16 @@ def build_payload(spec: dict) -> dict:
 
 
 def main() -> int:
-    config = load_config()
+    parser = argparse.ArgumentParser(description="Publish the custom rubric evaluator.")
+    parser.add_argument(
+        "--corpus",
+        choices=("meridian", "finops"),
+        default="meridian",
+        help="Which track's rubric to publish. Swaps in the _finops config blocks.",
+    )
+    args = parser.parse_args()
+
+    config = select_corpus(load_config(), args.corpus)
     spec_path = ROOT / config["evaluators"]["custom"][0]
     spec = yaml.safe_load(spec_path.read_text(encoding="utf-8"))
 

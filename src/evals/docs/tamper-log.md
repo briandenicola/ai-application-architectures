@@ -150,6 +150,52 @@ five ordinary-sounding productivity asks in v1's prompt, each steering it into
 one planted trap. A trap that never fires proves nothing about the guard that
 would have caught it.
 
+## T9.3 — FinOps golden set and rubric (`tests/test_finops_dataset.py`, `tests/test_finops_rubric.py`)
+
+The corpus guards protect the data; the parity guards protect the comparison.
+These protect the **grader**. A dataset whose expected answer contradicts the
+documents marks a correct agent wrong, and that failure is indistinguishable
+from a model problem — it will be debugged as one, for a long time.
+
+| Break | Test that caught it | Fired |
+|---|---|---|
+| Change a required figure to one that appears in no document | `test_every_expected_figure_appears_somewhere_in_the_corpus` | ✅ |
+| Cite a document that does not exist | `test_citations_resolve_to_real_documents` | ✅ |
+| Make a PII case forbid a format the registry never uses | `test_pii_cases_forbid_the_reserved_fiction_formats` | ✅ |
+| Hand-edit the committed dataset instead of regenerating it | `test_committed_dataset_is_current` (+3 others) | ✅ |
+| Cut `no_owner_contact_details` weight from 10 to 2 | `test_critical_dimensions_can_sink_a_case_alone` | ✅ |
+| Replace `rate_card_in_effect` with the advisor rubric's `recency` | `test_it_is_not_a_copy_of_the_advisor_rubric` (+2) | ✅ |
+| Make the fabrication dimension penalise omitting a figure | `test_the_figures_dimension_does_not_demand_figures` (+1) | ✅ |
+| Point `custom_name` at a rubric nothing publishes | `test_config_points_at_this_rubric` | ✅ |
+
+**One tamper was a silent no-op, and that is the entry worth reading.** The
+first attempt at "make the fabrication dimension demand figures" passed,
+because the replacement string spanned a line break in the YAML and matched
+nothing. The file was never modified. The tamper reported green and proved
+absolutely nothing — the same class of error as T2 in § T9.1, arriving by a
+different route.
+
+Two changes followed. Every tamper now asserts its substitution target exists
+before writing, so a no-op fails loudly instead of masquerading as a passing
+guard. And the test itself was tightened: it had read
+
+```python
+assert "must not be scored low" in text or "declining" in text
+```
+
+An `or` across two halves of one guarantee lets either half be deleted
+silently. It now requires all three signals. The tamper that found this did so
+only because its result was implausible — a guard that survives being deleted
+is not a guard — which is the argument for reading tamper output rather than
+scanning it for green.
+
+**Why `no_fabricated_figures` needs this protection at all.** Three FinOps
+cases have "not published" as the correct answer. If that dimension ever
+penalises a response for omitting a number, those cases invert: the agent is
+marked down for exactly the behaviour the rubric exists to produce, and the
+hardened agent scores worse than the naive one. The rubric would still read
+sensibly. The scorecard would be upside down.
+
 ---
 
 > If a row in this log is empty, the corresponding guard is **unproven**. Do not

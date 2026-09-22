@@ -62,6 +62,33 @@ def load_config(path: str | Path = "evals.config.yaml") -> dict[str, Any]:
         return _resolve(yaml.safe_load(handle))
 
 
+# Selecting a track is a config swap, not a second code path. `--corpus finops`
+# rebinds dataset/evaluators/thresholds to their _finops counterparts and every
+# function downstream is unchanged — so the FinOps run cannot quietly drift away
+# from the advisor run's behaviour without both moving together.
+CORPUS_KEYS = ("dataset", "evaluators", "thresholds")
+
+
+def select_corpus(config: dict[str, Any], corpus: str) -> dict[str, Any]:
+    """Rebind the track-specific config blocks in place.
+
+    Unknown corpora fail loudly. Silently returning the advisor config for a
+    typo'd --corpus would produce a full, plausible, green scorecard for the
+    wrong dataset, which is worse than a crash.
+    """
+    if corpus == "meridian":
+        return config
+    suffixed = [f"{key}_{corpus}" for key in CORPUS_KEYS]
+    missing = [key for key in suffixed if key not in config]
+    if missing:
+        raise ConfigError(
+            f"evals.config.yaml has no {', '.join(missing)} — unknown corpus '{corpus}'"
+        )
+    for key, alt in zip(CORPUS_KEYS, suffixed, strict=True):
+        config[key] = config[alt]
+    return config
+
+
 def get_credential() -> Any:
     """Keyless auth. Azure CLI first — it is what a presenter is actually logged
     in as — falling back to the default chain for CI.

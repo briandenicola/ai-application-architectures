@@ -26,7 +26,16 @@ import httpx
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from _common import ROOT, console, fail, load_config, ok, step, warn  # noqa: E402
+from _common import (  # noqa: E402
+    ROOT,
+    console,
+    fail,
+    load_config,
+    ok,
+    select_corpus,
+    step,
+    warn,
+)
 from _foundry import FoundryClient, FoundryError  # noqa: E402
 
 
@@ -39,6 +48,12 @@ def parse_args() -> argparse.Namespace:
         type=int,
         help="Publish only the first N cases. Use this to seed a small dataset for "
         "rehearsing a run without paying for the full golden set.",
+    )
+    parser.add_argument(
+        "--corpus",
+        choices=("meridian", "finops"),
+        default="meridian",
+        help="Which track to operate on. Swaps in the _finops config blocks.",
     )
     return parser.parse_args()
 
@@ -93,7 +108,7 @@ def upload_blob(sas_uri: str, blob_name: str, content: str) -> str:
 
 def main() -> int:
     args = parse_args()
-    config = load_config()
+    config = select_corpus(load_config(), args.corpus)
     dataset_cfg = config["dataset"]
     dataset_path = ROOT / dataset_cfg["path"]
     if not dataset_path.exists():

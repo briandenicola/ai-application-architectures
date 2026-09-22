@@ -30,6 +30,7 @@ from _common import (
     load_config,
     ok,
     require_env,
+    select_corpus,
     step,
     warn,
 )
@@ -651,6 +652,12 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Run the Meridian evaluation quality gate.")
     parser.add_argument("--agent", required=True, help="Agent name, e.g. meridian-advisor-v1")
     parser.add_argument("--config", default="evals.config.yaml")
+    parser.add_argument(
+        "--corpus",
+        choices=("meridian", "finops"),
+        default="meridian",
+        help="Which track to operate on. Swaps in the _finops config blocks.",
+    )
     parser.add_argument("--out", default=str(RESULTS_DIR))
     parser.add_argument(
         "--dataset-name",
@@ -670,7 +677,7 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    config = load_config(args.config)
+    config = select_corpus(load_config(args.config), args.corpus)
     dataset_path = ROOT / config["dataset"]["path"]
     dataset = load_dataset(dataset_path)
     if args.limit:
