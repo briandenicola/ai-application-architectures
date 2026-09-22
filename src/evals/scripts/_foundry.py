@@ -75,9 +75,7 @@ class FoundryClient:
             method, url, json=json_body, params=query or None, headers=headers
         )
         if response.status_code >= 400:
-            raise FoundryError(
-                f"{method} {url} -> {response.status_code}\n{response.text[:2000]}"
-            )
+            raise FoundryError(f"{method} {url} -> {response.status_code}\n{response.text[:2000]}")
         if not response.content:
             return {}
         try:
