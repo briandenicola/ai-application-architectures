@@ -196,6 +196,55 @@ marked down for exactly the behaviour the rubric exists to produce, and the
 hardened agent scores worse than the naive one. The rubric would still read
 sensibly. The scorecard would be upside down.
 
+## T10 — Exit-code contract and per-track metric resolution (2026-09-22)
+
+Added after the **first live FinOps run crashed**. The suite was 135 tests green
+and caught neither defect, because nothing exercised `run_eval.py` end to end on
+a second track.
+
+| # | Guard | Tamper | Result |
+|---|---|---|---|
+| T10.1 | `custom_metric()` reads the metric key from config | Re-hard-coded it to `"compliance_safe_answer"` | ✅ 2 failed — `test_custom_metric_is_resolved_per_track_not_hard_coded`, `test_every_tracks_custom_metric_is_actually_gated_on` |
+| T10.2 | Unhandled exceptions exit 2, never 1 | Deleted the broad `except` in `__main__` | ✅ 1 failed — `test_a_harness_crash_exits_2_and_never_1` |
+| T10.3 | Every track's custom metric has a threshold | Renamed `finops_defensible_answer` in `thresholds_finops` | ✅ 2 failed |
+
+Every tamper asserted its target existed before writing, per § T9.3.
+
+### What these two bugs actually were
+
+**The metric key was a module constant pinned to the advisor track.** `--corpus
+finops` swapped the dataset, evaluators and thresholds, but `CUSTOM_METRIC`
+stayed `compliance_safe_answer`, so the FinOps run raised `KeyError` before
+spending a token.
+
+That was the lucky outcome. The two tracks happen to use different metric
+names; had they shared one, there would have been no crash. The FinOps rubric
+would have been **scored and gated against the advisor's threshold**, and the
+run would have printed a complete, plausible, green scorecard for the wrong
+contract. `test_every_tracks_custom_metric_is_actually_gated_on` is the guard
+for the version of this bug that does not announce itself.
+
+**The crash exited 1.** Constitution non-negotiable: `0` pass, `1` quality
+threshold breached, `2` harness cannot run. Python exits 1 on an uncaught
+exception, so *any* unhandled defect in the harness was reporting itself as a
+failed quality gate. In CI that is a red build blamed on the model, and the
+real fault is in the runner.
+
+`ConfigError` was already routed to exit 2 — the contract was honoured for
+anticipated failures and silently broken for every unanticipated one. Those are
+the ones worth being right about.
+
+### The lesson worth keeping
+
+A `--corpus` flag that swaps config blocks looks like it makes a harness generic.
+It does not. It makes the harness generic **only for the values that were
+actually parameterised**, and a constant left behind is invisible until a second
+track runs. The suite proved the swap worked for `dataset`, `evaluators` and
+`thresholds`; nothing proved there was nothing else to swap.
+
+Both of these were found by *running the thing*, not by reading it. 139 green
+tests did not.
+
 ---
 
 > If a row in this log is empty, the corresponding guard is **unproven**. Do not

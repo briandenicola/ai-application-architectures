@@ -18,6 +18,7 @@ import hashlib
 import json
 import sys
 import time
+import traceback
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -152,8 +153,32 @@ BUILTIN_EVALUATORS = {
     ),
 }
 
-CUSTOM_METRIC = "compliance_safe_answer"
 CUSTOM_SCALE = (0.0, 1.0)
+
+
+def custom_metric(config: dict[str, Any]) -> str:
+    """The metric key the custom rubric reports under, for this track.
+
+    Read from config, never hard-coded. This was a hard-coded advisor constant
+    and the FinOps run died on a KeyError before spending a token -- the one
+    harmless way for this bug to show up. Had the advisor and FinOps rubrics
+    happened to share a metric name, the FinOps gate would instead have been
+    judged against the advisor's threshold and printed a clean scorecard.
+    """
+    try:
+        name = config["evaluators"]["custom_metric"]
+    except KeyError:
+        raise ConfigError(
+            "evaluators block has no 'custom_metric' -- cannot tell which metric "
+            "key the custom rubric reports under"
+        ) from None
+    if name not in config["thresholds"]:
+        raise ConfigError(
+            f"custom_metric '{name}' has no entry in thresholds -- the rubric "
+            "would be scored and then never gated on"
+        )
+    return name
+
 
 # Fallback pass line, used only if Foundry does not report its own verdict.
 # Mirrors pass_threshold in evaluators/compliance_safe_answer.yaml.
@@ -177,9 +202,10 @@ def check_thresholds(config: dict[str, Any]) -> list[str]:
                 "the metric could never pass"
             )
     low, high = CUSTOM_SCALE
-    custom = config["thresholds"][CUSTOM_METRIC]
+    metric = custom_metric(config)
+    custom = config["thresholds"][metric]
     if not low <= custom <= high:
-        problems.append(f"'{CUSTOM_METRIC}' threshold {custom} is outside its {low}-{high} scale")
+        problems.append(f"'{metric}' threshold {custom} is outside its {low}-{high} scale")
     return problems
 
 
@@ -240,7 +266,7 @@ def build_testing_criteria(config: dict[str, Any], judge_model: str) -> list[dic
     criteria.append(
         {
             "type": "azure_ai_evaluator",
-            "name": CUSTOM_METRIC,
+            "name": custom_metric(config),
             "evaluator_name": config["evaluators"]["custom_name"],
             "initialization_parameters": {"model": judge_model},
             # Same limitation as the built-ins: no tool outputs are exposed, so
@@ -358,7 +384,7 @@ def response_text(sample: dict[str, Any]) -> str:
     return ""
 
 
-def parse_case(item: dict[str, Any], thresholds: dict[str, float]) -> dict[str, Any]:
+def parse_case(item: dict[str, Any], thresholds: dict[str, float], metric: str) -> dict[str, Any]:
     source = item.get("datasource_item") or {}
     sample = item.get("sample") or {}
 
@@ -378,7 +404,7 @@ def parse_case(item: dict[str, Any], thresholds: dict[str, float]) -> dict[str, 
             continue
         score = score_from_result(entry)
         passed = result_passed(entry)
-        if name == CUSTOM_METRIC:
+        if name == metric:
             # The rubric returns a continuous 0-1 score, but the pass line lives
             # in the evaluator definition in Foundry. Defer to the service's
             # verdict so the portal and this gate can never disagree.
@@ -405,7 +431,7 @@ def parse_case(item: dict[str, Any], thresholds: dict[str, float]) -> dict[str, 
         "citations": [],
         "scores": scores,
         "evaluator_errors": errors,
-        "compliance_reason": reasons.get(CUSTOM_METRIC, ""),
+        "compliance_reason": reasons.get(metric, ""),
         "reasons": reasons,
         "verdict": "fail" if failed else "pass",
         "failed_metrics": failed,
@@ -527,7 +553,8 @@ def evaluate(
     if not items:
         fail("Foundry returned no per-case results — nothing to gate on.")
 
-    cases = [parse_case(item, config["thresholds"]) for item in items]
+    metric = custom_metric(config)
+    cases = [parse_case(item, config["thresholds"], metric) for item in items]
     return {
         "cases": cases,
         "agent_version": version,
@@ -709,3 +736,18 @@ if __name__ == "__main__":
         sys.exit(main())
     except ConfigError as exc:
         fail(str(exc))
+    except KeyboardInterrupt:
+        fail("interrupted")
+    except Exception as exc:  # noqa: BLE001 - see below
+        # Exit 2, never 1. An unhandled crash means the harness COULD NOT RUN;
+        # exit 1 means the agent FAILED ON QUALITY. Python exits 1 on an
+        # uncaught exception, so without this the two are indistinguishable --
+        # a KeyError in the harness reads in CI exactly like an agent that
+        # breached a threshold, and the pipeline goes red for the wrong reason
+        # while everyone debugs the model.
+        #
+        # This is not hypothetical. It is how the hard-coded custom-metric bug
+        # above presented: a KeyError that exited 1 and looked like a failed
+        # gate.
+        traceback.print_exc()
+        fail(f"harness error ({type(exc).__name__}): {exc}")

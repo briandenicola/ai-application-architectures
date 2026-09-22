@@ -91,6 +91,11 @@ evaluators:
   # Must match `name:` inside that file — this is how the eval run references
   # the evaluator that seed_evaluator.py published to the catalog.
   custom_name: meridian-compliance-safe-answer
+  # The metric key this rubric reports under, and the matching key in
+  # `thresholds` below. Track-specific: run_eval.py reads it from here rather
+  # than hard-coding it, because a hard-coded advisor metric name crashes the
+  # FinOps run with a KeyError. Verified by tests/test_gate.py.
+  custom_metric: compliance_safe_answer
 
 # The numbers that go on screen. Ship / don't ship.
 thresholds:
@@ -124,6 +129,7 @@ evaluators_finops:
   custom:
     - evaluators/finops_defensible_answer.yaml
   custom_name: meridian-finops-defensible-answer
+  custom_metric: finops_defensible_answer
 
 thresholds_finops:
   groundedness: 4.0

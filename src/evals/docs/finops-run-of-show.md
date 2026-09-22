@@ -1,5 +1,25 @@
 # Run of Show — AI Platform FinOps — 30 minutes
 
+> ### ⚠️ The FinOps evaluation run is UNVERIFIED as of 2026-09-22
+>
+> No scored FinOps evaluation has ever completed. Two attempts — 32 cases and
+> a 3-case rehearsal — both hung with **zero cases scored** (50 minutes and 5
+> minutes respectively, `result_counts.total: 0`, no error raised). Both runs
+> were cancelled.
+>
+> The working hypothesis is that the evaluation target does not execute the
+> `azure_ai_search` tool call the FinOps agents depend on for grounding
+> (ADR-0005), so every case waits on a tool result that never arrives. The
+> advisor agents ground through a Knowledge Base instead, make no tool call,
+> and evaluate normally — which is why that track is unaffected.
+>
+> **Do not present the FinOps scorecard segment until this is resolved.** The
+> agents themselves work; they were probed live and answered correctly
+> (`finops-trap-probe.md`). It is the scored gate that does not run, so the
+> "v1 fails, v2 passes" claim is currently an expectation and not a measurement.
+> Tracked in the repository issue backlog.
+
+
 The second dataset. Runs standalone, or as a 15-minute follow-on to the advisor
 demo for an audience that has already bought the premise and wants to see it
 hold on a different domain.

@@ -169,3 +169,112 @@ def test_results_directory_is_gitignored():
     """Eval output contains model responses. It should not land in git by accident."""
     gitignore = (Path(ROOT) / ".gitignore").read_text(encoding="utf-8")
     assert "results/" in gitignore
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Both tests below were written AFTER the bugs they describe reached a live
+# Azure run. The suite was 135 tests green at the time and caught neither,
+# because nothing exercised run_eval end to end on a second track. A gate that
+# is only tested on one corpus is tested on one corpus.
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def _real_config(corpus: str) -> dict:
+    """The committed config, read WITHOUT ${ENV} resolution.
+
+    load_config() resolves environment placeholders and raises without a
+    provisioned azd environment. These tests must run with no Azure, so the
+    YAML is read directly — none of the keys under test are templated.
+    """
+    import yaml
+    from _common import select_corpus
+
+    with (ROOT / "evals.config.yaml").open(encoding="utf-8") as handle:
+        return select_corpus(yaml.safe_load(handle), corpus)
+
+
+def test_custom_metric_is_resolved_per_track_not_hard_coded():
+    """The rubric metric key must follow --corpus.
+
+    This was a module-level constant pinned to the advisor metric. The FinOps
+    run raised KeyError('compliance_safe_answer') against live Azure.
+    """
+    advisor = run_eval.custom_metric(_real_config("meridian"))
+    finops = run_eval.custom_metric(_real_config("finops"))
+
+    assert advisor == "compliance_safe_answer"
+    assert finops == "finops_defensible_answer"
+    assert advisor != finops, (
+        "the two tracks must report under different metric keys — sharing one "
+        "would let the FinOps run be gated against the advisor's threshold"
+    )
+
+
+def test_every_tracks_custom_metric_is_actually_gated_on():
+    """A rubric scored but absent from thresholds is a rubric nobody gates on.
+
+    That failure is silent and looks exactly like success: the scorecard prints,
+    the metric appears, and no threshold is ever compared against it.
+    """
+    for corpus in ("meridian", "finops"):
+        config = _real_config(corpus)
+        metric = run_eval.custom_metric(config)
+        assert metric in config["thresholds"], (
+            f"{corpus}: custom_metric '{metric}' has no threshold entry"
+        )
+
+
+def test_a_missing_custom_metric_key_is_a_config_error_not_a_crash():
+    from _common import ConfigError
+
+    config = _real_config("finops")
+    del config["evaluators"]["custom_metric"]
+
+    try:
+        run_eval.custom_metric(config)
+    except ConfigError:
+        pass  # ConfigError is routed to exit 2 by __main__.
+    except Exception as exc:  # noqa: BLE001
+        raise AssertionError(
+            f"raised {type(exc).__name__}, which exits 1 and reads as a quality "
+            "failure. Harness problems must exit 2."
+        ) from exc
+    else:
+        raise AssertionError("a missing custom_metric must not pass silently")
+
+
+def test_a_harness_crash_exits_2_and_never_1(tmp_path):
+    """Exit 1 means the agent failed. Exit 2 means the harness could not run.
+
+    Python exits 1 on an uncaught exception, so a bare traceback out of
+    run_eval.py is indistinguishable in CI from a breached threshold. This is
+    exactly how the hard-coded custom-metric bug presented against live Azure.
+
+    The crash here is real, not simulated: a config that parses as valid YAML
+    but has no `dataset` block, which raises KeyError inside main().
+    """
+    import subprocess
+    import sys
+
+    broken = tmp_path / "broken.yaml"
+    broken.write_text("models:\n  judge:\n    deployment: x\n", encoding="utf-8")
+
+    proc = subprocess.run(  # noqa: S603 - fixed argv, no shell, no user input
+        [
+            sys.executable,
+            str(ROOT / "scripts" / "run_eval.py"),
+            "--agent",
+            "whatever",
+            "--config",
+            str(broken),
+        ],
+        capture_output=True,
+        text=True,
+        cwd=str(ROOT),
+    )
+
+    assert proc.returncode != 1, (
+        "the harness exited 1 for a non-quality failure — a crash is now "
+        f"indistinguishable from a failed gate.\nstderr:\n{proc.stderr[-2000:]}"
+    )
+    assert proc.returncode == 2, f"expected exit 2, got {proc.returncode}\n{proc.stderr[-2000:]}"
