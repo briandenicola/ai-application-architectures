@@ -24,14 +24,29 @@ Write-Host '→ Waiting 60s for RBAC propagation'
 # Role assignments made during provisioning are not always effective immediately.
 Start-Sleep -Seconds 60
 
-& $py scripts/index_corpus.py
-if ($LASTEXITCODE -ne 0) { throw 'index_corpus.py failed' }
+# Kept deliberately in lockstep with postprovision.sh. The two hooks are the
+# same contract for two shells; a step present in one and missing from the
+# other produces an environment that works on the presenter's laptop and fails
+# on a colleague's. tests/test_postprovision_parity.py enforces this.
+$steps = @(
+    @('scripts/index_corpus.py',    @()),
+    @('scripts/setup_knowledge.py', @()),
+    @('scripts/create_agents.py',   @()),
+    @('scripts/seed_evaluator.py',  @()),
+    @('scripts/seed_dataset.py',    @()),
+    @('scripts/index_corpus.py',    @('--corpus', 'finops')),
+    @('scripts/create_agents.py',   @('--corpus', 'finops')),
+    @('scripts/seed_evaluator.py',  @('--corpus', 'finops')),
+    @('scripts/seed_dataset.py',    @('--corpus', 'finops'))
+)
 
-& $py scripts/setup_knowledge.py
-if ($LASTEXITCODE -ne 0) { throw 'setup_knowledge.py failed' }
-
-& $py scripts/create_agents.py
-if ($LASTEXITCODE -ne 0) { throw 'create_agents.py failed' }
+foreach ($step in $steps) {
+    $script = $step[0]
+    $stepArgs = $step[1]
+    Write-Host "→ $script $($stepArgs -join ' ')"
+    & $py $script @stepArgs
+    if ($LASTEXITCODE -ne 0) { throw "$script $($stepArgs -join ' ') failed" }
+}
 
 Write-Host ''
 Write-Host '✓ Demo environment ready.'
@@ -40,4 +55,8 @@ Write-Host ''
 Write-Host '  Next:'
 Write-Host '    python scripts/run_eval.py --agent meridian-advisor-v1   # expect exit 1'
 Write-Host '    python scripts/run_eval.py --agent meridian-advisor-v2   # expect exit 0'
+Write-Host '    python scripts/run_eval.py --corpus finops --agent meridian-finops-v1  # expect exit 1'
+Write-Host '    python scripts/run_eval.py --corpus finops --agent meridian-finops-v2  # expect exit 0'
+Write-Host ''
+Write-Host '  Portal walkthrough: docs/finops-run-of-show.md'
 Write-Host ''

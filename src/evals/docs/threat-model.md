@@ -12,6 +12,7 @@ Demo-specific mitigations are marked.
 | Retrieval configuration | Determines what an agent can see; a change here silently changes the blast radius |
 | Agent instructions | The only thing enforcing compliance boundaries at answer time |
 | The golden dataset and thresholds | If these can be weakened, the gate stops meaning anything |
+| The fact table (`finops_data.py`) | One constant drives 19 documents and 32 evaluation cases; a change here moves the corpus and the answer key together, which is the point — and the risk |
 | Evaluation results | Evidence presented to a risk function |
 
 ## T1 — Indirect prompt injection via the corpus
@@ -73,6 +74,46 @@ which is exactly what makes it hard to notice.
 - Four dataset cases; the canary in `setup_knowledge.py` fails the deployment if
   retrieval ranking regresses.
 
+### T3a — The recency rule applied where it is wrong
+
+**Rating: HIGH** — higher than T3 itself, because the mitigation for T3 *is* the
+attack here.
+
+In the advisor corpus, "prefer the document with the later effective_date" is
+correct. In the FinOps corpus it is the defect: consumption is priced at the
+rate card in effect on the date of consumption, so the **superseded**
+`meridian-model-rate-card-2025-10` is the rightful authority for October through
+December 2025. An agent, a rubric or a reviewer carrying the advisor rule across
+silently reprices a closed billing period.
+
+The damage is financial and directional. Repricing October at January's rates
+understates a settled charge; the reverse overstates a forward budget by 25% on
+the reasoning tier. Neither produces an error, a refusal, or a missing citation
+— the answer is fluent, sourced, and wrong.
+
+**Mitigations**
+- v2's GUARD 3 states the period rule explicitly and names both card IDs.
+- `tests/test_finops_agent_parity.py::test_v2_recency_guard_is_period_based_not_latest_based`
+  fails if the guard decays into a generic appeal to recency.
+- `tests/test_finops_rubric.py::test_it_is_not_a_copy_of_the_advisor_rubric`
+  fails if the advisor's `recency` dimension is copied into the FinOps rubric.
+- Six dataset cases under `stale_rate_card`.
+- Tamper-tested: `docs/tamper-log.md` § T9.2.
+
+### T3b — Projections presented as measurements
+
+**Rating: MEDIUM**
+
+FY26 H1 is measured consumption; H2 is a planning projection. Summed, they
+produce a total that is arithmetically clean and semantically void. The naive
+agent does exactly this — one bolded FY26 figure, components disclosed
+underneath where nobody reads.
+
+**Mitigations**
+- v2 GUARD 5, and the `actuals_not_projections` rubric dimension.
+- Four dataset cases under `forecast_as_actual`.
+- The forecast document carries its own projection disclosure.
+
 ## T4 — Judge model gaming
 
 **Rating: MEDIUM**
@@ -132,6 +173,35 @@ failed.
 - Those tests are imported directly — never with `importorskip`. A skip here
   would be indistinguishable from a pass.
 - Tamper-tested and recorded in `docs/tamper-log.md`.
+
+### T7a — An answer key that agrees with the wrong answer
+
+**Rating: HIGH**
+
+A gate can also fail by grading correctly against a dataset that is itself
+wrong. If a golden case expects a figure the documents do not contain, a
+correct agent is marked wrong — and the failure is indistinguishable from a
+model problem, so it is debugged as one, for a long time.
+
+The inverse is worse. The FinOps rubric's `no_fabricated_figures` dimension
+must never penalise a response for *omitting* a number, because three cases
+have "not published" as the correct answer. Invert that one clause and the
+hardened agent scores below the naive one while the rubric still reads
+sensibly.
+
+**Mitigations**
+- The golden set is **generated** from the same fact table as the corpus, so
+  the two cannot drift.
+  `tests/test_finops_dataset.py::test_committed_dataset_is_current` fails if the
+  committed copy is stale.
+- `test_every_expected_figure_appears_somewhere_in_the_corpus` fails if any
+  required figure appears in no document.
+- `test_the_figures_dimension_does_not_demand_figures` pins the clause above.
+- `test_critical_dimensions_can_sink_a_case_alone` checks by arithmetic that a
+  dimension described as critical can actually fail a case on its own — weights
+  quietly outvote intent.
+- Tamper-tested: `docs/tamper-log.md` § T9.3, including one tamper that was a
+  silent no-op and initially reported green.
 
 ## Out of scope
 

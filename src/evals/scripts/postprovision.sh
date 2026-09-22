@@ -29,6 +29,8 @@ echo "→ Waiting 60s for RBAC propagation"
 # Without this the first data-plane call after `azd up` intermittently 403s.
 sleep 60
 
+# ── Track 1: the advisor demo ────────────────────────────────────────────────
+echo "→ Advisor track"
 python scripts/index_corpus.py
 python scripts/setup_knowledge.py
 python scripts/create_agents.py
@@ -39,14 +41,28 @@ python scripts/create_agents.py
 python scripts/seed_evaluator.py
 python scripts/seed_dataset.py
 
+# ── Track 2: the AI Platform FinOps demo ─────────────────────────────────────
+# Provisioned unconditionally, and deliberately so. A track that is only set up
+# by hand is a track that is missing on the one morning nobody has time to
+# notice -- and its absence looks identical to a broken deployment. Both demos
+# either come up together or `azd up` fails.
+echo "→ FinOps track"
+python scripts/index_corpus.py  --corpus finops
+python scripts/create_agents.py --corpus finops
+python scripts/seed_evaluator.py --corpus finops
+python scripts/seed_dataset.py   --corpus finops
+
 echo
 echo "✓ Demo environment ready."
 echo "  Portal:  ${AZURE_AI_PROJECT_ENDPOINT:-<run: azd env get-values>}"
 echo
-echo "  Next — either run the gate from the terminal:"
+echo "  Next — either run a gate from the terminal:"
 echo "    python scripts/run_eval.py --agent meridian-advisor-v1   # expect exit 1"
 echo "    python scripts/run_eval.py --agent meridian-advisor-v2   # expect exit 0"
+echo "    python scripts/run_eval.py --corpus finops --agent meridian-finops-v1  # expect exit 1"
+echo "    python scripts/run_eval.py --corpus finops --agent meridian-finops-v2  # expect exit 0"
 echo
-echo "  …or create the run in the portal against the seeded dataset and"
+echo "  …or create the run in the portal against the seeded datasets and"
 echo "  evaluators. Both paths execute inside Foundry and produce the same run."
+echo "  Portal walkthrough: docs/finops-run-of-show.md"
 echo

@@ -94,7 +94,9 @@ pip installs are blocked. Invoke interpreters directly:
 ```bash
 az bicep build --file infra/main.bicep      # template compiles
 python -m ruff check .                       # lint
-python -m pytest                             # 35 tests, no Azure required
+python -m pytest                             # full suite, no Azure required
+python scripts/generate_finops_corpus.py --check   # committed corpus is current
+python scripts/build_finops_golden.py --check      # committed dataset is current
 ```
 
 These run without a subscription. Everything they can catch, they catch before
@@ -108,3 +110,6 @@ you spend money.
 | Foundry IQ knowledge sources / bases | Created via REST in a post-provision hook, not Bicep. See `docs/adr/0002-knowledge-base-via-rest.md`. |
 | RBAC propagation | The post-provision hook waits 60s. Role assignments are not always immediately effective; without the wait the first data-plane call intermittently 403s. |
 | Soft-delete | Foundry accounts soft-delete on `azd down`. Use `--purge`; `scripts/verify_teardown.py` checks. |
+| `AZURE_SEARCH_FINOPS_INDEX` | Set by `infra/main.bicep` (default `meridian-aiops-costs`) and consumed by both FinOps agent YAMLs. An environment provisioned before this output existed must set it manually: `azd env set AZURE_SEARCH_FINOPS_INDEX meridian-aiops-costs`. |
+| Shared model quota | Both demo tracks share one `gpt-5.5` deployment. Four evaluation runs plus playground use will trip a 429 on default quota. Run evaluations ahead of a demo, not during. |
+| `docs/$count` consistency | Azure AI Search document counts are eventually consistent and lag a push by seconds. `index_corpus.py` polls rather than reading once; do not replace it with a single read. |

@@ -34,6 +34,13 @@ jobs:
         working-directory: src/evals
       - run: python scripts/run_eval.py --agent meridian-advisor-v2
         working-directory: src/evals      # non-zero exit fails the PR
+
+      # Every agent set gets its own gate. A second track that is not gated is
+      # a second track nobody is checking.
+      - run: python scripts/create_agents.py --corpus finops
+        working-directory: src/evals
+      - run: python scripts/run_eval.py --corpus finops --agent meridian-finops-v2
+        working-directory: src/evals
 ```
 
 The point to make: **a prompt change is now a code change with a test.** Editing
@@ -54,8 +61,8 @@ changed the prompt or the model — someone uploaded a document.
 
 ## 3. The dataset grows from incidents
 
-The 30 cases here were written in advance. In production the dataset should be
-fed by reality:
+The 30 advisor cases and 32 FinOps cases here were written in advance. In
+production the dataset should be fed by reality:
 
 - Every escalation becomes a case.
 - Every compliance finding becomes a case.
@@ -64,6 +71,33 @@ fed by reality:
 A regression suite assembled from real failures is worth more than a larger one
 assembled from imagination, and it cannot be gamed by tuning against it — the
 cases arrive after the tuning.
+
+**And test the cases you invent before you trust them.** Both FinOps agents
+were probed against the live deployment before the golden set was written, and
+three of the six planted traps turned out to be handled by the model unaided
+(`docs/finops-trap-probe.md`). Had that check been skipped, half the suite
+would have consisted of cases that pass for both a guarded and an unguarded
+agent — a suite that looks thorough, runs green, and discriminates nothing.
+
+The generalisation: **a case that both versions pass is not a test, it is
+decoration.** When a dataset is written from imagination, measure which cases
+actually separate the two before shipping it as a control.
+
+## 3b. When a second domain arrives
+
+Adding the FinOps track surfaced two things worth expecting.
+
+**The guards do not transfer; the machinery does.** Retrieval, grounding,
+exit-code semantics, the seeding scripts and the gate were reused unchanged via
+a `--corpus` flag. The *rules* inverted: the advisor rule "prefer the newest
+document" is the FinOps bug. Budget for writing new domain rules, not new
+plumbing — and resist consolidating two rubrics that look similar.
+
+**Answer keys drift faster than corpora.** The FinOps golden set is generated
+from the same fact table as its corpus, so a change to one moves both. A
+hand-written answer key against a changing corpus decays silently and marks
+correct answers wrong, which presents as a model regression and gets debugged
+as one.
 
 ## 4. Production security posture
 

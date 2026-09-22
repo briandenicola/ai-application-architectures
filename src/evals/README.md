@@ -284,6 +284,7 @@ Key scripts:
 | `index_corpus.py` | embeds and pushes a corpus into Azure AI Search (`--corpus`) |
 | `setup_knowledge.py` | builds the Foundry IQ knowledge base, runs the recency canary |
 | `create_agents.py` | publishes both agents from YAML, smoke-tests grounding; `--corpus finops` for the FinOps pair |
+| `build_finops_golden.py` | generates the FinOps golden set from `finops_data`; `--check` fails if stale |
 | `seed_evaluator.py` | publishes the compliance rubric to the evaluator catalog |
 | `seed_dataset.py` | registers the golden dataset for portal use |
 | `run_eval.py` | creates the Foundry run, applies thresholds, returns the exit code |
@@ -309,6 +310,10 @@ python scripts/generate_finops_corpus.py            # rebuild corpus-finops/
 python scripts/generate_finops_corpus.py --check    # fail if it is stale
 python scripts/index_corpus.py --corpus finops      # push it to Azure AI Search
 python scripts/create_agents.py --corpus finops     # publish the FinOps agent pair
+python scripts/build_finops_golden.py               # rebuild the golden set
+python scripts/seed_evaluator.py --corpus finops    # publish the rubric
+python scripts/seed_dataset.py   --corpus finops    # register the golden set
+python scripts/run_eval.py --corpus finops --agent meridian-finops-v2
 ```
 
 The corpus is **generated, then committed** — see
@@ -376,16 +381,54 @@ documents, plausibly formatted, and would survive a skim. See
 `docs/finops-trap-probe.md` for the full scoring and what it changes about the
 golden set.
 
-Status: corpus generated and indexed; agent pair defined, parity-tested,
-published and probed. The golden set is the remaining step.
+### The golden set and the rubric
+
+`datasets/meridian-finops-golden-v1.jsonl` — 32 cases, **generated** from the
+same fact table as the corpus by `scripts/build_finops_golden.py`. Nothing is
+typed by hand: a dataset whose expected answer contradicts the documents marks
+a correct agent wrong, and that failure is indistinguishable from a model bug.
+`tests/test_finops_dataset.py` fails if any required figure appears in no
+document.
+
+The distribution follows the probe, not the original plan:
+
+| Tag | Cases | Why |
+|---|---|---|
+| `grounded_happy` | 8 | Controls. Without them an agent that refuses everything scores perfectly. |
+| `stale_rate_card` | 6 | The central trap, and the one the probe showed fires hardest. |
+| `fabricated_number` | 5 | Invented savings, unpublished averages, counterfactuals. |
+| `forecast_as_actual` | 4 | Blending measured months with projected ones. |
+| `unauthorized_recommendation` | 3 | Budget cuts and standardisation calls the assistant does not own. |
+| `metered_vs_billed` | 3 | v1 passed these — v2 non-regression only. |
+| `pii_leak` | 2 | v1 refused these — v2 non-regression only. |
+| `incident_vs_demand` | 1 | v1 passed this — v2 non-regression only. |
+
+`evaluators/finops_defensible_answer.yaml` grades whether an answer is
+*defensible*, not whether it is good. Its `rate_card_in_effect` dimension is
+deliberately **not** the advisor rubric's `recency` dimension, and
+`tests/test_finops_rubric.py` fails if someone copies that one across — applied
+to a cost corpus, "prefer the later effective_date" reprices closed billing
+periods.
+
+Two rubric properties are checked by arithmetic rather than by reading:
+a critical dimension must be able to sink a case on its own (weights can quietly
+outvote intent), and the fabrication dimension must never penalise a response
+for *omitting* a figure — three cases have "not published" as the correct
+answer, and inverting that would make the hardened agent score worse than the
+naive one.
+
+Status: corpus, agents and golden set complete; 8 dataset/rubric guards
+tamper-tested (§ T9.3). The remaining step is a scored run against Azure.
 
 ## Documentation
 
 | Read this | When |
 |---|---|
-| `docs/run-of-show.md` | Before presenting — the timed 45-minute script |
-| `docs/pre-flight-checklist.md` | 10 minutes before the meeting |
-| `docs/demo-traps.md` | To understand what is planted and why |
+| `docs/run-of-show.md` | Before presenting the advisor demo — timed 45-minute script |
+| `docs/finops-run-of-show.md` | Before presenting the FinOps demo — timed 30-minute script |
+| `docs/pre-flight-checklist.md` | 10 minutes before the meeting — covers both tracks |
+| `docs/demo-traps.md` | To understand what is planted and why — both tracks |
+| `docs/finops-data-dictionary.md` | When someone asks what the cost data actually contains |
 | `docs/architecture.md` | When someone asks how it is wired |
 | `docs/threat-model.md` | When someone asks what could go wrong |
 | `docs/day-2.md` | When someone asks "how does this live in our SDLC?" |

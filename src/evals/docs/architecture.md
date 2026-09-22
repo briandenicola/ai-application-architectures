@@ -6,7 +6,8 @@
 flowchart TB
     subgraph rg["Resource Group (azd-managed, disposable)"]
         subgraph estate["Document estate"]
-            corpus[("corpus/*.md<br/>12 synthetic documents<br/>YAML front matter")]
+            corpus[("corpus/*.md<br/>12 synthetic documents<br/>hand-written")]
+            fcorpus[("corpus-finops/*.md<br/>19 synthetic documents<br/>generated — ADR-0007")]
         end
 
         subgraph iq["Foundry IQ"]
@@ -18,6 +19,8 @@ flowchart TB
         subgraph foundry["Microsoft Foundry"]
             v1["Prompt Agent v1<br/>naive"]
             v2["Prompt Agent v2<br/>hardened"]
+            f1["FinOps Agent v1<br/>naive"]
+            f2["FinOps Agent v2<br/>hardened"]
             models["Model deployments<br/>gpt-5.5 · gpt-4.1-mini · embedding-3-large"]
             evals["Evaluations<br/>3 built-in + 1 custom rubric"]
         end
@@ -26,18 +29,27 @@ flowchart TB
     end
 
     dataset[("Golden dataset<br/>30 tagged cases")]
+    fdataset[("FinOps golden set<br/>32 tagged cases<br/>generated")]
     gate{{"Quality gate<br/>exit 0 or 1"}}
 
     corpus -->|index_corpus.py<br/>embed + push| search
+    fcorpus -->|index_corpus.py --corpus finops| search
     search --> ks --> kb
     kb --> v1
     kb --> v2
+    search -.->|azure_ai_search tool<br/>ADR-0005| f1
+    search -.->|azure_ai_search tool| f2
     models -.-> v1
     models -.-> v2
+    models -.-> f1
+    models -.-> f2
     models -.-> evals
     v1 --> evals
     v2 --> evals
+    f1 --> evals
+    f2 --> evals
     dataset --> evals
+    fdataset --> evals
     evals --> gate
     evals -.traces.-> obs
 
@@ -45,7 +57,36 @@ flowchart TB
     classDef pass stroke:#27ae60,stroke-width:2px
     class v1 fail
     class v2 pass
+    class f1 fail
+    class f2 pass
 ```
+
+**Two demo tracks, one resource group.** They share the Search service, the
+model deployments, the Foundry project and the evaluation machinery. They share
+nothing else: separate corpus directories, separate indexes, separate agent
+pairs, separate golden sets, separate rubrics.
+
+| | Advisor track | FinOps track |
+|---|---|---|
+| Corpus | `corpus/` — 12, hand-written | `corpus-finops/` — 19, generated |
+| Index | `meridian-docs` | `meridian-aiops-costs` |
+| Agents | `meridian-advisor-v1` / `-v2` | `meridian-finops-v1` / `-v2` |
+| Dataset | 30 cases | 32 cases |
+| Rubric | `meridian-compliance-safe-answer` | `meridian-finops-defensible-answer` |
+| Grounding | Knowledge Base (Foundry IQ) | `azure_ai_search` tool directly |
+| Recency rule | newest document wins | **card in effect on the date of consumption** |
+
+That last row is the important one and it is not a detail. In the advisor
+corpus the current fee schedule always supersedes; in a cost corpus the
+superseded rate card remains the correct authority for the months it covers.
+The two tracks therefore need *opposite* recency rules, which is why the rubric
+is duplicated rather than shared —
+`tests/test_finops_rubric.py::test_it_is_not_a_copy_of_the_advisor_rubric`
+fails if anyone tries to consolidate them.
+
+The FinOps track has no Knowledge Base. Agents ground through the
+`azure_ai_search` tool against a project connection (ADR-0005); the KB exists
+on the advisor track for the recency canary in `setup_knowledge.py`.
 
 ## The retrieval path
 

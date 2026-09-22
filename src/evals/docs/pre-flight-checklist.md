@@ -66,7 +66,42 @@ If missing: `python scripts/create_agents.py`.
 python -m pytest -q
 ```
 
-☐ 35 passed. This catches a corpus or dataset edit you forgot about.
+☐ All green. This catches a corpus, dataset or agent edit you forgot about.
+The count grows as tracks are added — read the summary line, not a memorised
+number.
+
+## 6b. FinOps track — 90s
+
+**Skip only if you are certain the FinOps segment is not in this meeting.**
+It is provisioned by `azd up` alongside the advisor track, so if it is missing
+something went wrong with the deployment and you want to know now.
+
+```bash
+curl -s -H "Authorization: ****** account get-access-token \
+    --resource https://search.azure.com --query accessToken -o tsv)" \
+  "$AZURE_SEARCH_ENDPOINT/indexes/meridian-aiops-costs/docs/\$count?api-version=2026-04-01"
+
+cat .azure/agents-finops.json
+```
+
+☐ Index `meridian-aiops-costs` returns `19`
+☐ `meridian-finops-v1` and `meridian-finops-v2` both present with ids
+
+> `docs/$count` on Azure AI Search is eventually consistent and lags a push by
+> seconds. If it returns 0 immediately after an index run, wait and re-read
+> before concluding anything is wrong.
+
+**Both evaluation runs must already be complete.** 32 cases against a reasoning
+model will not finish while an audience watches, and the token burst reliably
+trips a 429 on a shared deployment.
+
+☐ v1 FinOps run complete in the portal, **exit 1**, scorecard open in a tab
+☐ v2 FinOps run complete in the portal, **exit 0**, scorecard open in a tab
+☐ You have read [`finops-trap-probe.md`](finops-trap-probe.md)
+
+> That last box is not administrative. Three of the six planted traps do not
+> fire, and if you improvise a question in the room you will probably hit one
+> of them. Know which three before you stand up.
 
 ## 7. Portal is warm — 60s
 
@@ -102,9 +137,13 @@ python scripts/run_eval.py --agent meridian-advisor-v1 ; echo "exit=$?"
 Do not present live if any of these are true. Use the fallback assets instead.
 
 - The canary in step 4 fails.
-- Fewer than 12 documents are indexed.
+- Fewer than 12 documents are indexed in `meridian-docs`.
+- Fewer than 19 documents are indexed in `meridian-aiops-costs`, if the FinOps
+  segment is in this meeting.
 - A model deployment is not in `Succeeded`.
 - `pytest` is not green.
+- The FinOps evaluation runs are not already complete, if that segment is in
+  this meeting. Starting one live is not a recoverable position.
 
 A demo that fails in front of a risk-and-compliance audience does more damage
 than a demo delivered from screenshots. There is no shame in the fallback.
