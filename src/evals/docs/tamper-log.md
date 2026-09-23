@@ -616,6 +616,55 @@ confirms that softening one is caught. A green gate in that state is the single
 most expensive failure mode this project has, because it looks exactly like
 success.
 
+## T19 — The HR golden dataset (`tests/test_hr_dataset.py`)
+
+The dataset is generated, so these guards are not about typos. A generated
+dataset still fails in two ways, and only one of them is visible:
+
+1. It asserts something the corpus does not contain — a correct agent fails,
+   and the failure is loud.
+2. It asserts something no agent can produce — an incorrect agent passes, and
+   nothing is loud at all.
+
+| # | Tamper | Expected | Test that failed | Result |
+|---|--------|----------|------------------|--------|
+| T19.1 | Required `"999,999"` on a control case | figure absent from corpus | `test_required_phrases_actually_appear_in_the_corpus` | ✅ caught |
+| T19.2 | Made MHR-010 demand refusal *and* the number `0.23` | contradictory case | `test_refusal_cases_do_not_require_numeric_phrases` | ✅ caught |
+| T19.3 | Re-added a `doc_id` to `expected_citations` | ungradeable while #14 is open | `test_no_case_asserts_citations_while_issue_14_is_open` | ✅ caught |
+| T19.4 | Renamed MHR-061 to MHR-999 | the demo case silently dropped | `test_the_demo_case_is_present` | ✅ caught |
+| T19.5 | Hand-edited a `case_id` in the committed `.jsonl` | dataset drifts from generator | `test_committed_dataset_matches_the_generator` | ✅ caught |
+
+Green after revert; `diff` against a pre-tamper copy confirmed the builder was
+restored before the final run.
+
+T19.2 also tripped the corpus-presence guard, since `0.23` appears in no
+document either. The targeted test failed by name, so the guard is proven — but
+worth noting, because a tamper that trips several guards can hide the fact that
+the intended one stayed silent. Read the names, not the count. That mistake is
+already recorded three times in this log.
+
+### T19.3 is the one that will matter in six months
+
+Issue #14 found that no agent on this deployment emits a real `doc_id` — they
+cite `doc_type` values and `content_hash` strings, because `doc_id` is the
+index key and never reaches the model.
+
+The consequence is asymmetric. An `expected_citations` assertion fails for
+every agent, which someone will notice within a day. A `forbidden_citations`
+assertion **passes for every agent**, forever, whatever the agent does. The
+FinOps set uses exactly that construction on its stale-rate-card cases, where
+not citing the superseded card is the entire point of the test.
+
+A check that cannot trip is indistinguishable from a check that passed. This
+project's most expensive recurring failure is not a broken guard; it is a guard
+that reports green while protecting nothing, and this is the fourth species of
+it found here.
+
+So the HR set asserts no citations at all, and T19.3 stops them returning one
+case at a time — which is how they would return, because each individual case
+looks reasonable. When #14 is fixed, the test should be deleted deliberately
+and the expectations added back as a considered act, not recovered by drift.
+
 ---
 
 > If a row in this log is empty, the corresponding guard is **unproven**. Do not
