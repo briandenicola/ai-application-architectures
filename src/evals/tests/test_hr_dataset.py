@@ -91,14 +91,23 @@ def test_every_case_has_a_query_and_ground_truth():
 
 
 def test_no_case_asserts_citations_while_issue_14_is_open():
-    """No agent on this deployment emits a real doc_id — it cites doc_type
+    """Two defects sit under #14, and the second is the worse one.
+
+    First: no agent on this deployment emits a real doc_id. It cites doc_type
     values and content_hash strings, because doc_id is the index key and never
     reaches the model.
 
-    An expected_citations assertion would therefore fail for every agent, and a
-    forbidden_citations assertion would pass for every agent. The second is the
-    dangerous one: a check that can never trip is indistinguishable from a
-    check that passed.
+    Second, and only established after the first was filed: nothing in the
+    scoring path reads a citation field at all. Every data_mapping built by
+    `run_eval.build_testing_criteria` carries query, response and — for
+    groundedness — context. So an expected_citations assertion would not fail
+    for every agent; it would simply never be evaluated, and a
+    forbidden_citations assertion passes for every agent forever. A check that
+    cannot trip is indistinguishable from a check that passed.
+
+    `test_no_evaluator_consumes_the_citation_fields` in test_track_contract.py
+    pins that second defect across every registered track. This test keeps the
+    HR golden set out of the trap in the meantime.
 
     When #14 is fixed, delete this test and add the citation expectations
     deliberately — do not let them creep back in one case at a time.

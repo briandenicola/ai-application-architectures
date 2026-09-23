@@ -208,3 +208,47 @@ def test_every_referenced_config_block_exists():
     for corpus, sections in create_agents.CORPORA.items():
         for section in sections[:2]:
             assert section in config, f"create_agents maps '{corpus}' to missing '{section}'"
+
+
+@pytest.mark.parametrize("corpus", CORPORA)
+def test_no_evaluator_consumes_the_citation_fields(corpus):
+    """Pin a gap that currently looks like coverage. See #14.
+
+    Every golden set carries `expected_citations` and `forbidden_citations`,
+    `seed_dataset.to_eval_items` publishes both into the uploaded asset, and
+    `test_citations_resolve_to_real_documents` proves the ids name real
+    documents. All of that is about the dataset FILE. None of it is scoring.
+
+    The scoring path is `build_testing_criteria`, and every data_mapping it
+    emits carries only `query`, `response` and — for groundedness — `context`.
+    No evaluator is handed a citation column, so:
+
+      * `expected_citations` is never checked;
+      * `forbidden_citations` PASSES FOR EVERY AGENT, ALWAYS.
+
+    The second is the one that matters. The finops `stale_rate_card` cases are
+    built on it: they name the superseded rate card as forbidden and nothing
+    anywhere compares an answer against that list. A check that cannot trip is
+    indistinguishable from a check that passed, which is the exact failure this
+    harness exists to demonstrate to clients.
+
+    This test asserts the gap so it is visible rather than assumed. It is NOT
+    an endorsement. When #14 is fixed — doc_id made retrievable and present in
+    the embedded content, so an agent can cite one — delete this test, map the
+    columns in, and tamper-test that a forbidden citation actually fails a
+    case. Wiring the mapping before then would fail every citation case for
+    both versions and prove nothing, because no agent can emit a doc_id yet.
+    """
+    config = select_corpus(_config(), corpus)
+    criteria = run_eval.build_testing_criteria(config, judge_model="judge-deployment")
+
+    wired = {
+        crit["name"]: sorted(crit["data_mapping"])
+        for crit in criteria
+        if any("citation" in ref for ref in crit["data_mapping"].values())
+    }
+    assert not wired, (
+        f"'{corpus}' now feeds citation fields to {wired}. If that was "
+        "deliberate, delete this test and add the citation assertions to the "
+        "golden sets — then break one and watch a case fail before believing it."
+    )

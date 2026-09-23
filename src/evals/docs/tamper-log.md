@@ -665,6 +665,64 @@ case at a time — which is how they would return, because each individual case
 looks reasonable. When #14 is fixed, the test should be deleted deliberately
 and the expectations added back as a considered act, not recovered by drift.
 
+## T20 — the citation gap was worse than the issue that filed it
+
+**Guard.** `test_no_evaluator_consumes_the_citation_fields`
+(`tests/test_track_contract.py`), parametrised over every registered track.
+
+#14 was filed believing the defect was upstream: `doc_id` is the index key, is
+not in the embedded `content`, so agents cite `doc_type` and `content_hash`
+instead of a document id. True, and not the whole story.
+
+The prior session left an explicit instruction — *check whether the evaluators
+actually score citations before fixing anything.* They do not. Every
+`data_mapping` emitted by `run_eval.build_testing_criteria` carries `query`,
+`response`, and `context` for groundedness. Nothing else. `expected_citations`
+and `forbidden_citations` are uploaded into the dataset asset by
+`seed_dataset.to_eval_items`, are visible in the portal, name real documents,
+and are handed to **no evaluator**.
+
+So the field is not merely hard to satisfy. It is inert. `expected_citations`
+is never read; `forbidden_citations` passes for every agent, always, including
+the FinOps `stale_rate_card` cases whose entire premise is that the superseded
+card must not be cited.
+
+What made this hard to see is that three separate tests look like coverage:
+`test_citations_resolve_to_real_documents`,
+`test_stale_rate_card_cases_cite_both_cards`, and the `must_refuse` assertion
+that a refusing case expects no citations. All three are true. All three are
+about the dataset **file**. None of them touches scoring, and the gap lives in
+the gap between the file and the run.
+
+**Tamper.** Added `"forbidden_citations": "{{item.forbidden_citations}}"` to the
+custom rubric's `data_mapping` in `build_testing_criteria`.
+
+**Verified destroyed first.** Per the standing lesson, confirmed the property
+was actually gone before trusting the run: `'citation' in
+json.dumps(build_testing_criteria(...))` went `False` → `True`.
+
+**Result.** Failed by name on every registered track:
+
+```
+FAILED tests/test_track_contract.py::test_no_evaluator_consumes_the_citation_fields[meridian]
+FAILED tests/test_track_contract.py::test_no_evaluator_consumes_the_citation_fields[finops]
+```
+
+Two tracks, not three, and that is correct — `hr` has no `dataset_hr` key yet,
+so it is not a registered track. It gets this guard for free the day it is
+registered, which is the whole reason this file derives its list from config.
+
+**Reverted.** Mapping restored, property confirmed `False` again, suite green.
+
+**Why the guard asserts the gap rather than closing it.** Wiring the columns in
+today would fail every citation case for *both* versions, because no agent can
+emit a `doc_id` at all. That is a harness failure wearing the costume of a
+finding, and it would make v2 look broken for a reason that has nothing to do
+with governance. The honest order is: make `doc_id` retrievable and put it in
+the embedded content, re-index all three corpora, *then* map the columns, then
+tamper-test that a forbidden citation actually fails a case. This guard fails
+loudly the moment someone does step three without the others.
+
 ---
 
 > If a row in this log is empty, the corresponding guard is **unproven**. Do not
