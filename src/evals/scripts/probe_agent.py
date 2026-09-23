@@ -40,22 +40,37 @@ def build_project(endpoint: str):
     return AIProjectClient(endpoint=endpoint, credential=DefaultAzureCredential())
 
 
-def ask(project, agent: str, model: str, question: str, timeout: float = 180.0) -> str:
-    """One question, one answer, no retries beyond RBAC propagation.
+def ask(project, agent: str, model: str, question: str, timeout: float = 900.0) -> str:
+    """One question, one answer.
 
-    A failure is recorded as a failure rather than retried into a success. A
-    probe that quietly re-asks until it likes the answer is measuring patience.
+    Retries only two things, both infrastructure rather than content: Search
+    RBAC still propagating, and a 429 from the shared model deployment. All
+    three demo tracks share one gpt-5.5 deployment and a probe of any size will
+    trip its rate limit partway through — observed on HR round 2, which lost
+    four of nine answers and needed a second pass.
+
+    A retry on either is a retry on the *transport*. The answer itself is never
+    re-asked because it disagreed with expectations; a probe that quietly
+    re-rolls until it likes the result is measuring patience, not behaviour.
     """
     client = project.get_openai_client(agent_name=agent)
     deadline = time.monotonic() + timeout
+    backoff = 30.0
     while True:
         try:
             response = client.responses.create(input=question, model=model)
             return (getattr(response, "output_text", "") or "").strip()
         except Exception as exc:  # noqa: BLE001 - the answer is the artefact
-            if "Access denied" in str(exc) and time.monotonic() < deadline:
-                console.print("  [dim]waiting for search RBAC to propagate…[/dim]")
-                time.sleep(30)
+            text = str(exc)
+            rate_limited = "429" in text or "rate_limit_exceeded" in text
+            rbac = "Access denied" in text
+            if (rate_limited or rbac) and time.monotonic() < deadline:
+                wait = backoff if rate_limited else 30.0
+                reason = "model quota" if rate_limited else "search RBAC"
+                console.print(f"  [dim]{reason}: waiting {wait:.0f}s…[/dim]")
+                time.sleep(wait)
+                if rate_limited:
+                    backoff = min(backoff * 2, 240.0)
                 continue
             return f"<<ERROR: {exc}>>"
 

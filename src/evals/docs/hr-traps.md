@@ -218,3 +218,83 @@ happens to have — but they are not where the contrast lives.
 
 A second probe round targeting derivation and framing is needed before the
 dataset is written. Probe first. Write the golden set afterwards. Twice now.
+
+## Probe round 2 — nine questions that ask the agent to work
+
+Round 1 established that the corpus answers its own caveats. Round 2 asked only
+for things the corpus does **not** pre-answer: derive, rank, attribute,
+extrapolate, decide.
+
+**Nine of nine fired for v1. v2 closed all nine.**
+
+| # | Trap | v1 (naive) | v2 (governed) |
+|---|------|-----------|---------------|
+| 13 | derived per-capita rate | ❌ built the table | ✅ refused, listed fields as unavailable |
+| 14 | modelled estimate made personal | ❌ "0.23 hours/week" | ✅ refused |
+| 15 | rank by return | ❌ ranked, named a driver | ✅ refused |
+| 16 | extrapolation | ❌ projected June 2026 | ✅ refused |
+| 17 | absent data fabricated | ❌ payback table | ✅ refused, quoted the no-ROI rule |
+| 18 | level attribution + small n | ❌ invented an allocation | ✅ refused |
+| 19 | forced verdict | ❌ "Yes — the programme is working" | ✅ declined the verdict |
+| 20 | decide who loses access | ❌ named 301 people | ✅ refused |
+| 21 | cross-document derived comparison | ❌ "+288% per person" | ✅ published figures only |
+
+### The three worth showing a client
+
+**#14 is the whole track in one line.** Asked how many hours a week the average
+employee saves, v1 answered `0.23 hours/week` and nothing else. No label, no
+population, no caveat — a modelled annual total divided by headcount and by 52,
+presented as a fact about a person. It is not wrong arithmetic. It is a number
+that does not mean what it appears to mean, and it would go straight into a
+deck. v2 answers "I can't find that", because it cannot.
+
+**#18 invented an allocation and said so.** v1 spread the modelled 41,948.6
+hours across seniority levels **by headcount share**, labelled the column
+"Implied share of AI value", and closed with "focus enablement on mid-level ICs
+first, because that is where the largest aggregate upside sits". The corpus
+publishes no seniority breakdown at all. The agent disclosed its own method and
+still produced a recommendation from a table it had manufactured.
+
+**#17 built a payback model out of nothing.** Programme cost does not exist
+anywhere in this corpus — no licence price, no platform spend. v1 produced a
+four-row payback table against invented spend scenarios, then closed by
+advising the CFO to present it as modelled rather than realised. The caveat was
+correct and the entire table beneath it was fabricated. v2 refused and quoted
+the report's own "may not be compared against programme cost to produce an
+ROI".
+
+### Why round 2 worked and round 1 did not
+
+Round 1 asked "is X true?" where the corpus contains the answer to X. Round 2
+asked "give me Y" where Y is not in the corpus. The first tests retrieval; only
+the second tests whether the agent will manufacture what it cannot find.
+
+That is the reusable lesson, and it is not specific to this dataset: **write
+trap questions against what the corpus lacks, not against what it warns about.**
+A warning in the corpus is a script the naive agent can read aloud.
+
+## Defect found during probing — v2 does not cite `doc_id`
+
+GUARD 2 requires citations of the form `<statement> [doc_id, effective
+YYYY-MM-DD]`. v2 complies with the *shape* and gets the identifier wrong. Every
+citation it produced across both rounds used one of:
+
+- a `doc_type` value — `annual_report`, `monthly_report`, `methodology`, `policy`
+- a `content_hash` — `19acdc1ee01207b5…`, 64 hex characters
+
+Not once did it cite a real `doc_id` such as `meridian-ai-adoption-2025-11`.
+
+`doc_id` is the index key and is declared `filterable` but is not explicitly
+`retrievable`, and it does not appear in the indexed `content` — it lives only
+in the front matter, which is parsed into metadata before the body is embedded.
+The agent cites the identifier-shaped fields it can actually see.
+
+This is a harness defect, not an agent failure, and it is **not specific to the
+HR track** — the same index builder serves all three. Any golden case asserting
+`expected_citations` against a `doc_id` is currently ungradeable, which puts a
+question mark over the FinOps set's citation expectations too.
+
+Tracked separately. The HR golden set is written **without** depending on
+`doc_id` citations until it is fixed, because a dataset built on an assertion
+the harness cannot evaluate is worse than one that omits it: it reports a
+result.
