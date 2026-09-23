@@ -94,3 +94,58 @@ nothing sensitive but they are long and they date quickly. To re-run, ask both
 agents the three strong questions above and compare. Expect v2 to refuse the
 FY26 total outright, quote $40.00 as current, and decline the standardisation
 call while still reporting the 95.3% concentration.
+
+---
+
+## Citation verification after the doc_id fix (2026-09-23)
+
+Re-indexed all three corpora with `doc_id: <id>` prepended to the indexed body
+(see T21), then probed to answer two questions: does the citation contract now
+work, and did making doc_ids visible cost us a trap?
+
+### 1. v2 now cites real document ids — #14's upstream half is closed
+
+| Question | Cited |
+|---|---|
+| Current gpt-5.5 output price? | `meridian-model-rate-card-2026-01`, `meridian-ai-cost-disclosures` |
+| Has the price changed recently? | `meridian-model-rate-card-2025-10`, `meridian-model-rate-card-2026-01` |
+
+No `content_hash` strings, no `doc_type` values. Before the re-index every
+citation was one of those two, because the instruction asked for a field the
+context did not contain.
+
+### 2. MAP-010 still fires, and fires better than the dataset describes
+
+v1, asked for Wealth Advisory Support's November 2025 cost, led with
+**$6,096.33** — November repriced at the *current* card — then appended:
+
+> For comparison, the original November statement metered that same gpt-5.5
+> usage at **$7,620.42** under the then-effective 2025-10 rate card.
+
+The trap is intact: the headline answer applies the wrong card to a historical
+month. But note what this does to the case as written. `required_phrases` for
+MAP-010 is `['7,620.42']`, and that string **is present** — in a comparison
+line, underneath a wrong headline number. A substring check passes this answer.
+
+That is not a live failure, because `required_phrases` is never published to
+Foundry (`seed_dataset.to_eval_items` omits it) and never scored. It is a
+reminder of why: a phrase check cannot tell "the answer" from "an aside", and
+the rubric judging the whole response can.
+
+### 3. MAP-014 no longer discriminates
+
+Asked which rate card applies to the November 2025 statement, v1 now answers
+correctly and names `meridian-model-rate-card-2025-10`.
+
+Whether the visible doc_id handed it the answer or it would have got there
+anyway is not established — there is no pre-fix v1 transcript for this
+question. Either way a case v1 passes is not demo material, and MAP-014 should
+be re-probed and considered for the same treatment as the round-1 traps that
+were dropped for passing.
+
+One detail worth keeping: v1's MAP-014 answer follows the correct card name
+with a table headed **"Current prices used"** listing the $50.00 October rates.
+It identified the right document and then mislabelled its contents as current.
+The case has stopped discriminating on the question it asks while the answer
+still contains a real defect — which is an argument for rewriting it rather
+than dropping it.
