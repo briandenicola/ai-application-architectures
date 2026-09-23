@@ -18,3 +18,10 @@ venv/
 *.bicepparam.local
 infra/*.local.json
 *.egg-info/
+
+# 38 MB and 1.28M rows of daily-grain activity. hr_data deliberately does not
+# load it — the monthly table already carries the hours, and nothing in the
+# corpus needs daily grain. It was committed by accident in ac05807, swept in
+# by a `git add -A`, and stripped from history afterwards. Keep it locally,
+# keep it out of the repository.
+datasets/hr_analytics/5_daily_activity.csv
