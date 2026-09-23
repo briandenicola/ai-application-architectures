@@ -72,18 +72,17 @@ number.
 
 ## 6b. FinOps track — 90s
 
-> ### ⚠️ The FinOps evaluation run is UNVERIFIED as of 2026-09-22
+> ### ⚠️ The full FinOps run is UNVERIFIED as of 2026-09-23
 >
-> No scored FinOps evaluation has ever completed. Two attempts — 32 cases and
-> a 3-case rehearsal — both hung with **zero cases scored** (50 minutes and 5
-> minutes respectively, `result_counts.total: 0`, no error raised). Both runs
-> were cancelled.
+> **The earlier "hang" was our bug, not Foundry's.** A 3-case rehearsal ran to
+> completion on 2026-09-23 in about four minutes, 3/3 passed. The two previous
+> attempts were cancelled by us: we polled `result_counts.total`, which stays
+> `0` until a run completes, and read that as no progress (#6, #8).
 >
-> The working hypothesis is that the evaluation target does not execute the
-> `azure_ai_search` tool call the FinOps agents depend on for grounding
-> (ADR-0005), so every case waits on a tool result that never arrives. The
-> advisor agents ground through a Knowledge Base instead, make no tool call,
-> and evaluate normally — which is why that track is unaffected.
+> Evaluation works. What has still never been produced is a **full 26-case run
+> for both agent versions**, so the demo's central claim — v1 exits 1, v2 exits
+> 0 — remains an expectation rather than a measurement. Produce both runs before
+> presenting.
 >
 > **Do not present the FinOps scorecard segment until this is resolved.** The
 > agents themselves work; they were probed live and answered correctly
@@ -111,7 +110,7 @@ cat .azure/agents-finops.json
 > seconds. If it returns 0 immediately after an index run, wait and re-read
 > before concluding anything is wrong.
 
-**Both evaluation runs must already be complete.** 32 cases against a reasoning
+**Both evaluation runs must already be complete.** 26 cases against a reasoning
 model will not finish while an audience watches, and the token burst reliably
 trips a 429 on a shared deployment.
 

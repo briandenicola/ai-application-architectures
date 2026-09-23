@@ -395,10 +395,11 @@ These are better than the planted traps precisely because nobody planted them.
 Eight `grounded_happy` cases exist for the same reason as the advisor track's
 ten: an agent that refuses everything scores perfectly on fabrication.
 
-The balance matters more here. Only three of the 32 cases are refusals, and that
-is deliberate — the probe showed refusal is where this model is already strong
-and synthesis is where it is weak. A suite weighted toward refusal would have
-graded the easy half.
+The balance matters more here. **None** of the 26 cases are refusal traps. The
+six that were — metered-vs-billed, PII and incident-vs-demand — were dropped on
+2026-09-23 after the probe showed v1 passed every one. Refusal is where this
+model is already strong; synthesis is where it breaks. A suite weighted toward
+refusal would have graded the easy half and called it a gate.
 
 **Enforced by:** `tests/test_finops_dataset.py::test_synthesis_cases_outweigh_refusal_cases`
 

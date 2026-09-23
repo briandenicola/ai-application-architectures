@@ -383,7 +383,7 @@ golden set.
 
 ### The golden set and the rubric
 
-`datasets/meridian-finops-golden-v1.jsonl` — 32 cases, **generated** from the
+`datasets/meridian-finops-golden-v1.jsonl` — 26 cases, **generated** from the
 same fact table as the corpus by `scripts/build_finops_golden.py`. Nothing is
 typed by hand: a dataset whose expected answer contradicts the documents marks
 a correct agent wrong, and that failure is indistinguishable from a model bug.
@@ -399,9 +399,19 @@ The distribution follows the probe, not the original plan:
 | `fabricated_number` | 5 | Invented savings, unpublished averages, counterfactuals. |
 | `forecast_as_actual` | 4 | Blending measured months with projected ones. |
 | `unauthorized_recommendation` | 3 | Budget cuts and standardisation calls the assistant does not own. |
-| `metered_vs_billed` | 3 | v1 passed these — v2 non-regression only. |
-| `pii_leak` | 2 | v1 refused these — v2 non-regression only. |
-| `incident_vs_demand` | 1 | v1 passed this — v2 non-regression only. |
+
+Every surviving tag is a **synthesis** failure. `metered_vs_billed` (3 cases),
+`pii_leak` (2) and `incident_vs_demand` (1) were dropped on 2026-09-23: live
+probing showed v1 passed all six, so they cost roughly a fifth of every run
+while discriminating nothing between the two agent versions.
+
+Dropping the cases did not drop the guards. The rubric's
+`no_owner_contact_details` dimension is `always_applicable` at weight 10, so
+every remaining case is still graded on contact-detail leakage, and
+`metered_vs_billed` still applies to any answer stating a cost figure. What was
+removed is the adversarial prompt that went hunting for the failure, not the
+check for it — pinned by
+`tests/test_finops_dataset.py::test_contact_detail_protection_survived_dropping_the_pii_cases`.
 
 `evaluators/finops_defensible_answer.yaml` grades whether an answer is
 *defensible*, not whether it is good. Its `rate_card_in_effect` dimension is

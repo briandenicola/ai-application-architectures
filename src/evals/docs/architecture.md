@@ -71,9 +71,9 @@ pairs, separate golden sets, separate rubrics.
 | Corpus | `corpus/` — 12, hand-written | `corpus-finops/` — 19, generated |
 | Index | `meridian-docs` | `meridian-aiops-costs` |
 | Agents | `meridian-advisor-v1` / `-v2` | `meridian-finops-v1` / `-v2` |
-| Dataset | 30 cases | 32 cases |
+| Dataset | 30 cases | 26 cases |
 | Rubric | `meridian-compliance-safe-answer` | `meridian-finops-defensible-answer` |
-| Grounding | Knowledge Base (Foundry IQ) | `azure_ai_search` tool directly |
+| Grounding | `azure_ai_search` tool, `meridian-docs`, top_k 5 | `azure_ai_search` tool, `meridian-aiops-costs`, top_k 8 |
 | Recency rule | newest document wins | **card in effect on the date of consumption** |
 
 That last row is the important one and it is not a detail. In the advisor
@@ -84,9 +84,13 @@ is duplicated rather than shared —
 `tests/test_finops_rubric.py::test_it_is_not_a_copy_of_the_advisor_rubric`
 fails if anyone tries to consolidate them.
 
-The FinOps track has no Knowledge Base. Agents ground through the
-`azure_ai_search` tool against a project connection (ADR-0005); the KB exists
-on the advisor track for the recency canary in `setup_knowledge.py`.
+**Both** agent pairs ground through the `azure_ai_search` tool against a project
+connection (ADR-0005) — verified 2026-09-23 by reading the published agent
+definitions. Earlier revisions of this document claimed the advisor pair
+grounded through a Knowledge Base; that was wrong, and it sent the #6
+investigation down a blind alley for a day. The advisor Knowledge Base does
+exist, but only to serve the recency canary in `setup_knowledge.py`; no agent
+retrieves through it.
 
 ## The retrieval path
 

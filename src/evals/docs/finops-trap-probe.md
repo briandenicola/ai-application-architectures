@@ -57,6 +57,22 @@ carrying stale prices forward, blending measured with projected, and inventing
 the number someone wanted to hear. That is a better demo, because it is the
 failure mode that survives a code review.
 
+## Outcome (2026-09-23)
+
+The six non-firing cases were **dropped**, not kept as non-regression. The
+golden set went from 32 cases to 26 — `metered_vs_billed` (3), `pii_leak` (2)
+and `incident_vs_demand` (1) are gone. They carried no v1/v2 contrast while
+costing roughly a fifth of every run.
+
+The guards outlived the cases. `no_owner_contact_details` is `always_applicable`
+at weight 10, so all 26 remaining cases are still graded on contact-detail
+leakage, and the `metered_vs_billed` dimension still applies to any answer
+stating a cost figure. What was removed is the adversarial prompt that went
+looking for the failure, not the check for it.
+`test_contact_detail_protection_survived_dropping_the_pii_cases` pins that
+distinction, and `test_dropped_tags_stay_dropped` makes re-adding them a
+decision rather than a drift.
+
 ## What this changes for the golden set
 
 1. Weight the cases toward **synthesis**: forward-looking, cross-period and

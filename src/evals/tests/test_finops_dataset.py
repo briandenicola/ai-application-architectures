@@ -15,6 +15,7 @@ import re
 import subprocess
 import sys
 
+import yaml
 from conftest import FINOPS_DATASET, ROOT
 
 # Fixed by deliberate design, not by accident. Both agents were probed against
@@ -28,10 +29,13 @@ EXPECTED_DISTRIBUTION = {
     "fabricated_number": 5,
     "forecast_as_actual": 4,
     "unauthorized_recommendation": 3,
-    "metered_vs_billed": 3,
-    "pii_leak": 2,
-    "incident_vs_demand": 1,
 }
+
+# Dropped 2026-09-23: metered_vs_billed, pii_leak and incident_vs_demand.
+# Live probing showed v1 passed all six of those cases, so they carried no
+# v1/v2 contrast while costing ~19% of every run. Every surviving tag is a
+# synthesis failure, which is the only kind the probe showed actually fires.
+DROPPED_TAGS = {"metered_vs_billed", "pii_leak", "incident_vs_demand"}
 
 SCHEMA = {
     "case_id",
@@ -52,7 +56,7 @@ FIGURE = re.compile(r"^\d{1,3}(,\d{3})*(\.\d+)?$")
 
 
 def test_total_case_count(finops_dataset):
-    assert len(finops_dataset) == sum(EXPECTED_DISTRIBUTION.values()) == 32
+    assert len(finops_dataset) == sum(EXPECTED_DISTRIBUTION.values()) == 26
 
 
 def test_case_ids_are_unique_and_sequential(finops_dataset):
@@ -116,18 +120,31 @@ def test_refusal_cases_require_no_figures(finops_dataset):
             )
 
 
-def test_pii_cases_forbid_the_reserved_fiction_formats(finops_dataset):
-    """PII cases must forbid the exact formats the corpus actually plants.
+def test_dropped_tags_stay_dropped(finops_dataset):
+    """Re-adding a dead trap should be a decision, not a drift."""
+    present = {case["failure_tag"] for case in finops_dataset} & DROPPED_TAGS
+    assert not present, (
+        f"{sorted(present)} came back. These were dropped because v1 passed "
+        "them — see docs/finops-trap-probe.md before re-adding."
+    )
 
-    Forbidding a format the registry does not use would make these cases pass
-    no matter what the agent leaked.
+
+def test_contact_detail_protection_survived_dropping_the_pii_cases():
+    """The PII cases went; the guard did not.
+
+    Dropping MAP-030/031 removed the adversarial prompts that went looking for
+    contact details. If the rubric dimension that actually grades leakage were
+    also to stop applying everywhere, the track would silently lose PII
+    protection altogether.
     """
-    pii = [case for case in finops_dataset if case["failure_tag"] == "pii_leak"]
-    assert pii, "the pii_leak tag has no cases"
-    for case in pii:
-        forbidden = case["forbidden_phrases"]
-        assert "@example.com" in forbidden, f"{case['case_id']} does not forbid the email format"
-        assert "555-01" in forbidden, f"{case['case_id']} does not forbid the phone format"
+    rubric = yaml.safe_load((ROOT / "evaluators" / "finops_defensible_answer.yaml").read_text())
+    dims = {d["id"]: d for d in rubric["definition"]["dimensions"]}
+    contact = dims.get("no_owner_contact_details")
+    assert contact, "the rubric no longer grades owner contact details at all"
+    assert contact["always_applicable"] is True, (
+        "no_owner_contact_details must apply to every case now that no case "
+        "specifically probes for a leak"
+    )
 
 
 def test_pii_forbidden_formats_are_really_in_the_registry(finops_docs):
@@ -167,7 +184,7 @@ def test_synthesis_cases_outweigh_refusal_cases(finops_dataset):
         "forecast_as_actual",
         "unauthorized_recommendation",
     }
-    refusal = {"pii_leak", "incident_vs_demand", "metered_vs_billed"}
+    refusal = DROPPED_TAGS
     n_synth = sum(1 for c in finops_dataset if c["failure_tag"] in synthesis)
     n_refusal = sum(1 for c in finops_dataset if c["failure_tag"] in refusal)
     assert n_synth >= 3 * n_refusal, (
