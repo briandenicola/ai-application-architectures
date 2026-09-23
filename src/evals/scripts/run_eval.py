@@ -302,11 +302,50 @@ def build_testing_criteria(config: dict[str, Any], judge_model: str) -> list[dic
     return criteria
 
 
+STALL_SECONDS = 900
+
+
+def scored_count(client: FoundryClient, eval_id: str, run_id: str) -> int | None:
+    """How many cases Foundry has actually finished scoring.
+
+    Returns None — never 0 — when the count cannot be read. A transient error
+    must not be indistinguishable from a run that has produced nothing, because
+    that is precisely the reading that gets healthy runs cancelled.
+    """
+    try:
+        return len(fetch_output_items(client, eval_id, run_id))
+    except Exception:  # noqa: BLE001 - a progress probe must never end the run
+        return None
+
+
 def poll_run(
-    client: FoundryClient, eval_id: str, run_id: str, timeout_seconds: int = 3600
+    client: FoundryClient,
+    eval_id: str,
+    run_id: str,
+    timeout_seconds: int = 3600,
+    expected_cases: int | None = None,
+    stall_seconds: int = STALL_SECONDS,
+    poll_seconds: int = 15,
 ) -> dict[str, Any]:
-    deadline = time.time() + timeout_seconds
+    """Wait for a run, reporting progress from the only field that carries it.
+
+    `result_counts` is populated when a run *completes* and reads
+    `{total: 0}` for the entire time it is in flight. Polling it and concluding
+    "no cases have scored" is how two healthy runs were cancelled — one of them
+    at 50 minutes, the other seconds from finishing (#6). Per-case progress
+    lives in `output_items`, which fills in as cases complete.
+
+    A stall is reported, never acted on. This function does not cancel runs.
+    """
+    started = time.time()
+    deadline = started + timeout_seconds
     last_status = ""
+    scored = 0
+    last_change = started
+    stall_reported = False
+    total = f" of {expected_cases}" if expected_cases else ""
+    denominator_trusted = expected_cases is not None
+
     while time.time() < deadline:
         run = client.get(f"/openai/v1/evals/{eval_id}/runs/{run_id}")
         status = run.get("status", "")
@@ -315,8 +354,52 @@ def poll_run(
             last_status = status
         if status in TERMINAL_STATES:
             return run
-        time.sleep(15)
-    fail(f"Evaluation run did not finish within {timeout_seconds}s. Run id: {run_id}")
+
+        observed = scored_count(client, eval_id, run_id)
+        if observed is not None and denominator_trusted and observed > (expected_cases or 0):
+            # Foundry evaluates whatever the seeded dataset holds, which is not
+            # the local list when --limit is in play. A denominator we cannot
+            # stand behind is worse than none.
+            console.print(
+                f"  [yellow]the run has scored more cases than the local dataset holds "
+                f"({observed} > {expected_cases}) — it is evaluating the full seeded "
+                f"dataset. Dropping the expected total.[/yellow]"
+            )
+            denominator_trusted = False
+            total = ""
+
+        if observed is not None and observed != scored:
+            scored = observed
+            last_change = time.time()
+            stall_reported = False
+            console.print(f"  [dim]scored {scored}{total} ({int(time.time() - started)}s)[/dim]")
+        elif observed is not None and not stall_reported:
+            idle = time.time() - last_change
+            if idle > stall_seconds:
+                console.print(
+                    f"  [yellow]no new cases scored in {int(idle // 60)} min "
+                    f"({scored}{total} so far). Still waiting — a slow judge looks "
+                    f"exactly like this.[/yellow]"
+                )
+                stall_reported = True
+
+        time.sleep(poll_seconds)
+
+    elapsed = int(time.time() - started)
+    if scored == 0:
+        detail = (
+            f"No cases were scored in {elapsed}s. The run may never have started — "
+            f"check the portal before assuming a slow judge."
+        )
+    elif expected_cases and denominator_trusted and scored < expected_cases:
+        detail = (
+            f"Scored {scored} of {expected_cases} in {elapsed}s and was still making "
+            f"progress. This is a timeout, not a hang — raise --timeout rather than "
+            f"treating the run as stuck."
+        )
+    else:
+        detail = f"Scored {scored}{total} in {elapsed}s but the run never reached a terminal state."
+    fail(f"Evaluation run did not finish within {timeout_seconds}s. Run id: {run_id}\n  {detail}")
     return {}
 
 
@@ -566,7 +649,7 @@ def evaluate(
         if report_url:
             ok(f"Live in the portal — {report_url}")
 
-        final = poll_run(client, eval_id, foundry_run_id)
+        final = poll_run(client, eval_id, foundry_run_id, expected_cases=len(dataset) or None)
         if final.get("status") != "completed":
             fail(
                 f"Run ended with status '{final.get('status')}'. "

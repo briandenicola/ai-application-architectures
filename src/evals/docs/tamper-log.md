@@ -381,5 +381,50 @@ unilaterally, because the data is the user's.
 
 ---
 
+## T15 — The progress signal that caused #6
+
+For weeks the harness reported that evaluation runs produced nothing. It read
+`result_counts.total`, which is populated when a run *completes* and reads `0`
+for the entire time one is in flight. We took that zero as evidence and
+cancelled two healthy runs — one after 50 minutes, one after 5 that was
+probably seconds from finishing. There was never a hang.
+
+The fix reads `output_items`, which fills in per case. The guards exist to
+stop the old reading returning.
+
+| # | Guard | Tamper applied | Result |
+|---|---|---|---|
+| T15.1 | Progress comes from `output_items` | Read `run["result_counts"]["total"]` instead | ✅ `test_progress_is_read_from_output_items_not_result_counts` failed |
+| T15.2 | A failed probe is not zero progress | Made `scored_count` return `0` on exception | ✅ `test_a_failed_progress_probe_is_not_reported_as_zero_progress` failed — **on the second attempt**, see below |
+| T15.3 | A stall is reported, never acted on | Made the stall branch call `fail()` | ✅ `test_a_stall_is_reported_but_never_cancels_the_run` failed |
+| T15.4 | An unverifiable denominator is dropped | Kept trusting `expected_cases` after the run exceeded it | ✅ `test_an_untrustworthy_denominator_is_dropped_rather_than_shown` failed |
+
+### T15.2 survived its first tamper, which means it was worthless
+
+The original test asserted that `"scored 0"` never appeared in the output. It
+passed with the guard removed, because with the guard removed the count is `0`
+and the previous count is also `0`, so the "progress changed" branch never
+fires and *nothing* is printed either way. The test was asserting the absence
+of a string that was absent for an unrelated reason.
+
+The real harm of swallowing a probe failure as `0` is that reported progress
+goes **backwards** — a run that has scored 4 cases abruptly reports 0, which
+reads as collapse. So the test now scores 4 cases first and only then starts
+failing the probe. It fails under tamper.
+
+This is the third guard this project has caught passing its own tamper (§T11
+had two). The pattern is always the same: the assertion is true for a reason
+other than the guard. Assert something **only the guard can produce**.
+
+### Why a stall does not cancel
+
+From the outside, a slow judge and a stuck run look identical. We have been
+wrong about which we had twice, in the same direction, and both times the cost
+was a cancelled run plus days of misdirected investigation. The harness now
+says what it sees and keeps waiting. A human with the portal open can decide;
+a 15-second poll loop cannot.
+
+---
+
 > If a row in this log is empty, the corresponding guard is **unproven**. Do not
 > describe it as a control in front of a client.

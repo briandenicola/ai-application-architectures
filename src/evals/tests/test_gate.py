@@ -423,3 +423,138 @@ def test_a_partial_pass_is_not_described_as_cleared_to_ship(dataset, capsys):
         "a run that evaluated a subset must not claim a ship decision"
     )
     assert "REHEARSAL" in out
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Progress reporting (#8). The root cause of #6: we polled a field that is only
+# populated at completion, read its zero as "nothing has scored", and cancelled
+# two healthy runs — one of them seconds from finishing.
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+class FakePollClient:
+    """Serves a scripted sequence of statuses and per-case progress."""
+
+    def __init__(self, statuses, item_counts):
+        self.statuses = list(statuses)
+        self.item_counts = list(item_counts)
+        self.run_gets = 0
+        self.item_gets = 0
+
+    def get(self, path, params=None):
+        if path.endswith("/output_items"):
+            n = self.item_counts[min(self.item_gets, len(self.item_counts) - 1)]
+            self.item_gets += 1
+            # result_counts is deliberately absent here: progress must come
+            # from the items themselves.
+            return {"data": [{"id": f"item-{i}"} for i in range(n)], "has_more": False}
+        status = self.statuses[min(self.run_gets, len(self.statuses) - 1)]
+        self.run_gets += 1
+        # An in-flight run reports total 0 no matter how many cases have scored.
+        return {"id": "run-1", "status": status, "result_counts": {"total": 0}}
+
+
+def test_progress_is_read_from_output_items_not_result_counts(capsys, monkeypatch):
+    """The #6 regression test.
+
+    Every poll below carries `result_counts: {total: 0}` while cases are
+    demonstrably completing. Anything that trusts that field reports no
+    progress on a run that is progressing fine.
+    """
+    monkeypatch.setattr(run_eval.time, "sleep", lambda _s: None)
+    client = FakePollClient(
+        statuses=["queued", "in_progress", "in_progress", "completed"],
+        item_counts=[0, 4, 9, 9],
+    )
+
+    final = run_eval.poll_run(client, "eval-1", "run-1", timeout_seconds=600, expected_cases=9)
+
+    assert final["status"] == "completed"
+    out = capsys.readouterr().out
+    assert "scored 4 of 9" in out, f"per-case progress was never reported:\n{out}"
+    assert "scored 9 of 9" in out
+
+
+def test_a_failed_progress_probe_is_not_reported_as_zero_progress(capsys, monkeypatch):
+    """A transient error must not look like a stall — that reading is what got
+    healthy runs cancelled.
+
+    The observable harm of swallowing the error as 0 is that reported progress
+    goes *backwards*: a run that has scored 4 cases suddenly reports 0, which
+    reads as a run that has collapsed. So the run below scores 4 and then the
+    probe starts failing.
+    """
+    monkeypatch.setattr(run_eval.time, "sleep", lambda _s: None)
+
+    class Flaky(FakePollClient):
+        def get(self, path, params=None):
+            if path.endswith("/output_items"):
+                self.item_gets += 1
+                if self.item_gets > 1:
+                    raise RuntimeError("transient 503")
+                return {"data": [{"id": f"item-{i}"} for i in range(4)], "has_more": False}
+            return super().get(path, params)
+
+    client = Flaky(
+        statuses=["in_progress", "in_progress", "in_progress", "completed"], item_counts=[]
+    )
+    final = run_eval.poll_run(client, "eval-1", "run-1", timeout_seconds=600, expected_cases=9)
+
+    assert final["status"] == "completed"
+    out = capsys.readouterr().out
+    assert "scored 4 of 9" in out
+    assert "scored 0" not in out, (
+        f"a failed probe was reported as zero progress, so progress went backwards:\n{out}"
+    )
+
+
+def test_a_stall_is_reported_but_never_cancels_the_run(capsys, monkeypatch):
+    """Report it; do not act on it. A slow judge is indistinguishable from a
+    stall from the outside, and we have twice been wrong about which we had."""
+    monkeypatch.setattr(run_eval.time, "sleep", lambda _s: None)
+    clock = {"t": 1000.0}
+
+    def fake_time():
+        clock["t"] += 120
+        return clock["t"]
+
+    monkeypatch.setattr(run_eval.time, "time", fake_time)
+    client = FakePollClient(
+        statuses=["in_progress"] * 12 + ["completed"],
+        item_counts=[3] * 12 + [9],
+    )
+
+    final = run_eval.poll_run(
+        client, "eval-1", "run-1", timeout_seconds=100_000, expected_cases=9, stall_seconds=300
+    )
+
+    out = capsys.readouterr().out
+    assert "no new cases scored" in out, f"a stall was never surfaced:\n{out}"
+    assert final["status"] == "completed", "poll_run must not abandon a stalled run"
+    assert "cancel" not in out.lower()
+
+
+def test_a_timeout_that_was_still_progressing_says_so(monkeypatch):
+    """'Did not finish' and 'is stuck' are different diagnoses and led us to
+    opposite actions."""
+    monkeypatch.setattr(run_eval.time, "sleep", lambda _s: None)
+    client = FakePollClient(statuses=["in_progress"], item_counts=[1, 2, 3, 4])
+
+    with pytest.raises(SystemExit) as exc:
+        run_eval.poll_run(client, "eval-1", "run-1", timeout_seconds=0, expected_cases=9)
+    assert exc.value.code == 2
+
+
+def test_an_untrustworthy_denominator_is_dropped_rather_than_shown(capsys, monkeypatch):
+    """--limit truncates the local list while Foundry scores the whole seeded
+    dataset. A denominator we cannot stand behind is worse than none."""
+    monkeypatch.setattr(run_eval.time, "sleep", lambda _s: None)
+    client = FakePollClient(
+        statuses=["in_progress", "in_progress", "completed"], item_counts=[2, 26, 26]
+    )
+
+    run_eval.poll_run(client, "eval-1", "run-1", timeout_seconds=600, expected_cases=3)
+
+    out = capsys.readouterr().out
+    assert "scored 26 of 3" not in out, "reported progress against a denominator it had disproved"
+    assert "Dropping the expected total" in out
