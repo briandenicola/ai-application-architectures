@@ -211,44 +211,71 @@ def test_every_referenced_config_block_exists():
 
 
 @pytest.mark.parametrize("corpus", CORPORA)
-def test_no_evaluator_consumes_the_citation_fields(corpus):
-    """Pin a gap that currently looks like coverage. See #14.
+def test_citation_mapping_is_wired_but_unverified(corpus):
+    """The successor to the T20 guard, and it proves less than it looks like.
 
-    Every golden set carries `expected_citations` and `forbidden_citations`,
-    `seed_dataset.to_eval_items` publishes both into the uploaded asset, and
-    `test_citations_resolve_to_real_documents` proves the ids name real
-    documents. All of that is about the dataset FILE. None of it is scoring.
+    T20 pinned the opposite fact: no evaluator received a citation column, so
+    `forbidden_citations` passed for every agent forever. That is now wired —
+    both columns are mapped into the custom rubric and declared in the eval's
+    item_schema, and both rubrics carry a `citation_discipline` dimension.
 
-    The scoring path is `build_testing_criteria`, and every data_mapping it
-    emits carries only `query`, `response` and — for groundedness — `context`.
-    No evaluator is handed a citation column, so:
+    What is established: Foundry ACCEPTS the two non-standard data_mapping keys
+    and echoes them back intact, probed against the live service 2026-09-23.
 
-      * `expected_citations` is never checked;
-      * `forbidden_citations` PASSES FOR EVERY AGENT, ALWAYS.
+    What is NOT established: that the rubric judge receives them. The
+    documented rubric inputs are query, response, context and ground_truth.
+    These two are outside that set, so "accepted" may well mean "stored and
+    ignored" — which would leave the citation check exactly as inert as it was
+    before, while looking wired. That is the T20 failure with better cover.
 
-    The second is the one that matters. The finops `stale_rate_card` cases are
-    built on it: they name the superseded rate card as forbidden and nothing
-    anywhere compares an answer against that list. A check that cannot trip is
-    indistinguishable from a check that passed, which is the exact failure this
-    harness exists to demonstrate to clients.
+    The experiment that settles it: two cases, identical query and identical
+    canned response, differing only in whether `forbidden_citations` names the
+    document the response cites. Different verdicts prove the field reaches the
+    judge. Identical verdicts prove it does not.
 
-    This test asserts the gap so it is visible rather than assumed. It is NOT
-    an endorsement. When #14 is fixed — doc_id made retrievable and present in
-    the embedded content, so an agent can cite one — delete this test, map the
-    columns in, and tamper-test that a forbidden citation actually fails a
-    case. Wiring the mapping before then would fail every citation case for
-    both versions and prove nothing, because no agent can emit a doc_id yet.
+    Until that is run, `citation_discipline` is not a control and must not be
+    described as one in front of a client. This test holds the wiring in place
+    so the claim stays falsifiable; it does not certify the claim.
     """
     config = select_corpus(_config(), corpus)
     criteria = run_eval.build_testing_criteria(config, judge_model="judge-deployment")
 
-    wired = {
-        crit["name"]: sorted(crit["data_mapping"])
-        for crit in criteria
-        if any("citation" in ref for ref in crit["data_mapping"].values())
-    }
-    assert not wired, (
-        f"'{corpus}' now feeds citation fields to {wired}. If that was "
-        "deliberate, delete this test and add the citation assertions to the "
-        "golden sets — then break one and watch a case fail before believing it."
+    metric = run_eval.custom_metric(config)
+    rubric = next((c for c in criteria if c["name"] == metric), None)
+    assert rubric is not None, f"'{corpus}' emits no custom rubric criterion"
+
+    for field in ("expected_citations", "forbidden_citations"):
+        assert rubric["data_mapping"].get(field) == f"{{{{item.{field}}}}}", (
+            f"'{corpus}' does not map {field} into the rubric. If that was "
+            "removed deliberately, restore the T20 guard rather than leaving "
+            "the columns published and unread."
+        )
+
+
+@pytest.mark.parametrize("corpus", CORPORA)
+def test_the_rubric_that_receives_citations_knows_what_to_do_with_them(corpus):
+    """Mapping a field to a rubric that never mentions it scores nothing.
+
+    The mapping and the dimension are two halves of one change. Shipping the
+    first without the second is indistinguishable, from the outside, from
+    shipping neither.
+    """
+    config = select_corpus(_config(), corpus)
+    spec_path = ROOT / config["evaluators"]["custom"][0]
+    spec = yaml.safe_load(spec_path.read_text(encoding="utf-8"))
+    dimensions = {d["id"]: d for d in spec["definition"]["dimensions"]}
+
+    assert "citation_discipline" in dimensions, (
+        f"'{corpus}' maps the citation columns but its rubric "
+        f"({spec_path.name}) has no dimension that reads them"
+    )
+    body = dimensions["citation_discipline"]["description"]
+    for field in ("expected_citations", "forbidden_citations"):
+        assert field in body, (
+            f"'{corpus}' citation_discipline never names {field}, so the judge "
+            "is not told the field exists"
+        )
+    assert dimensions["citation_discipline"]["always_applicable"] is False, (
+        "citation_discipline must not be always_applicable: cases with no "
+        "citations would be scored against empty lists"
     )

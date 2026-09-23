@@ -778,6 +778,62 @@ appear in answers. Until that is verified, the two placeholder guards stay and
 the citation columns stay unmapped. Re-indexing touches Azure and is the user's
 call, not this script's.
 
+## T22 — wiring the citation columns, and what this tamper cannot prove
+
+**Guards.** `test_citation_mapping_is_wired_but_unverified` and
+`test_the_rubric_that_receives_citations_knows_what_to_do_with_them`
+(`tests/test_track_contract.py`), both parametrised over every registered track.
+
+T20 pinned the fact that no evaluator received a citation column. T21 made
+`doc_id` citable. This wires the two together: both columns are mapped into the
+custom rubric, declared in the eval's `item_schema`, and read by a new
+`citation_discipline` dimension (weight 9, not always-applicable) in both
+rubrics.
+
+**What was probed against the live service.** Foundry *accepts*
+`forbidden_citations` as a `data_mapping` key and echoes it back intact; a
+control criterion without the key came back without it, so the round-trip is
+real rather than an artifact of the response shape. Both throwaway eval
+definitions were deleted afterwards.
+
+**What this entry does not establish, and the reason it is written down.** The
+documented rubric inputs are `query`, `response`, `context` and `ground_truth`.
+These two keys are outside that set. "Accepted and stored" is not "delivered to
+the judge", and if the service is quietly ignoring them then the citation check
+is exactly as inert as it was before T20 — while now looking wired, carrying a
+rubric dimension, and passing two tests. That is the same failure this log
+exists to catch, wearing much better cover than last time.
+
+The tampers below prove the *harness* holds its shape. They cannot prove the
+*service* reads the field. No local test can.
+
+**The experiment that would settle it** — deliberately not run; the decision was
+to wire on the assumption and mark it: two cases with identical `query` and
+identical canned `response`, differing only in whether `forbidden_citations`
+names the document the response cites. Different verdicts prove delivery.
+Identical verdicts prove the opposite. Two judge calls, no agent calls.
+
+**Tampers.** Three, each verified destroyed before the run was trusted:
+
+| # | Tamper | Property destroyed | Failed by name |
+|---|--------|--------------------|----------------|
+| 1 | drop `forbidden_citations` from the rubric data_mapping | key absent from criteria | `test_citation_mapping_is_wired_but_unverified` |
+| 2 | delete the `citation_discipline` dimension from the finops rubric | dimension absent | `test_the_rubric_that_receives_citations_knows_what_to_do_with_them` |
+| 3 | flip `always_applicable` to true | flag inverted | `test_the_rubric_that_receives_citations_knows_what_to_do_with_them` |
+
+Tamper 2 is the one worth having. A mapping feeding a rubric that never
+mentions the field scores nothing, and from outside is indistinguishable from
+not wiring it at all — so the mapping and the dimension are held as two halves
+of one change rather than as separate conveniences.
+
+**Reverted.** All three restored, suite green.
+
+**Status: UNVERIFIED.** `citation_discipline` is not a control yet and must not
+be described as one in front of a client. The banner in
+`run_eval.build_testing_criteria` and the docstring on the first guard both say
+so, and `test_no_case_asserts_citations_while_issue_14_is_open` stays in place
+on the HR set until the experiment above is run.
+
 ---
 
 > If a row in this log is empty, the corresponding guard is **unproven**. Do not

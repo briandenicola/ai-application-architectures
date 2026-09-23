@@ -291,11 +291,38 @@ def build_testing_criteria(config: dict[str, Any], judge_model: str) -> list[dic
             "name": custom_metric(config),
             "evaluator_name": config["evaluators"]["custom_name"],
             "initialization_parameters": {"model": judge_model},
-            # Same limitation as the built-ins: no tool outputs are exposed, so
-            # the rubric judges the answer against the authoritative fact.
+            # No tool outputs are exposed, so the rubric judges the answer
+            # against the authoritative fact rather than against what was
+            # actually retrieved.
+            #
+            # The two citation columns are the fix for #14's downstream half.
+            # Before this they were published into the dataset asset and handed
+            # to no evaluator, which made `forbidden_citations` pass for every
+            # agent forever — see T20.
+            #
+            # ─── UNVERIFIED ──────────────────────────────────────────────────
+            # Foundry ACCEPTS these non-standard keys and echoes them back
+            # intact (probed against the live service 2026-09-23). It has NOT
+            # been demonstrated that the rubric judge actually receives them.
+            # The documented rubric inputs are query, response, context and
+            # ground_truth; these two are outside that set, so "accepted" may
+            # mean "stored and ignored".
+            #
+            # The experiment that would settle it: two cases with identical
+            # query and identical canned response, differing only in whether
+            # `forbidden_citations` names the cited document. Different
+            # verdicts prove the field reaches the judge; identical verdicts
+            # prove it does not.
+            #
+            # Until that is run, `citation_discipline` must not be described as
+            # a working control in front of a client, and
+            # `test_citation_mapping_is_wired_but_unverified` stays.
+            # ─────────────────────────────────────────────────────────────────
             "data_mapping": {
                 "query": "{{item.query}}",
                 "response": "{{sample.output_text}}",
+                "expected_citations": "{{item.expected_citations}}",
+                "forbidden_citations": "{{item.forbidden_citations}}",
             },
         }
     )
@@ -595,6 +622,12 @@ def evaluate(
                                 "failure_tag": {"type": "string"},
                                 "query": {"type": "string"},
                                 "ground_truth": {"type": "string"},
+                                # Declared so `{{item.*_citations}}` resolves in
+                                # the rubric's data_mapping. seed_dataset has
+                                # always published these columns; until now
+                                # nothing referenced them. See #14.
+                                "expected_citations": {"type": "string"},
+                                "forbidden_citations": {"type": "string"},
                             },
                             "required": ["query"],
                         },
