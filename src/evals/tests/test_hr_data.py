@@ -26,7 +26,7 @@ import hr_data as hr  # noqa: E402
 # Pinned so an edited CSV is a deliberate act. Regenerate with:
 #   python -c "import sys; sys.path.insert(0,'scripts'); \
 #              import hr_data; print(hr_data.fingerprint())"
-EXPECTED_FINGERPRINT = "854b06ae65e9d07f"
+EXPECTED_FINGERPRINT = "5d133c9fbb00914b"  # emails rewritten to @example.com, 2026-06
 
 
 def test_source_csvs_have_not_changed():
@@ -133,23 +133,25 @@ def test_small_cells_exist_and_are_genuinely_small():
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-def test_employee_emails_use_a_single_non_routable_domain():
+def test_employee_emails_use_the_mandated_reserved_domain():
     """The constitution requires reserved-for-fiction formats.
 
-    These CSVs use `@techcorp.fake`, not the mandated `@example.com`. `.fake`
-    is not reserved by RFC 2606, so this is a deviation rather than a
-    compliant choice — tracked, not silently accepted. The test pins the domain
-    so a *routable* one can never appear, which is the property that actually
-    matters if a rendered document ever carries an address.
+    These CSVs originally used `@techcorp.fake`, which is not reserved by
+    RFC 2606 — a plausible-looking domain that someone could register. They
+    were rewritten to `@example.com`, which RFC 2606 reserves permanently and
+    which can never resolve to a real mailbox.
+
+    Equality, not a subset: allowing a second domain here would let the old one
+    creep back in through a partial edit and still pass.
     """
     import csv
 
     with (hr.DATA_DIR / "4_employees.csv").open(newline="", encoding="utf-8-sig") as handle:
         domains = {row["email"].split("@")[-1].lower() for row in csv.DictReader(handle)}
 
-    assert domains <= {"techcorp.fake", "example.com"}, (
-        f"unexpected email domains {sorted(domains - {'techcorp.fake', 'example.com'})} — "
-        "synthetic data must not carry a routable address"
+    assert domains == {"example.com"}, (
+        f"unexpected email domains {sorted(domains - {'example.com'})} — synthetic "
+        "data must use the RFC 2606 reserved domain and must not carry a routable address"
     )
 
 

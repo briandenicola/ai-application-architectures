@@ -369,15 +369,32 @@ edit to the source data, and the domain check explains *which* edit mattered.
 A guard that only reports "something changed" sends you reading diffs; one
 that only reports the domain would miss an edit elsewhere in the file.
 
-### An open deviation, recorded rather than fixed
+### A deviation recorded, then closed on the owner's instruction
 
 The constitution requires synthetic identifiers in reserved-for-fiction
-formats — `@example.com` for email. These CSVs use `@techcorp.fake`, and
-`.fake` is not reserved by RFC 2606. It is not currently delegated, so nothing
-routes today, but that is a fact about the DNS root rather than a guarantee.
-The test pins the domain so a genuinely routable address can never appear;
-aligning the data with the constitution is tracked separately and was not done
-unilaterally, because the data is the user's.
+formats — `@example.com` for email. These CSVs arrived using `@techcorp.fake`,
+and `.fake` is not reserved by RFC 2606. It is not currently delegated, so
+nothing routed, but that is a fact about the DNS root rather than a guarantee:
+a plausible-looking domain is one registration away from being real.
+
+It was flagged and left alone rather than fixed, because the data is the
+user's. On their instruction all 3,500 addresses were rewritten to
+`@example.com`, which RFC 2606 reserves permanently.
+
+**The fingerprint guard proved itself on this edit, unprompted.** Rewriting the
+CSV broke `test_source_csvs_have_not_changed` before the constant was updated —
+a real change caught by a guard doing its job, not a staged tamper. Confirmed
+deliberately afterwards by restoring the old fingerprint and watching that
+exact test fail.
+
+The domain assertion was tightened from subset to equality at the same time.
+`domains <= {"techcorp.fake", "example.com"}` would have passed a partial
+rewrite that left some rows behind; `domains == {"example.com"}` will not. A
+subset check on a set you are migrating away from accepts the half-finished
+state indefinitely.
+
+The corpus was unaffected — no rendered document carries an address, which is
+itself the point of Guard 6.
 
 ---
 
