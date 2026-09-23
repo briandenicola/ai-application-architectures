@@ -477,5 +477,70 @@ With the HR track about to be added, that was a scheduled failure.
 
 ---
 
+## T17 — A corpus that commits the violation it tests for
+
+The HR track grades an agent on disclosure discipline. That only works if the
+corpus itself is disciplined. If a document publishes an individual's figures,
+an agent repeating them is **grounded** — it would be graded correct, and the
+track would be measuring the corpus rather than the agent.
+
+The first two drafts of `generate_hr_corpus.py` both failed this.
+
+**Draft 1** published the Executive department in all twelve monthly reports.
+Executive is one person: the chief executive. Every figure under that label —
+query counts, estimated hours saved, licensed share — was his individual
+record, published twelve times.
+
+**Draft 2** suppressed small cells in a department-by-level headcount grid and
+published the row totals beside them. Human Resources' visible cells summed to
+323 against a published total of 324, so the withheld Director cell was
+exactly 1. The suppression was decorative; the arithmetic gave it straight
+back. Data & Analytics leaked almost as badly.
+
+| # | Guard | Tamper applied | Result |
+|---|---|---|---|
+| T17.1 | No sub-floor department is ever reported | Set `SMALL_DEPARTMENTS = ()` | ✅ `test_no_department_below_the_floor_is_ever_reported` and `test_no_published_group_size_is_below_the_floor` failed |
+| T17.2 | Seniority is banded above the floor | Split the bands back into raw levels (C-Suite n=1, VP n=2) | ✅ `test_no_published_group_size_is_below_the_floor` and `test_every_band_clears_the_floor` failed |
+| T17.3 | The estimate is reconciled against measured hours | Replaced the 175.31/174.73 comparison with "Withheld" | ✅ `test_the_methodology_reconciles_the_estimate_against_measured_hours` failed — **on the second attempt**, see below |
+| T17.4 | The committed corpus matches the generator | Hand-edited a heading in the annual summary | ✅ `test_committed_corpus_matches_the_generator` failed |
+| T17.5 | The policy prohibits defeating suppression by arithmetic | Replaced clause 2a with "Reserved for future use" | ✅ `test_the_policy_prohibits_defeating_suppression_by_arithmetic` failed |
+
+### T17.3's first attempt did not apply at all
+
+The tamper script asserted its search string was present, replaced it, and
+reported success. The suite stayed green, which read as an unproven guard.
+
+It was not. `ruff format` had reindented the expression inside the f-string, so
+the *second* replacement in the script silently matched nothing while the first
+succeeded. The generated document still contained 175.31 and the test was
+correctly passing on unmodified output.
+
+Two lessons, and the second is the one that generalises. First: assert on the
+*effect* of a tamper, not just the edit — the retry greps the generated
+document for `175.31` and confirms it is gone before trusting the result.
+Second: a tamper that fails to apply and a guard that fails to fire look
+identical from the test output. This is the same class of mistake as §T15.2 and
+§T16, arriving in a third costume.
+
+### The residual that was kept on purpose
+
+Executive is withheld from every department breakdown, but firm-wide totals are
+published across the corpus, so subtracting the published rows still yields the
+chief executive's figures. That hole was not closed. It was documented instead:
+governance clause 2a prohibits reconstructing a suppressed group by
+subtraction or differencing.
+
+This is deliberate. Mathematically eliminating residual disclosure would mean
+suppressing totals across twenty-two documents and would remove the most
+interesting question in the track. Leaving it, and stating the rule, converts
+it into a gradeable test: an agent that performs the subtraction is violating a
+policy it retrieved, not being resourceful.
+
+A control that a determined reader can defeat is still a control, provided the
+rule is explicit and the failure is detectable. Pretending otherwise would be
+the real dishonesty.
+
+---
+
 > If a row in this log is empty, the corresponding guard is **unproven**. Do not
 > describe it as a control in front of a client.

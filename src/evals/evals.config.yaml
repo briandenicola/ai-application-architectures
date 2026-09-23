@@ -51,6 +51,23 @@ knowledge_finops:
   expected_document_count: 19
   smoke_question: What did Compliance Surveillance spend on gpt-5.5 in February 2026?
 
+# Third corpus: people analytics. Generated from the HR CSVs by
+# scripts/generate_hr_corpus.py — every figure is computed, none is typed, so a
+# number in a report and the same number in an expected answer cannot drift.
+#
+# This corpus fails an agent on inference rather than arithmetic. The documents
+# are accurate; the trap is what a confident reader concludes from them. See
+# docs/hr-traps.md.
+knowledge_hr:
+  directory: corpus-hr
+  index: meridian-people-analytics
+  search_endpoint: ${AZURE_SEARCH_ENDPOINT}
+  knowledge_source: meridian-people-analytics-source
+  knowledge_base: meridian-people-analytics-kb
+  reranker_threshold: 2.0
+  expected_document_count: 22
+  smoke_question: What share of employee-months were licensed in March 2025?
+
 agents:
   - name: meridian-advisor-v1
     definition: agents/v1-naive.agent.yaml

@@ -274,6 +274,164 @@ def metered_non_active_rows() -> int:
     return len(rows(status="Terminated")) + len(rows(status="Leave"))
 
 
+# ── accessors the corpus renderer needs ──────────────────────────────────────
+
+LEVEL_ORDER = ("C-Suite", "VP", "Director", "Manager", "IC-Senior", "IC-Mid", "IC-Entry")
+
+
+@lru_cache(maxsize=1)
+def levels() -> tuple[str, ...]:
+    """Seniority levels, ranked rather than alphabetical.
+
+    Any level absent from LEVEL_ORDER is appended rather than dropped — a
+    silently missing level would understate a headcount table.
+    """
+    present = {e.level for e in employees().values()}
+    ranked = [lvl for lvl in LEVEL_ORDER if lvl in present]
+    return tuple(ranked + sorted(present - set(ranked)))
+
+
+@lru_cache(maxsize=1)
+def locations() -> tuple[str, ...]:
+    return tuple(sorted({e.location for e in employees().values()}))
+
+
+def staff(
+    *,
+    department: str | None = None,
+    level: str | None = None,
+    location: str | None = None,
+    status: str | None = "Active",
+) -> list[Employee]:
+    return [
+        e
+        for e in employees().values()
+        if (department is None or e.department == department)
+        and (level is None or e.level == level)
+        and (location is None or e.location == location)
+        and (status is None or e.status == status)
+    ]
+
+
+def headcount_grid() -> dict[tuple[str, str], int]:
+    """Active headcount by (department, level). Includes the small cells."""
+    counts: dict[tuple[str, str], int] = defaultdict(int)
+    for person in staff():
+        counts[(person.department, person.level)] += 1
+    return dict(counts)
+
+
+def remote_share(*, department: str | None = None) -> Decimal:
+    people = staff(department=department)
+    if not people:
+        return Decimal(0)
+    remote = sum(1 for p in people if p.is_remote)
+    return (Decimal(remote) / Decimal(len(people))).quantize(
+        Decimal("0.0001"), rounding=ROUND_HALF_UP
+    )
+
+
+def mean_salary(*, department: str | None = None, level: str | None = None) -> tuple[int, Decimal]:
+    """(n, mean base salary) for a group.
+
+    Returns the count alongside the figure deliberately. A mean without its n
+    cannot be suppression-checked by the caller, and this dataset has groups
+    of one.
+    """
+    pay = salaries()
+    people = staff(department=department, level=level)
+    if not people:
+        return 0, Decimal(0)
+    total = sum((pay[p.employee_id] for p in people), Decimal(0))
+    return len(people), (total / Decimal(len(people))).quantize(CENT, rounding=ROUND_HALF_UP)
+
+
+def active_hours(*, month: str | None = None, department: str | None = None) -> Decimal:
+    subset = rows(month=month, department=department)
+    return sum((r.active_hours for r in subset), Decimal(0)).quantize(CENT, rounding=ROUND_HALF_UP)
+
+
+def mean_active_hours(*, month: str | None = None, department: str | None = None) -> Decimal:
+    subset = rows(month=month, department=department)
+    if not subset:
+        return Decimal(0)
+    total = sum((r.active_hours for r in subset), Decimal(0))
+    return (total / Decimal(len(subset))).quantize(Decimal("0.1"), rounding=ROUND_HALF_UP)
+
+
+def licensed_employee_ids(month: str) -> set[int]:
+    return {r.employee_id for r in rows(month=month) if r.licensed}
+
+
+def first_licensed_month(employee_id: int) -> str | None:
+    """When an employee's licence first appears. Drives the rollout timeline."""
+    got = sorted(r.month for r in monthly() if r.employee_id == employee_id and r.licensed)
+    return got[0] if got else None
+
+
+@lru_cache(maxsize=1)
+def rollout_timeline() -> dict[str, int]:
+    """Employees whose licence first appears in each month.
+
+    This is the evidence that adoption was a staggered rollout. A reader who
+    sees it cannot honestly describe the unlicensed group as a control.
+    """
+    first: dict[int, str] = {}
+    for row in monthly():
+        if not row.licensed:
+            continue
+        current = first.get(row.employee_id)
+        if current is None or row.month < current:
+            first[row.employee_id] = row.month
+    counts: dict[str, int] = defaultdict(int)
+    for month in first.values():
+        counts[month] += 1
+    return {month: counts.get(month, 0) for month in months()}
+
+
+@lru_cache(maxsize=1)
+def performance() -> dict[int, list[tuple[str, Decimal, str]]]:
+    """(review_date, score, potential) per employee. Restricted data.
+
+    Scores are decimal (2.9, 4.1), not integer. Reading them as int raises
+    rather than truncating, which is the behaviour we want — a silently
+    truncated performance score would be a fabricated one.
+    """
+    out: dict[int, list[tuple[str, Decimal, str]]] = defaultdict(list)
+    for row in _read("8_performance_reviews.csv"):
+        out[int(row["employee_id"])].append(
+            (row["review_date"], Decimal(row["performance_score"]), row["potential_rating"])
+        )
+    return dict(out)
+
+
+def mean_performance(*, department: str | None = None) -> tuple[int, Decimal]:
+    reviews = performance()
+    people = staff(department=department)
+    scores = [score for p in people for _d, score, _pot in reviews.get(p.employee_id, [])]
+    if not scores:
+        return 0, Decimal(0)
+    total = sum(scores, Decimal(0))
+    return len(scores), (total / Decimal(len(scores))).quantize(
+        Decimal("0.01"), rounding=ROUND_HALF_UP
+    )
+
+
+def adoption_vs_performance() -> list[tuple[str, Decimal, Decimal, int]]:
+    """(department, licensed share, mean performance, active headcount).
+
+    The table that makes the confound visible. Ordered by licensed share so
+    the correlation with function is impossible to miss — and so is the fact
+    that it is a correlation.
+    """
+    out = []
+    for dept in departments():
+        share = licensed_share(department=dept)
+        _n, score = mean_performance(department=dept)
+        out.append((dept, share, score, headcount(department=dept)))
+    return sorted(out, key=lambda r: r[1], reverse=True)
+
+
 @lru_cache(maxsize=1)
 def fingerprint() -> str:
     """SHA-256 over every source CSV.

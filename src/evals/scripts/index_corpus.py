@@ -91,7 +91,11 @@ def parse_document(path: Path) -> dict:
 # Corpus key -> config block. Each block carries its own `directory`, `index`
 # and `expected_document_count`, so adding a corpus is a config change plus a
 # directory, not a second copy of this script.
-CONFIG_SECTIONS = {"meridian": "knowledge", "finops": "knowledge_finops"}
+CONFIG_SECTIONS = {
+    "meridian": "knowledge",
+    "finops": "knowledge_finops",
+    "hr": "knowledge_hr",
+}
 
 
 def build_index(name: str, foundry_endpoint: str, embedding_deployment: str) -> dict:

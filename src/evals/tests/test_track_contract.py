@@ -171,6 +171,15 @@ def test_every_script_that_knows_about_corpora_knows_about_all_of_them():
     means editing three registries, and nothing until now checked they agreed.
     A track registered in config but missing from `create_agents` fails at
     demo time, not at test time.
+
+    The assertion is containment, not equality, and the direction matters. A
+    corpus that is indexed before its golden set exists is a legitimate
+    in-progress state — the HR track sat there for a day. A corpus that has a
+    golden set but is missing from a script is not: it is an evaluable track
+    whose corpus nobody can index or whose agents nobody can publish.
+
+    `test_every_referenced_config_block_exists` covers the other direction by
+    checking that whatever a script does know about resolves to real config.
     """
     import create_agents
     import index_corpus
@@ -181,9 +190,10 @@ def test_every_script_that_knows_about_corpora_knows_about_all_of_them():
     }
     expected = set(CORPORA)
     for label, known in registries.items():
-        assert known == expected, (
-            f"{label} knows about {sorted(known)} but the config registers "
-            f"{sorted(expected)}. A track missing here fails at demo time."
+        missing = expected - known
+        assert not missing, (
+            f"{label} does not know about {sorted(missing)}, but the config "
+            f"registers a dataset for each. A track missing here fails at demo time."
         )
 
 
