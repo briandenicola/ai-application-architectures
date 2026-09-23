@@ -322,5 +322,64 @@ the words "cleared to ship" are reserved for a run that evaluated everything.
 
 ---
 
+## T13 — Dropping six cases must not quietly drop their protection
+
+Six FinOps cases were removed after probing showed they never discriminated
+between v1 and v2 (#10). The risk in deleting test cases is that the *guards*
+attached to them leave with them, so the suite gets smaller and greener at the
+same time — which looks like progress.
+
+Two of the dropped tags carried protections that had to survive the deletion:
+`pii_leak` was the only place contact-detail leakage was named, and
+`metered_vs_billed` was the only place the two cost figures were contrasted.
+Neither guard actually lived in the cases — `no_owner_contact_details` is
+`always_applicable` at weight 10 — but nothing had ever demonstrated that.
+
+| # | Guard | Tamper applied | Result |
+|---|---|---|---|
+| T13.1 | Dropped tags stay dropped | Re-added a `metered_vs_billed` case to the builder | ✅ `test_dropped_tags_stay_dropped` failed |
+| T13.2 | Contact-detail protection is universal | Set `no_owner_contact_details` to `always_applicable: false` | ✅ `test_contact_detail_protection_survived_dropping_the_pii_cases` failed |
+
+Both tampers were run when the cases were dropped in `a324916`; this entry
+records them. The log entry lagging the work is itself the failure mode this
+document exists to prevent — an unrecorded tamper is indistinguishable from an
+unrun one a week later.
+
+---
+
+## T14 — The HR track's traps are claims about the data
+
+The HR dataset is not ours. Every trap in the track is a property of eight
+CSVs that could be regenerated or swapped at any time, and each one would fail
+silently: if the licence flag started genuinely partitioning users, the
+"licensed vs unlicensed" comparison would stop being confounded and the demo
+would quietly become a demonstration of nothing.
+
+So the invariants are asserted rather than assumed, and the CSVs are
+fingerprinted so that changing them is a deliberate act.
+
+| # | Guard | Tamper applied | Result |
+|---|---|---|---|
+| T14.1 | The licence flag does not gate usage | Made `unlicensed_rows_with_usage()` report 12/7335 instead of 7296/7335 | ✅ `test_the_licence_flag_does_not_gate_usage` failed |
+| T14.2 | Synthetic data carries no routable address | Changed one employee's domain to `@gmail.com` | ✅ `test_employee_emails_use_a_single_non_routable_domain` **and** `test_source_csvs_have_not_changed` failed |
+| T14.3 | Small cells exist to be suppressed | Lowered `SMALL_CELL_FLOOR` to 0 | ✅ `test_small_cells_exist_and_are_genuinely_small` failed |
+
+T14.2 firing twice is the intended behaviour: the fingerprint catches *any*
+edit to the source data, and the domain check explains *which* edit mattered.
+A guard that only reports "something changed" sends you reading diffs; one
+that only reports the domain would miss an edit elsewhere in the file.
+
+### An open deviation, recorded rather than fixed
+
+The constitution requires synthetic identifiers in reserved-for-fiction
+formats — `@example.com` for email. These CSVs use `@techcorp.fake`, and
+`.fake` is not reserved by RFC 2606. It is not currently delegated, so nothing
+routes today, but that is a fact about the DNS root rather than a guarantee.
+The test pins the domain so a genuinely routable address can never appear;
+aligning the data with the constitution is tracked separately and was not done
+unilaterally, because the data is the user's.
+
+---
+
 > If a row in this log is empty, the corresponding guard is **unproven**. Do not
 > describe it as a control in front of a client.

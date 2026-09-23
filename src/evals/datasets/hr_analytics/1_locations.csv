@@ -1,0 +1,6 @@
+location_id,country,state,city,address,building_name
+101,USA,CA,San Francisco,100 Market St,HQ West
+102,USA,AZ,Gilbert,4500 AI Parkway,Data & Analytics Hub
+103,USA,NY,New York,85 Broad St,East Coast Ops
+104,UK,ENG,London,1 Canada Square,EMEA HQ
+105,India,KA,Bangalore,Tech Park Outer Ring,APAC Engineering

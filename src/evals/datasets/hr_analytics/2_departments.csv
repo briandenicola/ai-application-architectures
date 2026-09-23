@@ -1,0 +1,8 @@
+department_id,department_name,cost_center
+1,Executive,CC-001
+2,Engineering,CC-100
+3,Data & Analytics,CC-150
+4,Product,CC-200
+5,Sales,CC-300
+6,Marketing,CC-400
+7,Human Resources,CC-500

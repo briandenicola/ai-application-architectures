@@ -1,0 +1,11 @@
+job_id,title,level
+1,Chief Executive Officer,C-Suite
+2,VP of Engineering,VP
+3,VP of Data,VP
+4,VP of Sales,VP
+5,Director,Director
+6,Senior Manager,Manager
+7,Manager,Manager
+8,Principal Engineer/Analyst,IC-Senior
+9,Senior Contributor,IC-Mid
+10,Associate,IC-Entry
