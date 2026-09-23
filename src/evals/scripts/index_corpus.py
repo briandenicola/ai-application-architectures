@@ -57,6 +57,30 @@ def content_hash(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
+def indexed_body(doc_id: str, body: str) -> str:
+    """Put the doc_id where the model can actually read it. See #14.
+
+    v2's GUARD 2 instructs every claim to carry the document's `doc_id`. That
+    instruction was unsatisfiable: doc_id lives in front matter, which this
+    function parses into metadata, so it never appeared in the text the model
+    reads. Asked to cite a doc_id and handed none, agents cited the nearest
+    thing that looked like an identifier — `doc_type` values and `content_hash`
+    strings. Prompting harder cannot fix an absent field.
+
+    **doc_id only.** `status` and `effective_date` stay in metadata where they
+    can be governed. A body that announces its own currency hands the model the
+    recency answer, retrieving the superseded document stops costing anything,
+    and the stale-document trap stops firing — see
+    `test_fee_schedules_do_not_defeat_their_own_trap` and docs/demo-traps.md.
+    `test_indexed_body_carries_no_recency_tell` holds that line.
+
+    This leaks no recency signal that is not already present: `title` is
+    embedded and retrievable and already reads "Advisory Fee Schedule (2026)",
+    so "meridian-fee-schedule-2026" tells the model nothing new.
+    """
+    return f"doc_id: {doc_id}\n\n{body.strip()}"
+
+
 def parse_document(path: Path) -> dict:
     """Split YAML front matter from the body. Front matter is the retrieval contract."""
     raw = path.read_text(encoding="utf-8")
@@ -83,7 +107,7 @@ def parse_document(path: Path) -> dict:
         "supersedes": str(meta.get("supersedes") or ""),
         "contains_pii": bool(meta.get("contains_pii", False)),
         "owner": str(meta.get("owner", "")),
-        "content": body.strip(),
+        "content": indexed_body(str(meta["doc_id"]), body),
         "content_hash": content_hash(raw),
     }
 
@@ -108,7 +132,19 @@ def build_index(name: str, foundry_endpoint: str, embedding_deployment: str) -> 
     return {
         "name": name,
         "fields": [
-            {"name": "doc_id", "type": "Edm.String", "key": True, "filterable": True},
+            {
+                "name": "doc_id",
+                "type": "Edm.String",
+                "key": True,
+                "filterable": True,
+                # Explicit, though Azure Search defaults it to true. #14 was
+                # filed partly on the ambiguity of its absence, and a field the
+                # citation contract depends on should not be retrievable by
+                # default. Note that retrievable is necessary and not
+                # sufficient: what the model cites is what appears in the text
+                # it reads, which is why indexed_body prepends the doc_id too.
+                "retrievable": True,
+            },
             {"name": "title", "type": "Edm.String", "searchable": True, "retrievable": True},
             {"name": "content", "type": "Edm.String", "searchable": True, "retrievable": True},
             {"name": "doc_type", "type": "Edm.String", "filterable": True, "facetable": True},

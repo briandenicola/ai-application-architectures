@@ -723,6 +723,61 @@ the embedded content, re-index all three corpora, *then* map the columns, then
 tamper-test that a forbidden citation actually fails a case. This guard fails
 loudly the moment someone does step three without the others.
 
+## T21 — putting the doc_id where the model can read it
+
+**Guards.** `tests/test_indexed_body.py`, parametrised over every corpus in
+`index_corpus.CONFIG_SECTIONS` — so `hr` is covered here even though it has no
+`dataset_hr` yet and the track-contract tests cannot see it.
+
+T20 established that no evaluator reads a citation field. This is the other
+half of #14: even once they do, there was nothing truthful for an agent to
+emit. v2's GUARD 2 instructs every claim to carry the document's `doc_id`;
+`parse_document` lifts `doc_id` out of front matter into metadata, so the text
+the model reads never contained one. Asked to cite an id and handed none, the
+agents produced the nearest identifier-shaped thing in view — `doc_type` values
+and `content_hash` strings. That is not a model defect and no amount of
+prompting would have fixed it.
+
+`indexed_body()` now prepends `doc_id: <id>` to the indexed content, which is
+also what the embedding is built from.
+
+**The line this change had to not cross.** `status` and `effective_date` stay
+out of the body. A superseded document that announces its own obsolescence
+costs nothing to retrieve, and the stale-document trap — the centre of the
+demo — stops firing. An earlier corpus shipped exactly that mistake and
+`test_fee_schedules_do_not_defeat_their_own_trap` exists because of it.
+
+Worth recording why the doc_id itself is safe when it visibly carries a year:
+`title` is already embedded and already retrievable, and already reads
+"Advisory Fee Schedule (2026)". `meridian-fee-schedule-2026` tells the model
+nothing it was not being told before. The traps fire today with those titles in
+context, so the trap has never depended on hiding the year — it depends on v1
+not reasoning about currency at all.
+
+**Tampers.** Three, each verified destroyed before the run was trusted:
+
+| # | Tamper | Property destroyed | Failed by name |
+|---|--------|--------------------|----------------|
+| 1 | `return body.strip()` — drop the prepend | first line became `body` | `test_every_indexed_body_states_its_own_doc_id` |
+| 2 | add `effective_date: 2026-01-01` to the header | header carried the tell | `test_indexed_body_carries_no_recency_tell` |
+| 3 | `body.strip()[:400]` — truncate | length 900 → 411 | `test_the_document_body_survives_the_header` |
+
+Each failed only the intended test, across all three corpora, and nothing else
+in the 286-test suite noticed tamper 3 — which is the argument for that guard
+existing. Content is both the retrieved text and the embedding input, so
+silently losing the tail of a document would have degraded retrieval and looked
+like a model problem for as long as anyone cared to investigate.
+
+**Reverted.** `indexed_body()` restored, output confirmed
+`'doc_id: meridian-x\n\nthe body'`, ruff clean, suite green.
+
+**Still not done.** This is a local change to what *would* be indexed. The live
+indexes still hold the old bodies, so agents still cannot cite a doc_id until
+all three corpora are re-indexed and the pair is re-probed to confirm real ids
+appear in answers. Until that is verified, the two placeholder guards stay and
+the citation columns stay unmapped. Re-indexing touches Azure and is the user's
+call, not this script's.
+
 ---
 
 > If a row in this log is empty, the corresponding guard is **unproven**. Do not
