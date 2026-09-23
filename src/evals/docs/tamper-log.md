@@ -426,5 +426,56 @@ a 15-second poll loop cannot.
 
 ---
 
+## T16 — A harness is generic only for the values actually parameterised
+
+Both bugs fixed in `913d432` were found by *running* the harness against a
+second corpus. 135 tests were green and caught neither. The suite had proved
+that `--corpus` swapped the three blocks it knew about; nothing proved there
+was nothing *else* that needed swapping, and a module constant still pinned to
+the advisor track stayed invisible until a second track actually ran.
+
+`tests/test_track_contract.py` walks the full path — criteria, metric
+resolution, thresholds, parse, verdict — for every track **derived from
+config** rather than a hard-coded pair. A hard-coded list would pass forever
+while a new track went untested, which is the failure mode this replaces.
+
+| # | Guard | Tamper applied | Result |
+|---|---|---|---|
+| T16.1 | Every script's corpus registry agrees with config | Dropped `finops` from `index_corpus.CONFIG_SECTIONS` | ✅ `test_every_script_that_knows_about_corpora_knows_about_all_of_them` failed |
+| T16.2 | Tracks do not share a rubric metric name | Set the FinOps `custom_metric` to `compliance_safe_answer` | ✅ `test_each_track_has_its_own_dataset_and_metric` failed (both params) |
+| T16.3 | Tracks do not share a dataset | Pointed FinOps at `datasets/meridian-golden-v1.jsonl` | ✅ `test_each_track_has_its_own_dataset_and_metric` failed (both params) |
+| T16.4 | Every track's gate can still say "fail" | Made `result_passed` return `True` for any boolean verdict | ✅ `test_a_failing_case_fails_the_gate_on_every_track` failed (both params) |
+
+### Two tampers that had to be run twice
+
+The first attempt at T16.2 hard-coded the metric inside `custom_metric`, and
+the first attempt at T16.3 pointed a track at a path that did not exist. Both
+produced red suites, and both were **worthless as evidence**: they crashed in
+`check_thresholds` and in the dataset-existence check respectively, before
+reaching the uniqueness guards they were meant to exercise.
+
+A red suite is not proof that the guard you named did the catching. Check
+*which* test failed, not merely that one did — the same mistake as §T11, in a
+new costume.
+
+### Why T16.2 is the one that matters
+
+The FinOps run died on a `KeyError` before spending a token, which is the one
+harmless way that bug could surface. Had the two rubrics happened to share a
+metric name, the FinOps gate would have been judged against the advisor's
+threshold and printed a full, plausible, green scorecard for the wrong rubric.
+That near-miss is now a test.
+
+### A registry problem this surfaced
+
+`--corpus` is not one switch. `select_corpus` swaps dataset/evaluators/
+thresholds, `index_corpus` maps a track to a knowledge block, and
+`create_agents` maps it to an agents block. Three registries, edited by hand,
+and until now nothing checked they agreed — a track registered in config but
+missing from `create_agents` would fail at demo time rather than test time.
+With the HR track about to be added, that was a scheduled failure.
+
+---
+
 > If a row in this log is empty, the corresponding guard is **unproven**. Do not
 > describe it as a control in front of a client.
