@@ -111,5 +111,6 @@ you spend money.
 | RBAC propagation | The post-provision hook waits 60s. Role assignments are not always immediately effective; without the wait the first data-plane call intermittently 403s. |
 | Soft-delete | Foundry accounts soft-delete on `azd down`. Use `--purge`; `scripts/verify_teardown.py` checks. |
 | `AZURE_SEARCH_FINOPS_INDEX` | Set by `infra/main.bicep` (default `meridian-aiops-costs`) and consumed by both FinOps agent YAMLs. An environment provisioned before this output existed must set it manually: `azd env set AZURE_SEARCH_FINOPS_INDEX meridian-aiops-costs`. |
-| Shared model quota | Both demo tracks share one `gpt-5.5` deployment. Four evaluation runs plus playground use will trip a 429 on default quota. Run evaluations ahead of a demo, not during. |
+| `AZURE_SEARCH_HR_INDEX` | Set by `infra/main.bicep` (default `meridian-people-analytics`) and consumed by both HR agent YAMLs. An environment provisioned before this output existed must set it manually: `azd env set AZURE_SEARCH_HR_INDEX meridian-people-analytics`. |
+| Shared model quota | All three demo tracks share one `gpt-5.5` deployment. Six evaluation runs plus playground use will trip a 429 on default quota. Run evaluations ahead of a demo, not during. |
 | `docs/$count` consistency | Azure AI Search document counts are eventually consistent and lag a push by seconds. `index_corpus.py` polls rather than reading once; do not replace it with a single read. |

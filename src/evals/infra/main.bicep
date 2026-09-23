@@ -27,6 +27,9 @@ param searchIndexName string = 'meridian-docs'
 @description('Index holding the AI Platform FinOps corpus (corpus-finops/).')
 param finopsSearchIndexName string = 'meridian-aiops-costs'
 
+@description('Search index for the people-analytics corpus. Third track; see docs/hr-traps.md.')
+param hrSearchIndexName string = 'meridian-people-analytics'
+
 // ── Model deployments ────────────────────────────────────────────────────────
 // Versions are pinned. "latest" would break the reproducibility non-negotiable.
 // Verified available in centralus on 2026-09-21 (T0.1):
@@ -137,6 +140,7 @@ output AZURE_SEARCH_ENDPOINT string = search.outputs.searchEndpoint
 output AZURE_AI_FOUNDRY_ENDPOINT string = foundry.outputs.accountEndpoint
 output AZURE_SEARCH_INDEX string = searchIndexName
 output AZURE_SEARCH_FINOPS_INDEX string = finopsSearchIndexName
+output AZURE_SEARCH_HR_INDEX string = hrSearchIndexName
 output AZURE_SEARCH_SERVICE_ID string = search.outputs.searchServiceId
 output AZURE_SEARCH_CONNECTION_ID string = foundry.outputs.searchConnectionId
 output AZURE_SEARCH_CONNECTION_NAME string = foundry.outputs.searchConnectionName

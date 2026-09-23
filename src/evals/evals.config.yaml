@@ -83,6 +83,17 @@ agents_finops:
   - name: meridian-finops-v2
     definition: agents/v2-hardened-finops.agent.yaml
 
+# The people-analytics pair. The v1/v2 contrast here is not about arithmetic:
+# both versions can state every figure correctly. v1 fails on what it concludes
+# from them — causation from an observational rollout, a modelled saving
+# presented as realised value, a suppressed group recovered by subtraction.
+# See docs/hr-traps.md.
+agents_hr:
+  - name: meridian-people-v1
+    definition: agents/v1-naive-hr.agent.yaml
+  - name: meridian-people-v2
+    definition: agents/v2-hardened-hr.agent.yaml
+
 dataset:
   path: datasets/meridian-golden-v1.jsonl
   # Registered in Foundry under this name so it can be picked in the portal's

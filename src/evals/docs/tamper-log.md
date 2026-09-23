@@ -540,6 +540,65 @@ A control that a determined reader can defeat is still a control, provided the
 rule is explicit and the failure is detectable. Pretending otherwise would be
 the real dishonesty.
 
+## T18 — The HR agent pair (`tests/test_hr_agent_parity.py`)
+
+Third v1/v2 pair, and the first where both versions can state every figure
+correctly and only one of them is safe. The parity contract matters more here
+than in the other two tracks, because the claim under test is subtler: not
+"v2 gets the numbers right" but "v2 declines to draw a conclusion the numbers
+cannot support". If v2 quietly received a stronger model, that claim would be
+unfalsifiable rather than false, which is worse.
+
+| # | Tamper | Expected | Test that failed | Result |
+|---|--------|----------|------------------|--------|
+| T18.1 | Gave v2 deployment `gpt-5.5-turbo-better` | parity breach | `test_models_are_identical`, `test_only_permitted_fields_differ` | ✅ caught |
+| T18.2 | Removed **both** mentions of "no control group" from v2 GUARD 3 | causal guard degrades to etiquette | `test_v2_causal_guard_names_why_the_data_cannot_support_causation` | ✅ caught |
+| T18.3 | Changed v1's "answer for that team" to "answer for the whole company" | small-group trap never fires | `test_v1_actively_invites_the_planted_failures` | ✅ caught |
+| T18.4 | Pointed v1 at `${AZURE_SEARCH_FINOPS_INDEX}` | agents ground on different corpora | `test_both_agents_use_the_same_index`, `test_both_ground_against_the_hr_corpus` | ✅ caught |
+
+All four green after revert; `diff` against a pre-tamper copy confirmed both
+files were restored byte-for-byte before the final run.
+
+### T18.2 failed to prove anything on the first attempt
+
+The first attempt replaced the sentence "There is no control group." and the
+suite stayed green. The guard looked unproven.
+
+It was not. `grep` showed the phrase still present on another line: GUARD 3
+names the defect twice, once as a statement of fact and once in the list of
+reasons the agent must give when declining. The assertion is over the
+flattened instruction text, so the second mention satisfied it. The tamper had
+removed a sentence but not the property being asserted.
+
+Removing both mentions failed the test immediately, and named the right one.
+
+This is the fourth time this project has run a tamper that proved nothing, and
+the fourth distinct disguise:
+
+- §T11 — the assertion was true for an unrelated reason.
+- §T15.2 — asserted a string was absent; it was absent either way.
+- §T16 — the tamper crashed before reaching the guard it targeted.
+- §T18.2 — the tamper removed one instance of a phrase that appeared twice.
+
+The countermeasure is the same every time and it is not "tamper harder": after
+each tamper, verify the property you intended to destroy is actually gone
+before reading the test result. Here that was one `grep -c`, which took a
+second and turned a false negative into a proven guard.
+
+### T18.3 is the one that protects the demo
+
+A guard with no matching temptation is decoration. v1 must be *tempted* into
+each failure by an instruction a reasonable person would write and a prompt
+review would wave through — "answer the question that was actually asked", "say
+what is driving it", "use our best measure of value". Each maps to exactly one
+v2 guard.
+
+If a temptation is softened, v1 may behave well by accident, the trap never
+fires, and the gate passes an agent nobody proved anything about. T18.3
+confirms that softening one is caught. A green gate in that state is the single
+most expensive failure mode this project has, because it looks exactly like
+success.
+
 ---
 
 > If a row in this log is empty, the corresponding guard is **unproven**. Do not

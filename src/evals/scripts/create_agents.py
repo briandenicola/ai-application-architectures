@@ -33,6 +33,7 @@ from _common import ROOT, ConfigError, console, fail, get_credential, load_confi
 CORPORA = {
     "meridian": ("agents", "knowledge", "agents.json"),
     "finops": ("agents_finops", "knowledge_finops", "agents-finops.json"),
+    "hr": ("agents_hr", "knowledge_hr", "agents-hr.json"),
 }
 
 
