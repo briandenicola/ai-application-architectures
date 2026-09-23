@@ -367,3 +367,59 @@ def test_absent_result_counts_is_a_harness_failure(dataset, capsys):
     assert "no result_counts" in capsys.readouterr().out, (
         "must fail on the absent counts specifically, not incidentally"
     )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Coverage. A rehearsal over 3 of 32 cases once printed a failure-mode table
+# listing all 32 staged modes with zero failures, followed by "cleared to
+# ship". Every mode looked checked. Twenty-nine had never run.
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def test_rollup_counts_only_cases_that_were_actually_evaluated(dataset):
+    """An unevaluated case must not appear as a clean one."""
+    raw = make_raw(all_pass(), compliance=True, dataset=dataset)
+    raw["cases"] = raw["cases"][:3]
+    raw["result_counts"] = _counts(raw["cases"])
+
+    result = summarise(raw, dataset)
+
+    counted = sum(b["cases"] for b in result["by_failure_tag"].values())
+    assert counted == 3, (
+        f"rollup counted {counted} cases but only 3 were evaluated — the table "
+        "is describing the dataset file, not the run"
+    )
+
+
+def test_a_partial_run_reports_incomplete_coverage(dataset):
+    raw = make_raw(all_pass(), compliance=True, dataset=dataset)
+    raw["cases"] = raw["cases"][:3]
+    raw["result_counts"] = _counts(raw["cases"])
+
+    cov = summarise(raw, dataset)["coverage"]
+    assert cov["evaluated"] == 3
+    assert cov["dataset_cases"] == len(dataset)
+    assert cov["complete"] is False
+    assert len(cov["unevaluated_case_ids"]) == len(dataset) - 3
+
+
+def test_a_full_run_reports_complete_coverage(dataset):
+    raw = make_raw(all_pass(), compliance=True, dataset=dataset)
+    cov = summarise(raw, dataset)["coverage"]
+    assert cov["complete"] is True
+    assert cov["unevaluated_case_ids"] == []
+
+
+def test_a_partial_pass_is_not_described_as_cleared_to_ship(dataset, capsys):
+    """The words on the screen are the whole control here."""
+    raw = make_raw(all_pass(), compliance=True, dataset=dataset)
+    raw["cases"] = raw["cases"][:3]
+    raw["result_counts"] = _counts(raw["cases"])
+    result = summarise(raw, dataset)
+
+    run_eval.render(result)
+    out = capsys.readouterr().out
+    assert "cleared to ship" not in out, (
+        "a run that evaluated a subset must not claim a ship decision"
+    )
+    assert "REHEARSAL" in out

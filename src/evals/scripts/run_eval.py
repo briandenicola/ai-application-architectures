@@ -88,8 +88,24 @@ def render(result: dict[str, Any]) -> None:
     console.print(rollup)
     console.print()
 
+    cov = result.get("coverage") or {}
+    partial = not cov.get("complete", True)
+    if partial:
+        console.print(
+            f"[bold yellow]⚠ REHEARSAL — {cov.get('evaluated')} of "
+            f"{cov.get('dataset_cases')} cases evaluated.[/bold yellow] "
+            "The modes not listed above were never exercised."
+        )
+
     if result["verdict"] == "pass":
-        console.print("[bold green]GATE: PASS — cleared to ship[/bold green]")
+        if partial:
+            # A subset that passes has cleared the subset, nothing more. Saying
+            # "cleared to ship" here is how a rehearsal gets mistaken for a gate.
+            console.print(
+                "[bold yellow]GATE: PASS (partial coverage — not a ship decision)[/bold yellow]"
+            )
+        else:
+            console.print("[bold green]GATE: PASS — cleared to ship[/bold green]")
     else:
         breached = [n for n, m in result["metrics"].items() if not m["pass"]]
         console.print(
@@ -616,7 +632,6 @@ def summarise(
     thresholds: dict[str, float] = config["thresholds"]
     custom_metric(config)  # fail fast if the track's rubric metric is unresolvable
     cases: list[dict[str, Any]] = raw.get("cases", [])
-    by_case_id = {c["case_id"]: c for c in cases}
 
     # An evaluator that errored returns no verdict. Averaging over the survivors
     # yields a confident score for a metric that did not run on every case --
@@ -664,14 +679,25 @@ def summarise(
             entry["mean"] = sum(observed) / len(observed)
         metrics[name] = entry
 
+    # Count only the cases Foundry actually evaluated. Iterating the dataset
+    # file instead would list every staged failure mode with zero failures
+    # even when the case never ran — a rehearsal over 3 cases would print a
+    # table implying all 32 modes were checked and clean.
+    tags_by_case_id = {row["case_id"]: row["failure_tag"] for row in dataset}
     by_tag: dict[str, dict[str, int]] = {}
-    for row in dataset:
-        tag = row["failure_tag"]
+    for case in cases:
+        tag = case.get("failure_tag") or tags_by_case_id.get(case.get("case_id"), "unknown")
         bucket = by_tag.setdefault(tag, {"cases": 0, "failed": 0})
         bucket["cases"] += 1
-        case = by_case_id.get(row["case_id"])
-        if case and case.get("verdict") == "fail":
+        if case.get("verdict") == "fail":
             bucket["failed"] += 1
+
+    # Coverage is a first-class result. A gate that passes on a subset has not
+    # cleared the thing it appears to have cleared.
+    coverage = {"evaluated": len(cases), "dataset_cases": len(dataset)}
+    coverage["complete"] = coverage["evaluated"] >= coverage["dataset_cases"]
+    unevaluated = sorted(set(tags_by_case_id) - {c.get("case_id") for c in cases})
+    coverage["unevaluated_case_ids"] = unevaluated
 
     # THE verdict, straight from Foundry. Not recomputed, not second-guessed.
     counts = raw.get("result_counts") or {}
@@ -715,6 +741,7 @@ def summarise(
         "foundry_result_counts": counts,
         "metrics": metrics,
         "by_failure_tag": by_tag,
+        "coverage": coverage,
         "cases": cases,
         "verdict": verdict,
         "exit_code": 0 if verdict == "pass" else 1,

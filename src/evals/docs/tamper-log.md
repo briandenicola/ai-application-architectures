@@ -289,6 +289,37 @@ that guard can produce.
 
 ---
 
+## T12 — Coverage is part of the verdict
+
+Found by finally letting a rehearsal run finish. A 3-case run over the 32-case
+FinOps golden set printed a "Failures by staged failure mode" table listing all
+eight modes, 32 cases, zero failures — then `GATE: PASS — cleared to ship`.
+Twenty-nine of those cases had never been evaluated. The rollup was built by
+iterating the dataset *file*, counting a case as present and marking it failed
+only if an evaluated case of that id had failed. An unevaluated case therefore
+rendered as a clean one.
+
+This is the T7 threat in our own harness: the gate ran, printed a scorecard,
+and reported clear.
+
+| # | Guard | Tamper applied | Result |
+|---|---|---|---|
+| T12.1 | Rollup counts evaluated cases only | Reverted to iterating the dataset file | ✅ `test_rollup_counts_only_cases_that_were_actually_evaluated` failed |
+| T12.2 | Coverage reports the shortfall | Hard-coded `coverage["complete"] = True` | ✅ 2 tests failed |
+| T12.3 | A partial pass is not a ship decision | Restored the unconditional "cleared to ship" banner | ✅ `test_a_partial_pass_is_not_described_as_cleared_to_ship` failed |
+
+### The lesson worth keeping
+
+Every number on that scorecard was true. The run did pass; those three cases
+did clear every threshold; no evaluator errored. The table was assembled from
+the dataset we *intended* to run rather than the cases Foundry *did* run, and
+nothing in the output distinguished the two. A gate can mislead without
+containing a single false statement — it only has to report on a different
+population than the reader assumes.
+
+So coverage is now a reported result, not a property of the invocation, and
+the words "cleared to ship" are reserved for a run that evaluated everything.
+
 ---
 
 > If a row in this log is empty, the corresponding guard is **unproven**. Do not
