@@ -156,10 +156,11 @@ thresholds:
 dataset_finops:
   path: datasets/meridian-finops-golden-v1.jsonl
   name: meridian-finops-golden
-  # v2 (2026-09-23): six non-discriminating cases dropped, 32 -> 26. v1 is left
-  # registered rather than overwritten so any run scored against it stays
-  # interpretable.
-  version: "2"
+  # v2 (2026-09-23): six non-discriminating cases dropped, 32 -> 26.
+  # v3 (2026-09-24): MAP-014 dropped after it scored 1.000 from BOTH versions,
+  # 26 -> 25. Earlier versions are left registered rather than overwritten so
+  # any run scored against them stays interpretable.
+  version: "3"
 
 evaluators_finops:
   builtin:

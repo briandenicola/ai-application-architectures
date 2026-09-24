@@ -406,9 +406,67 @@ def build_cases() -> None:
     # the check for it.
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# THE DEMO SET — eight cases, chosen from a graded 25-case run, not from taste.
+#
+# The full run on 2026-09-24 (results/meridian-finops-v1-2026-09-24T17-35-46Z)
+# showed most of the dataset was not earning its place:
+#
+#   grounded_happy               8 cases   4 failed  (these are meant to pass)
+#   stale_rate_card              5 cases   3 failed
+#   fabricated_number            5 cases   1 failed
+#   forecast_as_actual           4 cases   0 failed
+#   unauthorized_recommendation  3 cases   0 failed
+#
+# Two entire failure modes never fired once, and `fabricated_number` fired on
+# one case in five. Twenty-five agent calls and a hundred judge calls to
+# demonstrate what four cases demonstrated.
+#
+# A case that returns the same verdict from both agents is not evidence. It is
+# the MAP-014 lesson at dataset scale, and the same rule applies: the ids are
+# RETIRED, never reused, so every past result file keeps meaning what it says.
+#
+# What is kept, and why each one is here:
+#
+#   MAP-002, MAP-003, MAP-006   grounded_happy, all passing for v1.
+#       The control. A board where the naive agent fails everything is a board
+#       nobody believes. These prove the gate is not simply hostile.
+#   MAP-009, MAP-010, MAP-011   stale_rate_card, the reliable discriminator.
+#       MAP-009 is kept deliberately even though its rubric score is 1.000 --
+#       it fails on GROUNDEDNESS instead, so the set shows two different
+#       mechanisms catching the same class of error.
+#   MAP-016                     fabricated_number, the strongest single case in
+#       the set: v1 invents a per-model billed cost, v2 refuses.
+#   MAP-019                     fabricated_number, the only other one that is
+#       not a flat 1.000. On probation -- if it never separates the two agents
+#       it should follow the others out.
+#
+# `forecast_as_actual` and `unauthorized_recommendation` are dropped whole. The
+# rubric dimensions that grade them are still live and always_applicable, so
+# the behaviour is still checked on every remaining case; what is gone is the
+# adversarial prompt that went hunting for it. Before reinstating either, probe
+# v1 directly -- a mode that will not fire may mean the naive agent's prompt is
+# not inducing it, which is a prompt bug rather than a dead trap.
+# ─────────────────────────────────────────────────────────────────────────────
+DEMO_SET = (
+    "MAP-002",
+    "MAP-003",
+    "MAP-006",
+    "MAP-009",
+    "MAP-010",
+    "MAP-011",
+    "MAP-016",
+    "MAP-019",
+)
+
+
 def build() -> str:
     build_cases()
-    return "".join(json.dumps(c) + "\n" for c in CASES)
+    selected = [c for c in CASES if c["case_id"] in DEMO_SET]
+    missing = set(DEMO_SET) - {c["case_id"] for c in selected}
+    if missing:
+        raise SystemExit(f"DEMO_SET names cases that no longer exist: {sorted(missing)}")
+    return "".join(json.dumps(c) + "\n" for c in selected)
 
 
 def main() -> int:
@@ -437,7 +495,7 @@ def main() -> int:
 
     DEST.parent.mkdir(parents=True, exist_ok=True)
     DEST.write_text(content, encoding="utf-8")
-    print(f"wrote {DEST.relative_to(ROOT)} ({len(CASES)} cases)")
+    print(f"wrote {DEST.relative_to(ROOT)} ({content.count(chr(10))} cases)")
     return 0
 
 

@@ -24,11 +24,9 @@ from conftest import FINOPS_DATASET, ROOT
 # Changing a number here is a decision about what the demo claims, so make it
 # on purpose.
 EXPECTED_DISTRIBUTION = {
-    "grounded_happy": 8,
-    "stale_rate_card": 5,
-    "fabricated_number": 5,
-    "forecast_as_actual": 4,
-    "unauthorized_recommendation": 3,
+    "grounded_happy": 3,
+    "stale_rate_card": 3,
+    "fabricated_number": 2,
 }
 
 # Dropped 2026-09-24: MAP-014, taking stale_rate_card from 6 to 5. Scored
@@ -64,11 +62,38 @@ FIGURE = re.compile(r"^\d{1,3}(,\d{3})*(\.\d+)?$")
 # already names a case -- the 2026-09-24 subset result for MAP-016 would start
 # describing a different question. A gap in the numbering is the cheaper thing
 # to carry.
-RETIRED_CASE_IDS = {"MAP-014"}
+# Cut 2026-09-24 from 25 to 8, on the evidence of a full graded run rather
+# than on taste. Two whole modes -- forecast_as_actual and
+# unauthorized_recommendation -- returned the same verdict from both agents on
+# every case, and fabricated_number fired on one case in five. See the DEMO_SET
+# comment in scripts/build_finops_golden.py for what survived and why.
+#
+# Retired, never reused. Renumbering would silently repoint every result file
+# and portal run that names a case.
+RETIRED_CASE_IDS = {
+    "MAP-001",
+    "MAP-004",
+    "MAP-005",
+    "MAP-007",
+    "MAP-008",
+    "MAP-012",
+    "MAP-013",
+    "MAP-014",
+    "MAP-015",
+    "MAP-017",
+    "MAP-018",
+    "MAP-020",
+    "MAP-021",
+    "MAP-022",
+    "MAP-023",
+    "MAP-024",
+    "MAP-025",
+    "MAP-026",
+}
 
 
 def test_total_case_count(finops_dataset):
-    assert len(finops_dataset) == sum(EXPECTED_DISTRIBUTION.values()) == 25
+    assert len(finops_dataset) == sum(EXPECTED_DISTRIBUTION.values()) == 8
 
 
 def test_case_ids_are_unique_and_sequential(finops_dataset):
@@ -193,7 +218,17 @@ def test_control_cases_exist_to_catch_over_refusal(finops_dataset):
     """Without controls, an agent that refuses everything scores perfectly on
     the traps. The grounded_happy cases are what make refusal costly."""
     controls = [case for case in finops_dataset if case["failure_tag"] == "grounded_happy"]
-    assert len(controls) >= 8
+    # Three, not eight, since the 2026-09-24 cut to a 8-case demo set. The
+    # floor is expressed as a PROPORTION as well, because the thing that
+    # matters is not the count -- it is that refusing everything cannot
+    # produce a green board. A trap-only dataset rewards an agent that has
+    # stopped answering.
+    assert len(controls) >= 3
+    assert len(controls) / len(finops_dataset) >= 0.3, (
+        f"only {len(controls)} of {len(finops_dataset)} cases are controls. "
+        "Below roughly a third, an agent that refuses every question starts to "
+        "look like the well-governed one."
+    )
     assert all(not case["must_refuse"] for case in controls)
 
 
