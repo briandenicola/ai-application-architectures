@@ -127,13 +127,18 @@ working control in front of a client.
 
 - **The published v1/v2 scorecard is stale.** The last verified full run was
   2026-09-21 (v1 exit 1 on 4 cases, v2 exit 0). Since then the corpora were
-  re-indexed with `doc_id` in the body and both rubrics gained a
-  `citation_discipline` dimension. **The run needs repeating before it is shown.**
-- **`citation_discipline` is UNVERIFIED.** Foundry accepts the citation columns
-  in `data_mapping` and echoes them back, but it is not established that the
-  rubric judge receives them. If it does not, the check is inert while looking
-  wired. The settling experiment is two cases with identical canned responses
-  differing only in `forbidden_citations`. Issue #14.
+  re-indexed with `doc_id` in the body and both rubrics were substantially
+  rewritten (compliance v6, finops v4). **The run needs repeating before it is
+  shown**, and the numbers should be expected to move.
+- **A rubric judge cannot verify a figure against the corpus.** It receives the
+  query and the response — nothing else. For months four dimensions, two of them
+  at weight 10, told it to check the answer against "the retrieved context" it
+  has never been given. Asked for a check it cannot perform, the judge does not
+  abstain: it scores on plausibility and writes a confident justification. All
+  four are now self-contained and say so explicitly
+  (`docs/citation-delivery-finding.md`), **but every run produced before
+  2026-09-24 — including any scorecard still quoting one — was graded partly on
+  plausibility.** Delivering real retrieval to the judge is issue #15.
 - **MAP-014 no longer discriminates** — v1 now answers it correctly. It should
   be rewritten rather than dropped: v1 still mislabels the October rates as
   "Current prices used". Issue #13.

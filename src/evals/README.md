@@ -237,6 +237,15 @@ Partial runs are suffixed `-partial`.
 
 ### Last verified results
 
+> **STALE — do not present these numbers.** They were produced on 2026-09-21,
+> before the corpora were re-indexed with `doc_id` in the body and before both
+> rubrics were rewritten (`meridian-compliance-safe-answer` v6,
+> `meridian-finops-defensible-answer` v4). They were also graded by dimensions
+> that instructed the judge to check figures against a retrieved context it is
+> never given — see [`docs/citation-delivery-finding.md`](docs/citation-delivery-finding.md).
+> The shape of the result (v1 fails, v2 passes) is expected to hold; the
+> numbers are not trustworthy until the run is repeated.
+
 Full 30-case runs, 2026-09-21, all 30 cases scored on every metric:
 
 | Metric | v1 | v2 | Threshold |
