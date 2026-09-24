@@ -392,10 +392,14 @@ These are better than the planted traps precisely because nobody planted them.
 
 ## The control set
 
-Eight `grounded_happy` cases exist for the same reason as the advisor track's
-ten: an agent that refuses everything scores perfectly on fabrication.
+`grounded_happy` control cases exist for the same reason as the advisor
+track's ten: an agent that refuses everything scores perfectly on fabrication.
+After the 2026-09-24 cut to 8 cases, three of the eight are controls, and
+`tests/test_finops_dataset.py` enforces that at least a third of the set is —
+expressed as a proportion, because below roughly that an agent which has
+stopped answering starts to look like the well-governed one.
 
-The balance matters more here. **None** of the 26 cases are refusal traps. The
+The balance matters more here. **None** of the cases are refusal traps. The
 six that were — metered-vs-billed, PII and incident-vs-demand — were dropped on
 2026-09-23 after the probe showed v1 passed every one. Refusal is where this
 model is already strong; synthesis is where it breaks. A suite weighted toward

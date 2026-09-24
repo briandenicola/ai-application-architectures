@@ -71,7 +71,7 @@ pairs, separate golden sets, separate rubrics.
 | Corpus | `corpus/` — 12, hand-written | `corpus-finops/` — 19, generated |
 | Index | `meridian-docs` | `meridian-aiops-costs` |
 | Agents | `meridian-advisor-v1` / `-v2` | `meridian-finops-v1` / `-v2` |
-| Dataset | 30 cases | 26 cases |
+| Dataset | 30 cases | 8 cases (cut from 25 on 2026-09-24) |
 | Rubric | `meridian-compliance-safe-answer` | `meridian-finops-defensible-answer` |
 | Grounding | `azure_ai_search` tool, `meridian-docs`, top_k 5 | `azure_ai_search` tool, `meridian-aiops-costs`, top_k 8 |
 | Recency rule | newest document wins | **card in effect on the date of consumption** |

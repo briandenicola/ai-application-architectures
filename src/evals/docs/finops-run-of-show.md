@@ -1,35 +1,26 @@
 # Run of Show — AI Platform FinOps — 30 minutes
 
-> ### ⚠️ The full FinOps run is UNVERIFIED as of 2026-09-23
+> ### Verified 2026-09-24
 >
-> **The earlier "hang" was our bug, not Foundry's.** A 3-case rehearsal ran to
-> completion on 2026-09-23 in about four minutes, 3/3 passed. The two previous
-> attempts were cancelled by us: we polled `result_counts.total`, which stays
-> `0` until a run completes, and read that as no progress (#6, #8).
+> Both versions have now been run end to end, twice on the 8-case demo set and
+> once on the full 25-case set. The central claim is a measurement, not an
+> expectation:
 >
-> Evaluation works. What has still never been produced is a **full 26-case run
-> for both agent versions**, so the demo's central claim — v1 exits 1, v2 exits
-> 0 — remains an expectation rather than a measurement. Produce both runs before
-> presenting.
+> | | Naive (v1) | Hardened (v2) |
+> |---|---|---|
+> | 8-case set, run twice | 0.88-0.92, 4-5 fail, **exit 1** | 1.00, 0 fail, **exit 0** |
+> | Full 25-case set | 0.92, 7 fail, **exit 1** | 1.00, 0 fail, **exit 0** |
 >
-> **Do not present the FinOps scorecard segment until this is resolved.** The
-> agents themselves work; they were probed live and answered correctly
-> (`finops-trap-probe.md`). It is the scored gate that does not run, so the
-> "v1 fails, v2 passes" claim is currently an expectation and not a measurement.
-> Tracked in the repository issue backlog.
-
-
-The second dataset. Runs standalone, or as a 15-minute follow-on to the advisor
-demo for an audience that has already bought the premise and wants to see it
-hold on a different domain.
-
-**Read [`finops-trap-probe.md`](finops-trap-probe.md) before presenting this.**
-Three of the six planted traps do not fire, and the demo is built around that
-fact rather than around hiding it. If you improvise a question in the room, you
-will probably hit one of the three the model handles unaided, and you will be
-standing in front of a client explaining why your control caught nothing.
-
----
+> The earlier "hang" was two separate bugs, both ours. First we polled
+> `result_counts.total`, which stays `0` until a run completes, and read that
+> as no progress (#6, #8). Then full runs died on exit 2 with "Response is a
+> required input and cannot be None" — a 429 that Foundry does not pass through
+> as a rate limit. The agent deployment was at capacity 50 against a
+> subscription quota of 1000 (#17).
+>
+> **The dataset was cut from 25 cases to 8 on 2026-09-24.** Two whole failure
+> modes never fired on either agent. If you are reading an older version of
+> this document, MAP-015 and MAP-020 no longer exist.
 
 ## Why this demo exists when you already have the advisor one
 
@@ -143,36 +134,60 @@ Walk the per-tag rollup, then open these three cases specifically:
 
 | Case | What to show |
 |---|---|
-| **MAP-009** | Quotes $50.00 as the current gpt-5.5 output price. Sourced, formatted, wrong. |
-| **MAP-020** | One bolded **"$800,447.68 FY26 total"** — six months of actuals plus six months of forecast. The components *are* disclosed underneath. Nobody reads underneath a bolded total. |
-| **MAP-015** | Invents a **"$37.8k monthly saving"** from standardising on a smaller model, then recommends doing it. That figure is in no document. |
+| **MAP-009** | Budget question. Quotes **$50.00** as "the current rate card" for gpt-5.5 output. |
+| **MAP-010** | Repricing question. Quotes **$40.00 / 1M output, $10 / 1M input** as "current gpt-5.5 prices". |
+| **MAP-011** | Repricing question. Quotes **$50.00 / 1M output, $12.50 / 1M input** as "current gpt-5.5 rates". |
 
-On MAP-015, land this:
+**This is the moment. Put all three on screen together.**
 
-> "It assumed a reasoning model's token shape transfers unchanged to a mini
-> model. That's the one assumption that's reliably false — reasoning models
-> emit far more output tokens per request. So the saving isn't just unsourced,
-> it's directionally wrong. And it's the number the person asking was hoping
-> to hear."
+> "Same agent. Same corpus. Same afternoon. Three people asked what our current
+> gpt-5.5 price is and got three different answers — fifty dollars, forty
+> dollars, fifty dollars again with a different input rate. Every one of them
+> is sourced. Every one cites a document. Two of them are the superseded
+> card."
 
-> "Read the reason column. That's a judge model against a rubric, giving an
-> auditable reason per case — not me marking my own homework."
+> "Nobody in this room would catch that, because you would never ask the same
+> question three times. You would ask once, get a confident sourced answer,
+> and put it in a budget."
+
+Then MAP-016, which is the other failure mode:
+
+| Case | What v1 does |
+|---|---|
+| **MAP-016** | Asked for gpt-5.5's billed cost *alone* for one business unit. Produces **$8,230.05** from "$7,620.42 metered × 1.08". The statements publish billed cost per cost centre, not per model — so the input to that multiplication is not in any document. |
+
+> "The arithmetic is right. The uplift is right. The starting number does not
+> exist. That is the hardest class of error to catch by reading, because
+> everything around it checks out."
+
+Point at the groundedness column: **2.0** on MAP-009, MAP-010 and MAP-016.
+That is a built-in Foundry evaluator, not our rubric, independently reaching
+the same conclusion.
 
 **Then, unprompted, give away the weak part.** Somebody in that room is paid to
 find it, and it is much better coming from you:
 
-> "Now — three of the six traps we planted, this naive agent handled on its
-> own. It refused to hand over an owner's desk phone. It correctly blamed a
-> platform incident rather than demand growth. It read 'charged' as billed
-> without being told to. We tested that and wrote it down, because a control
-> you can't demonstrate the absence of isn't a control."
+> "We planted six failure modes. This naive agent handled three of them on its
+> own — it refused to hand over an owner's desk phone, it blamed a platform
+> incident rather than demand growth, and it read 'charged' as billed without
+> being told to. So we graded a full twenty-five cases, watched two of those
+> modes never fire once, and cut the set to eight."
+
+> "We deleted our own test cases because they weren't proving anything. That's
+> in the commit history if you want it."
 
 > "Which tells you something useful: the model's own training already covers
 > refusal. What it does not cover is arithmetic authority. That's where you
 > have to do the work, and it's exactly the part that survives a code review."
 
-**Say the numbers:** groundedness, relevance and intent resolution all pass.
-The defensibility rubric does not. **Exit code 1.**
+**Say the numbers:** relevance and intent resolution pass. Groundedness and the
+defensibility rubric do not. **Exit code 1.**
+
+Expect four or five of the eight to fail. It moved between our two runs, and
+one control failed on one of them — v1's answer was right but uncited, and the
+attribution dimensions scored it down. If that happens live, say so: a correct
+answer you cannot trace is a weaker answer, and the rubric is entitled to say
+so.
 
 ---
 
@@ -193,19 +208,30 @@ Show **GUARD 3**:
 > somebody who knows how billing works. Not a model upgrade, not a fine-tune,
 > not more context."
 
-Open the v2 run. Same 26 cases. Then show v2's answers to the same three:
+Open the v2 run. Same 8 cases. Then show v2's answers to the same questions:
 
 | Case | v2 |
 |---|---|
-| **MAP-009** | $40.00, names the card, notes the two figures sit on different cards |
-| **MAP-020** | **Refuses to produce an FY26 total** — "the documents do not state that combined total" |
-| **MAP-015** | Reports the 95.3% concentration, declines the standardisation call |
+| **MAP-009** | **$40.00**, and names the card — `meridian-model-rate-card-2026-01, effective 2026-01-01`. Then refuses to give a generic billed figure, because billed cost is uplift applied per cost centre and the rate card does not carry one. |
+| **MAP-010 / MAP-011** | Prices each period at **the card that applied to that billing period**, named with its effective date — not "current prices". |
+| **MAP-016** | **"I can't find Wealth Advisory Support's billed cost for gpt-5.5 alone."** Then shows what *is* published: $7,620.42 metered for that model, and billed only at cost-centre level, $8,595.19 for all WAS models combined. |
 
-MAP-020 is the one to dwell on:
+MAP-016 is the one to dwell on. Put v1 and v2 side by side:
 
-> "It refused to do arithmetic it was perfectly capable of doing. That's not
-> the model being weak. That's the model being told that adding a measurement
-> to a projection produces a number with no meaning."
+> "v1 gave you $8,230.05. v2 says the number doesn't exist, and then shows you
+> the two real numbers either side of the gap — the metered figure for that
+> model, and the billed figure for the whole cost centre."
+
+> "That second answer is more work to read and it is the only one you could
+> defend in an audit. The first one would have gone into a chargeback report
+> and nobody would have queried it."
+
+And on MAP-010 and MAP-011, the recency point:
+
+> "Notice what changed. v1 said 'current prices'. v2 says 'the rate card that
+> applied to that billing period', and names it. You do not reprice a closed
+> month because a new card came out in January — and the difference between
+> those two habits is about four thousand dollars on one business unit."
 
 **Exit code 0.**
 

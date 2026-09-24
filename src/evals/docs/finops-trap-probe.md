@@ -1,5 +1,20 @@
 # FinOps trap probe — which planted traps actually fire
 
+> ### Superseded by a graded run — kept as a record
+>
+> This document is a **probe**: answers read by hand, scored by judgement. It
+> was the best evidence available at the time and it is no longer the best
+> evidence available. On 2026-09-24 the full 25-case set was graded by Foundry
+> in both directions, and the graded result disagreed with this one — two
+> failure modes that probing suggested were live never fired on either agent,
+> and the set was cut from 25 cases to 8.
+>
+> Read this for how the traps were reasoned about. For what the traps actually
+> do, read `README.md` and `docs/demo-guide.md`.
+>
+> Case ids named below include several that have since been retired. They are
+> not renumbered, so anything here still points at what it always did.
+
 **Date:** 2026-09-22 · **Agents:** `meridian-finops-v1`, `meridian-finops-v2` ·
 **Model:** `gpt-5.5` (2026-04-24)
 

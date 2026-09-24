@@ -72,24 +72,16 @@ number.
 
 ## 6b. FinOps track — 90s
 
-> ### ⚠️ The full FinOps run is UNVERIFIED as of 2026-09-23
+> ### Verified — but re-run it on the morning
 >
-> **The earlier "hang" was our bug, not Foundry's.** A 3-case rehearsal ran to
-> completion on 2026-09-23 in about four minutes, 3/3 passed. The two previous
-> attempts were cancelled by us: we polled `result_counts.total`, which stays
-> `0` until a run completes, and read that as no progress (#6, #8).
+> Both versions have been graded end to end: 8-case demo set twice, full
+> 25-case set once. v1 exits 1 every time, v2 exits 0 every time. That claim
+> is a measurement now.
 >
-> Evaluation works. What has still never been produced is a **full 26-case run
-> for both agent versions**, so the demo's central claim — v1 exits 1, v2 exits
-> 0 — remains an expectation rather than a measurement. Produce both runs before
-> presenting.
->
-> **Do not present the FinOps scorecard segment until this is resolved.** The
-> agents themselves work; they were probed live and answered correctly
-> (`finops-trap-probe.md`). It is the scored gate that does not run, so the
-> "v1 fails, v2 passes" claim is currently an expectation and not a measurement.
-> Tracked in the repository issue backlog.
-
+> **The count of failures is not stable.** v1 failed 4 of 8 on one run and 5 of
+> 8 on the next with nothing changed, and a control case failed on one of them.
+> The verdict holds; the number moves. Run the gate on the morning of the demo
+> and quote the number you actually got, not the one in the README.
 
 **Skip only if you are certain the FinOps segment is not in this meeting.**
 It is provisioned by `azd up` alongside the advisor track, so if it is missing
@@ -110,9 +102,14 @@ cat .azure/agents-finops.json
 > seconds. If it returns 0 immediately after an index run, wait and re-read
 > before concluding anything is wrong.
 
-**Both evaluation runs must already be complete.** 26 cases against a reasoning
-model will not finish while an audience watches, and the token burst reliably
-trips a 429 on a shared deployment.
+**Both evaluation runs must already be complete.** The FinOps set is 8 cases
+and finishes in two to three minutes, which is survivable but still not
+something to do while an audience watches — and a live run gives you today's
+numbers rather than yesterday's. The advisor set is 30 cases and definitely
+will not finish in front of a room.
+
+Do not run the two versions in parallel. They share a model deployment and
+throttle each other.
 
 ☐ v1 FinOps run complete in the portal, **exit 1**, scorecard open in a tab
 ☐ v2 FinOps run complete in the portal, **exit 0**, scorecard open in a tab

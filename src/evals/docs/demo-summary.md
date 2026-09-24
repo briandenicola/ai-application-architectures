@@ -28,9 +28,9 @@ Three tracks, each a corpus plus a naive/hardened agent pair plus a golden set.
 | **People analytics** — HR inference | `corpus-hr/` (22 docs) | `meridian-people-v1` / `-v2` | 25 cases, 16 refusals | ⚠️ rubric published; 2-case rehearsal only |
 
 "Registered" means the track has `dataset_*`, `evaluators_*` and `thresholds_*`
-in `evals.config.yaml` and can therefore be run and gated. HR has a corpus, an
-indexed search index, a published agent pair and a drafted golden set, but no
-rubric and no config registration — so it cannot be scored yet. See issue #11.
+in `evals.config.yaml` and can therefore be run and gated. All three tracks are
+now registered. HR was the last, on 2026-09-24, and has been scored only on a
+two-case rehearsal.
 
 **Scoring.** Three Foundry built-ins (groundedness, relevance,
 intent_resolution) plus one custom rubric per track, published to the Foundry
