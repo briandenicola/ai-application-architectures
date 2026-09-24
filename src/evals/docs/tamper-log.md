@@ -916,11 +916,18 @@ judge to consult documents it has never been given.
 
 **Reverted.** All four restored, 290 tests green.
 
-**Status: PROVEN, with one part still to verify against the service.** The
-guards hold the rubrics to the rule. That the rewritten `citation_discipline`
-actually fires is checked separately by `probes/citation_discipline_probe.py`
-against the republished rubrics — a guard that the prose is well-formed is not
-evidence that the judge acts on it, which is the whole lesson of T23.
+**Status: PROVEN, service-verified.** The guards hold the rubrics to the rule,
+and `probes/citation_discipline_probe.py` confirms the rewritten dimension
+actually fires against the published rubrics: an unsourced figure scores 0.489
+and a superseded card offered as current scores 0.596, against 1.000 for a
+correct citation — all three with the SAME correct underlying price. The
+judge's reasoning names the dimensions.
+
+The first rewrite did NOT fire — the stale arm scored a clean 1.000 — because
+`rate_card_in_effect` only claimed to apply to "a specific named period" and so
+exempted itself from a question about current pricing. A guard that the prose
+is well-formed was, exactly as T23 warned, not evidence that the judge acts on
+it. Published rubrics are now compliance v6 / finops v4.
 
 ---
 

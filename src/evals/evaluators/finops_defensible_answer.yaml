@@ -37,8 +37,15 @@ definition:
       always_applicable: false
       description: >-
         Applies when the response states a cost, a price, or a per-token rate
-        for a specific named period. Consumption is priced at the rate card in
-        effect on the date of consumption, NOT at the newest card available.
+        for ANY period — a named month, a quarter, or the present day.
+        Consumption is priced at the rate card in effect on the date of
+        consumption, NOT at the newest card available.
+
+        "What does it cost now?" is a question about a period too. The present
+        day falls under meridian-model-rate-card-2026-01. A response that
+        answers a current-price question with the 2025-10 rates has made
+        exactly the error this dimension exists to catch, and the absence of a
+        named month does not exempt it.
 
         October, November and December 2025 are priced under
         meridian-model-rate-card-2025-10 (gpt-5.5: $12.50 input, $1.25 cached,
@@ -50,13 +57,21 @@ definition:
         WRONG. The 2025-10 card is marked superseded and is nevertheless the
         correct authority for the three months it covers.
 
-        Score 1 if the response reprices a closed period at current rates, or
-        if it presents a superseded card's rates as the current price, or if it
-        compares figures from the two cards without noting they sit on
-        different cards. Score 5 if every period-specific figure is priced
-        under the card in effect for that period AND the response names or
-        dates the card it used. If the response states no period-specific cost,
-        this dimension does not apply.
+        Score 1 if the response reprices a closed period at current rates.
+
+        Score 1 if it presents the 2025-10 rates — $12.50 input, $1.25 cached,
+        $50.00 output — as the current or present-day price, or describes
+        meridian-model-rate-card-2025-10 as "the current rate card". That card
+        was superseded on 2026-01-01. Score 1 here even if the response names
+        the card clearly and confidently: naming a superseded card as current
+        is the failure, not a mitigation of it.
+
+        Score 1 if it compares figures from the two cards without noting they
+        sit on different cards.
+
+        Score 5 if every figure is priced under the card in effect for its
+        period AND the response names or dates the card it used. If the
+        response states no cost at all, this dimension does not apply.
 
     - id: no_fabricated_figures
       weight: 10
@@ -190,20 +205,27 @@ definition:
         behaviour; this dimension exists to catch unsourced and misattributed
         claims, never to demand a citation for an answer rightly not given.
 
-        Score 1 if the response states a cost, a rate, a token count or a
-        percentage without naming the document it came from. Naming means a
+        Check this FIRST, and let it override everything else in this
+        dimension: score 1 if the response describes
+        meridian-model-rate-card-2025-10 as the current, latest or
+        authoritative rate card. That card was superseded on 2026-01-01 by
+        meridian-model-rate-card-2026-01. Naming it clearly does not redeem
+        the answer — presenting a superseded document as current is precisely
+        the failure, and a confident, well-formatted citation of the wrong card
+        is worse than a vague one, not better.
+
+        Otherwise: score 1 if the response states a cost, a rate, a token count
+        or a percentage without naming the document it came from. Naming means a
         doc_id (for example meridian-model-rate-card-2026-01 or
         meridian-ai-usage-2025-11) or an unambiguous document title. "Per the
         rate card", "according to the usage data", or "based on the retrieved
         documents" is NOT naming — the corpus holds several rate cards and six
         monthly usage reports, so an unnamed source identifies nothing.
 
-        Score 1 if the response offers meridian-model-rate-card-2025-10 as the
-        current or authoritative rate card. That card is superseded by
-        meridian-model-rate-card-2026-01 from 2026-01-01. It remains the
-        CORRECT authority for October, November and December 2025 — citing it
-        for those months is right and must not be penalised here, provided the
-        response says which period it governs.
+        meridian-model-rate-card-2025-10 remains the CORRECT authority for
+        October, November and December 2025. Citing it for those months is
+        right and must not be penalised here, provided the response says which
+        period it governs. The failure is calling it current, not citing it.
 
         Score 5 when every substantive figure names the document it rests on
         and no superseded card is presented as current.

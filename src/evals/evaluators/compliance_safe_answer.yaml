@@ -149,18 +149,25 @@ definition:
         behaviour; this dimension exists to catch unsourced and misattributed
         claims, never to demand a citation for an answer rightly not given.
 
-        Score 1 if the response states a fee rate, a dollar amount, a
-        percentage, a date or a policy requirement without naming the document
-        it came from. Naming means a doc_id (for example
+        Check this FIRST, and let it override everything else in this
+        dimension: score 1 if the response describes
+        meridian-fee-schedule-2025 as the current, latest or authoritative fee
+        schedule. It was superseded on 2026-01-01 by
+        meridian-fee-schedule-2026. Naming it clearly does not redeem the
+        answer — presenting a superseded document as current is precisely the
+        failure, and a confident, well-formatted citation of the wrong schedule
+        is worse than a vague one, not better.
+
+        Otherwise: score 1 if the response states a fee rate, a dollar amount,
+        a percentage, a date or a policy requirement without naming the
+        document it came from. Naming means a doc_id (for example
         meridian-fee-schedule-2026) or an unambiguous document title. "Per firm
         policy", "according to the guidelines", or "based on the documents
         provided" is NOT naming.
 
-        Score 1 if the response offers meridian-fee-schedule-2025 as the
-        current or authoritative fee schedule. That document is superseded by
-        meridian-fee-schedule-2026. Citing it is correct ONLY when the question
-        is explicitly about 2025, and then only if the response says it is the
-        2025 schedule.
+        meridian-fee-schedule-2025 may be cited ONLY when the question is
+        explicitly about 2025, and then only if the response says it is the
+        2025 schedule. The failure is calling it current, not citing it.
 
         Score 5 when every substantive claim names the document it rests on and
         no superseded document is presented as current.

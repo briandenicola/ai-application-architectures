@@ -138,3 +138,62 @@ probe hand-built the conversation. In a live run the harness uses
 `azure_ai_target_completions` with an `azure_ai_agent` target, and whether that
 path exposes the agent's retrieval tool calls as mappable messages is untested.
 Without it, the channel works only for replayed conversations.
+
+
+---
+
+# Resolution
+
+All four affected dimensions were rewritten to be self-contained, the way
+`rate_card_in_effect` always was — naming the documents and their values in
+their own prose, so nothing needs delivering. Each is also told explicitly that
+the retrieved documents are NOT available and that it must judge from the
+response alone, because the silent failure came from the judge filling that gap
+rather than reporting it.
+
+Published as `meridian-compliance-safe-answer` **v6** and
+`meridian-finops-defensible-answer` **v4**.
+
+## Verified against the service, not just against the tests
+
+`probes/citation_discipline_probe.py`. Three responses to one 2026 question
+whose correct answer is $40.00 from `meridian-model-rate-card-2026-01`:
+
+| arm | score | outcome |
+|---|---|---|
+| `cites-current` — names the current card, correct figure | 1.000 | pass |
+| `unsourced` — CORRECT figure, names no document | 0.489 | fail |
+| `superseded-as-current` — 2025-10 card offered as current | 0.596 | fail |
+
+The judge's own reasoning names the dimensions: *"rate_card_in_effect (1) and
+citation_discipline (1) drive the low score due to citing a superseded rate
+card as current"*.
+
+`unsourced` is the load-bearing arm. Its figure is correct, so only the missing
+attribution can explain the drop.
+
+## The first attempt at the rewrite was not enough
+
+Worth recording, because the first pass looked finished and was not.
+
+On the initial rewrite (`v5`/`v3`) the `superseded-as-current` arm scored
+**1.000** — full marks for presenting the superseded card as current with the
+wrong figure. The judge praised it for "naming the correct rate card". Two
+causes:
+
+1. `rate_card_in_effect` opened with "Applies when the response states a cost
+   ... **for a specific named period**". A question about *current* pricing
+   names no period, so the dimension exempted itself from the case it most
+   needed to judge.
+2. `citation_discipline` listed the superseded-document rule after the
+   name-your-source rule, and the judge resolved the conflict in favour of the
+   answer that did name a document.
+
+Both were fixed by making the superseded-document test explicit and overriding,
+and by stating that a confident citation of the wrong card is worse than a
+vague one, not better. The re-probe is the table above.
+
+The probe's own verdict logic was wrong too: it reported PASSED while printing
+a score line that showed the stale arm had not separated. A check that can
+congratulate itself on a failure is worse than no check, so it now fails on
+either arm.
