@@ -37,14 +37,26 @@ param hrSearchIndexName string = 'meridian-people-analytics'
 
 param agentModelName string = 'gpt-5.5'
 param agentModelVersion string = '2026-04-24'
-param agentModelCapacity int = 50
+// 50 was not a considered number, it was the template default, and it cost two
+// failed 26-case FinOps runs before anyone looked at it (#17). Foundry runs the
+// dataset concurrently and the FinOps answers are long tables, so the agent
+// exhausts 50K TPM partway through. The rate limit does not surface as a quota
+// error either -- the evaluator receives a null response and the harness exits
+// 2 with "Response is a required input and cannot be None".
+//
+// Subscription quota for GlobalStandard gpt-5.5 in centralus is 1000. We were
+// throttling at 5% of our own allowance. 500 leaves headroom for a second
+// concurrent run without going near the ceiling.
+param agentModelCapacity int = 500
 
 // The judge is deliberately NOT a reasoning model: Foundry's built-in evaluators
 // send max_tokens, which reasoning models reject outright. A non-reasoning judge
 // also accepts temperature and seed, so scoring is reproducible. See ADR-0006.
 param judgeModelName string = 'gpt-4.1-mini'
 param judgeModelVersion string = '2025-04-14'
-param judgeModelCapacity int = 100
+// Four evaluators fire per case, so the judge burns tokens faster than the
+// agent does. Raised alongside the agent for the same reason.
+param judgeModelCapacity int = 500
 
 param embeddingModelName string = 'text-embedding-3-large'
 param embeddingModelVersion string = '1'
