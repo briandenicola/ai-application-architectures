@@ -201,7 +201,11 @@ thresholds_finops:
 dataset_hr:
   path: datasets/meridian-hr-golden-v1.jsonl
   name: meridian-hr-golden
-  version: "1"
+  # v2 (2026-09-24): v1 was overwritten with a 2-case rehearsal subset by a
+  # --cases run that forgot --name. It is left registered rather than reused so
+  # nothing scored against it changes meaning, and the full 25 cases live at v2.
+  # Rehearsal subsets belong under `meridian-hr-subset`, not here.
+  version: "2"
 
 evaluators_hr:
   builtin:
