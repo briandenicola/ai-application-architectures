@@ -120,16 +120,53 @@ distinct disguises.
 
 ---
 
+## The advisor gate, verified end to end
+
+Reproduced 2026-09-24, both agents against compliance rubric **v8**, 30 of 30
+cases scored:
+
+| | v1 naive | v2 hardened |
+|---|---|---|
+| groundedness | 4.97 ✅ | 4.93 ✅ |
+| relevance | 4.83 ✅ | 4.87 ✅ |
+| intent_resolution (report-only) | 4.90 | 4.93 |
+| compliance_safe_answer | **0.89 ❌ — 10 of 30** | **1.00 ✅ — 0 of 30** |
+| gate | **exit 1** | **exit 0** |
+
+The point to make on stage is that **every built-in metric passes for v1**. A
+team watching a standard quality dashboard ships this agent. The governance
+rubric is the only thing that stops it, and it stops it on ten cases — three of
+which have no planted trap at all, and fail purely because correct figures are
+uncited.
+
+### The gate was failing the hardened agent for refusing to leak PII
+
+Worth telling, because it is the most honest thing in the demo. The first full
+run failed v2 on three cases: declining to give out client contact details for
+account AA-1042, declining to invent a dollar total, declining to state an
+expense ratio it could not source. `intent_resolution` rewards fulfilling the
+user's request, and six golden cases have a refusal as the correct answer.
+
+Two things were wrong and only one of them was the gate. `intent_resolution` is
+now report-only — scored and shown, unable to fail the build — and the rubric's
+conditional dimensions now declare inapplicability before they start demanding
+things, so a refusal is scored as "not applicable" rather than as a missing
+figure. But the last failure was v2's own: it refused correctly and uselessly,
+with a bare "I can't find that" and a wall of disclosure. That was fixed in the
+agent, not the gate. Demoting `relevance` would have turned the board green
+just as fast and left it protecting nothing.
+
+See `docs/tamper-log.md` §T25 and §T26. Three of the four T25 tampers passed on
+the first attempt: both gate guards were aimed at test fixtures rather than at
+the config and code that actually run.
+
+---
+
 ## What is not proven
 
 This section is the point of the document. Do not describe anything below as a
 working control in front of a client.
 
-- **The published v1/v2 scorecard is stale.** The last verified full run was
-  2026-09-21 (v1 exit 1 on 4 cases, v2 exit 0). Since then the corpora were
-  re-indexed with `doc_id` in the body and both rubrics were substantially
-  rewritten (compliance v6, finops v4). **The run needs repeating before it is
-  shown**, and the numbers should be expected to move.
 - **A rubric judge cannot verify a figure against the corpus.** It receives the
   query and the response — nothing else. For months four dimensions, two of them
   at weight 10, told it to check the answer against "the retrieved context" it
@@ -137,11 +174,17 @@ working control in front of a client.
   abstain: it scores on plausibility and writes a confident justification. All
   four are now self-contained and say so explicitly
   (`docs/citation-delivery-finding.md`), **but every run produced before
-  2026-09-24 — including any scorecard still quoting one — was graded partly on
-  plausibility.** Delivering real retrieval to the judge is issue #15.
-- **MAP-014 no longer discriminates** — v1 now answers it correctly. It should
-  be rewritten rather than dropped: v1 still mislabels the October rates as
-  "Current prices used". Issue #13.
+  2026-09-24 was graded partly on plausibility.** The advisor scorecard has
+  since been reproduced under the corrected rubric (v8); the FinOps and HR
+  tracks have not. Delivering real retrieval to the judge is issue #15.
+- **MAP-014 still does not discriminate on recency.** It was rewritten on
+  2026-09-24 to target the labelling defect instead of card identification, and
+  probed: v1 opened "November 2025 used the October 2025 rate card" — correct.
+  The doc_id-in-body change genuinely fixed v1's card identification. The two
+  versions still separate on attribution (v1 cites opaque markers and omits the
+  disclosure; v2 gives inline doc_ids), so the case still earns its place, but
+  its `stale_rate_card` tag no longer describes why. Settle it with the full
+  FinOps run, then retag. Issue #13.
 - **The HR track has never been scored.** No rubric, not registered.
 - **A full both-version FinOps run has never been produced.**
 
