@@ -12,7 +12,6 @@ import json
 
 import pytest
 from conftest import DATASET
-
 from seed_dataset import to_eval_items
 
 

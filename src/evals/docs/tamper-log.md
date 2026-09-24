@@ -1012,3 +1012,23 @@ time.
 
 **Status:** both fail by name; 316 tests green on revert. The service contract
 is now checked locally instead of at the end of a paid run.
+
+## T27 — a subset that publishes everything
+
+**2026-09-24.** `--cases` was added to `seed_dataset.py` so a rehearsal can name
+the cases worth paying for instead of taking whichever come first. Two ways it
+could lie, both guarded:
+
+| # | Tamper | Test that failed |
+|---|---|---|
+| T27.1 | accept a case id that is not in the dataset | `test_an_unknown_case_id_is_an_error` |
+| T27.2 | `if cases` instead of `if cases is not None` | `test_selecting_nothing_is_an_error` |
+
+T27.2 was a live bug, not a hypothetical: an empty selection fell through the
+truthiness check and published the **entire** golden set. The test caught it
+before the flag was ever used. A subset that silently becomes the full set is
+the cheaper direction of that mistake — the expensive one is a full run that
+silently becomes a subset, which is why an unknown id fails rather than
+narrowing the selection.
+
+**Status:** both fail by name; 322 tests green on revert.
