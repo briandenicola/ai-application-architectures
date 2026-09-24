@@ -1032,3 +1032,31 @@ silently becomes a subset, which is why an unknown id fails rather than
 narrowing the selection.
 
 **Status:** both fail by name; 322 tests green on revert.
+
+## T28 — dropping MAP-014, and refusing to reuse its id
+
+**2026-09-24.** MAP-014 was scored against finops rubric v6 on the two-case
+subset and returned **1.000 from both versions**. Not a narrow separation — a
+flat perfect score on each side. It had already been rewritten once to save it
+(§T24 era), on the theory that it would still discriminate on attribution. It
+does not.
+
+Putting `doc_id` into the document body taught v1 to identify the right rate
+card. v1 now opens "November 2025 used the October 2025 rate card" unprompted.
+There is no defect left in this question to catch, and a case that cannot
+separate the two agents spends an agent call and a judge call to tell the room
+nothing.
+
+`stale_rate_card` goes 6 → 5, updated deliberately in `EXPECTED_DISTRIBUTION`.
+
+The id is **retired, not reused**. Renumbering MAP-015 into the hole would
+silently repoint every result file, portal run and probe that names a case —
+the 2026-09-24 subset result for MAP-016 would start describing a different
+question. A gap in the numbering is the cheaper thing to carry.
+
+| # | Tamper | Test that failed |
+|---|---|---|
+| T28.1 | empty `RETIRED_CASE_IDS`, letting the numbering close up | `test_case_ids_are_unique_and_sequential` |
+| T28.2 | restore `stale_rate_card: 6` without adding a case | `test_total_case_count` + `test_tag_distribution_matches_the_spec` |
+
+**Status:** both fail by name; 324 tests green on revert.

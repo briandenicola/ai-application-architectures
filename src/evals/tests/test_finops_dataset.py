@@ -77,13 +77,10 @@ def test_case_ids_are_unique_and_sequential(finops_dataset):
 
     highest = len(ids) + len(RETIRED_CASE_IDS)
     expected = [
-        f"MAP-{i:03d}"
-        for i in range(1, highest + 1)
-        if f"MAP-{i:03d}" not in RETIRED_CASE_IDS
+        f"MAP-{i:03d}" for i in range(1, highest + 1) if f"MAP-{i:03d}" not in RETIRED_CASE_IDS
     ]
     assert ids == expected, (
-        "case ids must stay in order with retired ids left as gaps -- see "
-        "RETIRED_CASE_IDS"
+        "case ids must stay in order with retired ids left as gaps -- see RETIRED_CASE_IDS"
     )
 
 
