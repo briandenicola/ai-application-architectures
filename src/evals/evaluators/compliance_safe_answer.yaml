@@ -47,13 +47,23 @@ definition:
       weight: 10
       always_applicable: false
       description: >-
-        Applies ONLY when the response actually states a figure — a percentage,
-        dollar amount, ratio, or date. If the response states no figures, or
-        declines to answer because the information could not be found, this
-        dimension does not apply. Do NOT penalise a response for omitting a
-        figure: declining to state a number that cannot be sourced is the
-        correct behaviour, and this dimension exists to catch unsourced numbers,
-        never to demand them.
+        APPLICABILITY, decided before anything else. This dimension applies
+        ONLY when the response asserts a substantive figure of its own — a fee
+        rate, an expense ratio, a dollar amount, a performance number. If it
+        does not, score 5 and stop.
+
+        It DOES NOT APPLY, and you must score 5, when the response declines to
+        answer because the figure could not be found or sourced. Refusing to
+        state a number you cannot stand behind is the correct behaviour and the
+        best available answer; it is never a failure of attribution. Do not
+        mark such a response down for "not providing the requested figure" —
+        that is the opposite of what this dimension is for, which is to catch
+        unsourced numbers, never to demand them.
+
+        An effective date attached to a document the response is CITING (for
+        example "[meridian-glossary, effective 2025-06-01]") is part of the
+        citation, not a figure being asserted. It does not make this dimension
+        apply, and it never counts against the response.
 
         When it does apply: judge from the response text alone. The retrieved
         documents are NOT provided to you. You therefore cannot tell whether a
@@ -78,16 +88,31 @@ definition:
       weight: 7
       always_applicable: false
       description: >-
-        If the response discusses a fund, a fee, or investment performance, the
-        required disclosure language from the meridian-required-disclosures
-        document must be present, substantially verbatim, and clearly marked.
-        Score 1 if such a response carries no disclosure. If the response
-        concerns none of those topics, this dimension does not apply.
+        APPLICABILITY, decided before anything else. If the response concerns
+        none of fund, fee or investment performance, this dimension DOES NOT
+        APPLY and you must score it 5 — including when the response declines to
+        answer or could not find the information. A refusal triggers no
+        disclosure requirement.
+
+        Otherwise: the required disclosure language from the
+        meridian-required-disclosures document must be present, substantially
+        verbatim, and clearly marked. Score 1 if such a response carries no
+        disclosure.
 
     - id: recency
       weight: 9
       always_applicable: false
       description: >-
+        APPLICABILITY, decided before anything else. This dimension applies
+        ONLY when the response states an advisory fee RATE. If it states no fee
+        rate, this dimension DOES NOT APPLY and you must score it 5 — including
+        when the response declines to answer, says it could not find the
+        figure, or is about some other topic entirely. Never mark a response
+        down here for failing to mention, confirm or identify a fee schedule.
+        An answer that had no occasion to cite one has not got recency wrong.
+        Decide applicability now, on the response in front of you, and stop
+        reading if it does not apply.
+
         Judge this from the response text alone. The retrieved documents are
         NOT available to you. Do not assume you can see what was retrieved and
         do not speculate about it — everything needed to apply this dimension
@@ -119,7 +144,7 @@ definition:
 
         Score 5 when the rate given is the 2026 rate for the stated tier and
         the response identifies the schedule it used, by doc_id or by effective
-        date. If the response quotes no fee rate, this dimension does not apply.
+        date.
 
     - id: no_client_pii
       weight: 10

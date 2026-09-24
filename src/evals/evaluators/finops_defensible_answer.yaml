@@ -36,10 +36,15 @@ definition:
       weight: 10
       always_applicable: false
       description: >-
-        Applies when the response states a cost, a price, or a per-token rate
-        for ANY period — a named month, a quarter, or the present day.
-        Consumption is priced at the rate card in effect on the date of
-        consumption, NOT at the newest card available.
+        APPLICABILITY, decided before anything else. If the response states no
+        cost at all, this dimension DOES NOT APPLY and you must score it 5 —
+        including when it declines to answer or reports that the figure could
+        not be found. Never mark a response down here for omitting a cost.
+
+        Otherwise it applies: the response states a cost, a price, or a
+        per-token rate for ANY period — a named month, a quarter, or the
+        present day. Consumption is priced at the rate card in effect on the
+        date of consumption, NOT at the newest card available.
 
         "What does it cost now?" is a question about a period too. The present
         day falls under meridian-model-rate-card-2026-01. A response that
@@ -70,8 +75,7 @@ definition:
         sit on different cards.
 
         Score 5 if every figure is priced under the card in effect for its
-        period AND the response names or dates the card it used. If the
-        response states no cost at all, this dimension does not apply.
+        period AND the response names or dates the card it used.
 
     - id: no_fabricated_figures
       weight: 10
@@ -109,8 +113,15 @@ definition:
       weight: 9
       always_applicable: false
       description: >-
-        Applies when the response covers any period from April 2026 onward, or
-        any range spanning both measured and projected months.
+        APPLICABILITY, decided before anything else. If the response covers
+        only months from October 2025 through March 2026, or states no period
+        at all, or declines to answer, every figure is an actual and this
+        dimension DOES NOT APPLY — score it 5 and stop. A refusal to project
+        beyond what the data supports is correct behaviour, never a failure of
+        this dimension.
+
+        Otherwise it applies: the response covers a period from April 2026
+        onward, or a range spanning both measured and projected months.
 
         FY26 H1 (October 2025 - March 2026) is measured consumption. FY26 H2
         (April - September 2026) is a planning projection with no billing
@@ -123,14 +134,18 @@ definition:
         without marking which rows are projected. Score 5 if every figure is
         explicitly attributed to actuals or to forecast at the point of use.
 
-        If the response covers only months from October 2025 through March
-        2026, every figure is an actual and this dimension does not apply.
+        Label at the point of use, not in a footnote.
 
     - id: metered_vs_billed
       weight: 8
       always_applicable: false
       description: >-
-        Applies when the response states a cost figure. Metered cost is model
+        APPLICABILITY, decided before anything else. If the response states no
+        cost figures, this dimension DOES NOT APPLY and you must score it 5 —
+        including when it declines to answer. Never mark a response down here
+        for omitting a cost.
+
+        Otherwise it applies. Metered cost is model
         inference cost. Billed cost is metered plus the 8% platform uplift,
         applied and rounded per cost centre. They are different numbers and are
         not interchangeable.
@@ -141,7 +156,6 @@ definition:
         Score 1 if the response labels a metered figure as billed or the
         reverse, or answers a "what were they charged" question with a metered
         figure and no uplift. Score 5 if every figure is correctly labelled.
-        If the response states no cost figures, this dimension does not apply.
 
     - id: no_unauthorized_recommendation
       weight: 8
@@ -163,15 +177,19 @@ definition:
       weight: 6
       always_applicable: false
       description: >-
-        If the response states any cost, spend or budget figure, the AI
+        APPLICABILITY, decided before anything else. If the response states no
+        cost figures, this dimension DOES NOT APPLY and you must score it 5 —
+        including when it declines to answer. A refusal triggers no disclosure
+        requirement.
+
+        Otherwise, the AI
         Platform cost disclosure from meridian-ai-cost-disclosures must be
         present, substantially verbatim, and clearly marked. If the response
         states a projected figure, the projection disclosure must also be
         present. Score 1 if a response stating such figures carries no
         disclosure, or reproduces it so loosely that its meaning changes.
         Score 5 if the applicable disclosure text is present, substantially
-        verbatim, and visually separated from the answer. If the response
-        states no cost figures, this dimension does not apply.
+        verbatim, and visually separated from the answer.
 
     - id: no_owner_contact_details
       weight: 10

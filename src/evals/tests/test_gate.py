@@ -39,6 +39,7 @@ def make_raw(
     compliance: bool,
     dataset: list[dict],
     scores_per_case: dict[str, float] | None = None,
+    report_only: frozenset[str] = frozenset(),
 ) -> dict:
     """Build a raw result in the shape run_eval produces from Foundry.
 
@@ -55,7 +56,13 @@ def make_raw(
             "citations": [],
             "verdicts": dict(verdicts),
             "scores": dict(scores_per_case or {}),
-            "verdict": "pass" if all(verdicts.values()) else "fail",
+            # Mirrors parse_case: `verdict` counts gating criteria only,
+            # `foundry_verdict` is the unfiltered tally used to reconcile
+            # against result_counts.
+            "verdict": "pass"
+            if all(ok for name, ok in verdicts.items() if name not in report_only)
+            else "fail",
+            "foundry_verdict": "pass" if all(verdicts.values()) else "fail",
         }
         for row in dataset
     ]
@@ -68,7 +75,7 @@ def make_raw(
 
 def _counts(cases: list[dict]) -> dict:
     """Stand in for Foundry's own tally, derived from the per-case verdicts."""
-    failed = sum(1 for c in cases if c["verdict"] == "fail")
+    failed = sum(1 for c in cases if c["foundry_verdict"] == "fail")
     return {
         "total": len(cases),
         "passed": len(cases) - failed,
@@ -558,3 +565,121 @@ def test_an_untrustworthy_denominator_is_dropped_rather_than_shown(capsys, monke
     out = capsys.readouterr().out
     assert "scored 26 of 3" not in out, "reported progress against a denominator it had disproved"
     assert "Dropping the expected total" in out
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Report-only metrics.
+#
+# `intent_resolution` rewards fulfilling the user's request, and six golden
+# cases have a refusal as the CORRECT answer. On the 2026-09-24 run it failed
+# v2 on three cases, every one of them a correct refusal -- including declining
+# to hand over client contact details. These tests pin the two halves of the
+# fix: such a metric must not fail the build, and must not be able to hide a
+# real breach either.
+# ─────────────────────────────────────────────────────────────────────────────
+
+REPORT_ONLY_CONFIG = {**CONFIG, "report_only": ["intent_resolution"]}
+
+
+def summarise_report_only(raw, dataset):
+    return run_eval.summarise(raw, REPORT_ONLY_CONFIG, "test-agent", dataset, DATASET)
+
+
+def test_a_report_only_metric_cannot_fail_the_gate(dataset):
+    """The whole point. A correct refusal must not read as 'do not ship'."""
+    raw = make_raw(
+        {**all_pass(), "intent_resolution": False},
+        compliance=True,
+        dataset=dataset,
+        report_only=frozenset({"intent_resolution"}),
+    )
+    result = summarise_report_only(raw, dataset)
+    assert result["verdict"] == "pass"
+    assert result["exit_code"] == 0
+    # Still scored, still counted, still on screen -- exempt, not hidden.
+    assert result["metrics"]["intent_resolution"]["gating"] is False
+    assert result["metrics"]["intent_resolution"]["n_failed"] == len(dataset)
+    assert result["metrics"]["intent_resolution"]["pass"] is False
+
+
+def test_report_only_does_not_suppress_a_real_breach(dataset):
+    """Exempting one metric must not exempt the ones beside it."""
+    raw = make_raw(
+        {**all_pass(), "intent_resolution": False, "groundedness": False},
+        compliance=True,
+        dataset=dataset,
+        report_only=frozenset({"intent_resolution"}),
+    )
+    result = summarise_report_only(raw, dataset)
+    assert result["verdict"] == "fail"
+    assert result["exit_code"] == 1
+    assert result["metrics"]["groundedness"]["gating"] is True
+
+
+def test_gating_metrics_are_marked_as_gating(dataset):
+    raw = make_raw(all_pass(), compliance=True, dataset=dataset)
+    result = summarise(raw, dataset)
+    assert all(m["gating"] for m in result["metrics"].values())
+
+
+def test_report_only_cannot_exempt_every_metric():
+    """A gate with nothing left to gate on is a configuration error, not a pass."""
+    config = {**CONFIG, "report_only": list(CONFIG["thresholds"])}
+    with pytest.raises(run_eval.ConfigError):
+        run_eval.report_only_metrics(config)
+
+
+def test_report_only_rejects_a_metric_with_no_threshold():
+    config = {**CONFIG, "report_only": ["not_a_metric"]}
+    with pytest.raises(run_eval.ConfigError):
+        run_eval.report_only_metrics(config)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# parse_case is where a criterion is actually excluded from the gate. The tests
+# above exercise summarise(), which takes cases as given -- tampering with
+# parse_case left all of them green (T25.2). These cover the split itself.
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def _item(verdicts: dict[str, bool]) -> dict:
+    return {
+        "datasource_item": {"case_id": "X-1", "failure_tag": "grounded_happy"},
+        "sample": {},
+        "results": [
+            {"name": name, "passed": ok, "score": 5.0 if ok else 1.0}
+            for name, ok in verdicts.items()
+        ],
+    }
+
+
+def test_parse_case_excludes_report_only_from_the_case_verdict():
+    case = run_eval.parse_case(
+        _item({"groundedness": True, "intent_resolution": False}),
+        "compliance_safe_answer",
+        frozenset({"intent_resolution"}),
+    )
+    assert case["verdict"] == "pass"
+    # Excluded from the gate, not from the record.
+    assert case["failed_metrics"] == ["intent_resolution"]
+    assert case["gating_failures"] == []
+    assert case["foundry_verdict"] == "fail"
+
+
+def test_parse_case_still_fails_on_a_gating_criterion():
+    case = run_eval.parse_case(
+        _item({"groundedness": False, "intent_resolution": False}),
+        "compliance_safe_answer",
+        frozenset({"intent_resolution"}),
+    )
+    assert case["verdict"] == "fail"
+    assert case["gating_failures"] == ["groundedness"]
+
+
+def test_parse_case_gates_on_everything_when_nothing_is_exempt():
+    case = run_eval.parse_case(
+        _item({"groundedness": True, "intent_resolution": False}),
+        "compliance_safe_answer",
+    )
+    assert case["verdict"] == "fail"
+    assert case["gating_failures"] == ["intent_resolution"]

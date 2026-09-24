@@ -66,7 +66,11 @@ def load_config(path: str | Path = "evals.config.yaml") -> dict[str, Any]:
 # rebinds dataset/evaluators/thresholds to their _finops counterparts and every
 # function downstream is unchanged — so the FinOps run cannot quietly drift away
 # from the advisor run's behaviour without both moving together.
-CORPUS_KEYS = ("dataset", "evaluators", "thresholds")
+# Every track must redefine ALL of these together. `report_only` is in the
+# list because a track that inherited the advisor's gating set while swapping
+# its dataset would gate the wrong metrics -- and the failure would look like
+# a quality result, not a config error.
+CORPUS_KEYS = ("dataset", "evaluators", "thresholds", "report_only")
 
 
 def select_corpus(config: dict[str, Any], corpus: str) -> dict[str, Any]:

@@ -364,3 +364,81 @@ def test_citation_discipline_names_the_superseded_document_it_guards(corpus):
         "citation_discipline must not be always_applicable: a refusal cites "
         "nothing and would be scored down for it"
     )
+
+
+# A refusal is an answer. On the 2026-09-24 advisor run the hardened agent was
+# marked down on MWP-015 for declining to state an expense ratio it could not
+# source -- the exact behaviour the hardening exists to produce. The cause was
+# rule ORDER: both dimensions carried an applicability clause, but at the END,
+# and the judge had already decided by the time it reached them. These guards
+# hold the fix in place: a conditional dimension must say what makes it not
+# apply, and it must say so before it starts demanding things.
+ABSTENTION_EXEMPT_MARKERS = ("does not apply", "do not apply", "not apply")
+
+
+@pytest.mark.parametrize("corpus", CORPORA)
+def test_conditional_dimensions_say_when_they_do_not_apply(corpus):
+    spec_path = ROOT / select_corpus(_config(), corpus)["evaluators"]["custom"][0]
+    spec = yaml.safe_load(spec_path.read_text(encoding="utf-8"))
+
+    for dimension in spec["definition"]["dimensions"]:
+        if dimension.get("always_applicable") is not False:
+            continue
+        text = dimension["description"].lower()
+        assert any(marker in text for marker in ABSTENTION_EXEMPT_MARKERS), (
+            f"{spec_path.name}: '{dimension['id']}' is always_applicable: false "
+            "but never tells the judge what makes it not apply. The flag alone "
+            "does nothing -- the judge only sees the prose."
+        )
+
+
+@pytest.mark.parametrize("corpus", CORPORA)
+def test_applicability_is_stated_before_the_scoring_rules(corpus):
+    """An escape hatch below the scoring rules is one the judge reads too late."""
+    spec_path = ROOT / select_corpus(_config(), corpus)["evaluators"]["custom"][0]
+    spec = yaml.safe_load(spec_path.read_text(encoding="utf-8"))
+
+    for dimension in spec["definition"]["dimensions"]:
+        if dimension.get("always_applicable") is not False:
+            continue
+        text = dimension["description"].lower()
+        first_exemption = min(
+            (text.index(m) for m in ABSTENTION_EXEMPT_MARKERS if m in text),
+            default=None,
+        )
+        if first_exemption is None:  # covered by the test above
+            continue
+        if "score 1" not in text:
+            continue
+        assert first_exemption < text.index("score 1"), (
+            f"{spec_path.name}: '{dimension['id']}' states its first scoring "
+            "rule before it says when it does not apply. That ordering is what "
+            "failed MWP-015 -- put the applicability clause first."
+        )
+
+
+# The shipped config, not a fixture. Removing `report_only` from
+# evals.config.yaml broke nothing at all (T25.1): every gate test builds its
+# own config, so the file that actually runs was unguarded. This is the guard
+# for the real thing.
+@pytest.mark.parametrize("corpus", CORPORA)
+def test_intent_resolution_is_scored_but_does_not_gate(corpus):
+    config = select_corpus(_config(), corpus)
+
+    assert "intent_resolution" in config["evaluators"]["builtin"], (
+        f"'{corpus}' no longer scores intent_resolution. It is kept deliberately: "
+        "the score still says something true about how often hardening costs "
+        "helpfulness, even though it must not gate."
+    )
+    assert "intent_resolution" in config["report_only"], (
+        f"'{corpus}' would gate on intent_resolution. That evaluator rewards "
+        "fulfilling the user's request, and cases in every track have a refusal "
+        "as the CORRECT answer — on the 2026-09-24 advisor run it failed the "
+        "hardened agent for declining to hand over client contact details. A "
+        "gate that says 'do not ship' because the agent would not leak PII is "
+        "not protecting anything. See ADR-0006."
+    )
+    assert set(config["report_only"]) < set(config["thresholds"]), (
+        f"'{corpus}' report_only must be a strict subset of thresholds — "
+        "otherwise there is nothing left to gate on"
+    )
