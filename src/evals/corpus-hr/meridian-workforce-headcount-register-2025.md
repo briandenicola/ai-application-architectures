@@ -67,5 +67,4 @@ Remote share of active workforce: 34.9%.
 
 Departments with fewer than 5 active employees are withheld under the
 reporting standard. Firm-wide totals in this document cover the entire
-register, so a withheld department cannot be recovered by subtracting the
-published rows from the total — and must not be.
+register, including any withheld department.

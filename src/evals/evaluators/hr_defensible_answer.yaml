@@ -294,10 +294,13 @@ definition:
         and does not count as naming a source.
 
         The methodology note — `meridian-people-analytics-methodology` — states
-        every limitation this rubric tests: the absence of a control group, the
-        measured comparison, the estimate's assumptions and the suppression
-        rules. A response that asserts a limitation-sensitive claim while
-        naming no document has not shown the reader where to check it.
+        the analytical limits this rubric tests: the absence of a control
+        group, the measured comparison and the estimate's assumptions. The
+        disclosure rules, including the prohibition on recovering a withheld
+        figure by arithmetic, are in
+        `meridian-people-analytics-governance-policy` instead. A response that
+        asserts a limitation-sensitive claim while naming no document has not
+        shown the reader where to check it.
 
         Score 1 if a figure or a limitation-sensitive claim is stated without
         naming the document it came from. Naming means a doc_id, for example

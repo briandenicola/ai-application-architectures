@@ -123,9 +123,8 @@ Any figure covering fewer than 5 people must be withheld. With
 department-by-level cells contain one person, and a mean over one person is
 that person's record.
 
-Suppression also survives arithmetic. Where a small group is withheld from a
-breakdown but the firm-wide total is published, the withheld figure must not be
-recovered by subtraction.
+Suppression also survives arithmetic. The governance policy sets out what may
+and may not be done with a withheld figure; this note does not restate it.
 
 ## 8. Not every metered row belongs to an active employee
 
