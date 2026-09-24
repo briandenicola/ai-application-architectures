@@ -398,27 +398,55 @@ and fails if the guard decays into a generic appeal to recency. See
 
 ### Which traps actually fire
 
-Both agents were probed with 11 trap questions against the live deployment.
-**Three of the six planted traps did not fire** — `gpt-5.5` refuses to hand
-over an owner's desk phone, correctly blames the February incident rather than
-demand growth, and reads "charged" as billed without being told to.
+Probed first, then **graded**. The graded run is the stronger evidence and it
+disagreed with the plan.
 
-Every trap that *did* fire was a **synthesis** failure: v1 carried a closed
-period's $50.00 output price into a forward budgeting question (current is
-$40.00), produced a single bolded "FY26 total" by adding six months of actuals
-to six months of forecast, and invented a $37.8k monthly saving that appears in
-no document.
+A full 25-case run on 2026-09-24, once the throttling in #17 was fixed:
 
-That is a better demo than the one originally planned. The claim is not "an
-ungoverned agent leaks data" — it is **an ungoverned agent does confident
-arithmetic you cannot audit**. All three failures are sourced to real
-documents, plausibly formatted, and would survive a skim. See
-`docs/finops-trap-probe.md` for the full scoring and what it changes about the
-golden set.
+| Failure mode | Cases | Failed for v1 |
+|---|---|---|
+| `grounded_happy` (control) | 8 | 4 |
+| `stale_rate_card` | 5 | 3 |
+| `fabricated_number` | 5 | 1 |
+| `forecast_as_actual` | 4 | **0** |
+| `unauthorized_recommendation` | 3 | **0** |
+
+Two whole failure modes never fired, and `fabricated_number` fired once in
+five. The dataset was cut from 25 cases to 8 on that evidence — a case that
+returns the same verdict from both agents costs an agent call and a judge call
+to say nothing.
+
+The traps that survive are **synthesis** failures, not disclosure ones. The
+claim this demo makes is not "an ungoverned agent leaks data". It is **an
+ungoverned agent does confident arithmetic you cannot audit** — v1 prices
+current usage with a superseded rate card and invents a per-model billed cost
+that appears in no document. Both answers are sourced to real documents,
+plausibly formatted, and would survive a skim.
+
+The dropped modes are still *graded*: their rubric dimensions are
+`always_applicable` and fire on every remaining case. What was removed is the
+adversarial prompt that went hunting for them, not the check.
+
+### The FinOps scorecard
+
+The 8-case demo set, same agents, same corpus, differing only in instructions
+and retrieval:
+
+| | Naive (v1) | Hardened (v2) |
+|---|---|---|
+| `groundedness` | 2 cases below threshold | 5.00, none |
+| `relevance` | pass | pass |
+| `intent_resolution` *(report-only)* | pass | pass |
+| `finops_defensible_answer` | **4 of 8 fail** | **0 of 8** |
+| **Gate** | **FAIL — exit 1** | **PASS — exit 0** |
+
+All three control cases pass for **both** agents, which is what keeps this a
+comparison rather than a rigged board. MAP-019 also passes for both and is in
+the set on probation.
 
 ### The golden set and the rubric
 
-`datasets/meridian-finops-golden-v1.jsonl` — 26 cases, **generated** from the
+`datasets/meridian-finops-golden-v1.jsonl` — **8 cases**, **generated** from the
 same fact table as the corpus by `scripts/build_finops_golden.py`. Nothing is
 typed by hand: a dataset whose expected answer contradicts the documents marks
 a correct agent wrong, and that failure is indistinguishable from a model bug.
@@ -469,6 +497,7 @@ tamper-tested (§ T9.3). The remaining step is a scored run against Azure.
 
 | Read this | When |
 |---|---|
+| **`docs/demo-guide.md`** | **Start here — deploy, run, what is tested, what to expect** |
 | `docs/run-of-show.md` | Before presenting the advisor demo — timed 45-minute script |
 | `docs/finops-run-of-show.md` | Before presenting the FinOps demo — timed 30-minute script |
 | `docs/pre-flight-checklist.md` | 10 minutes before the meeting — covers both tracks |

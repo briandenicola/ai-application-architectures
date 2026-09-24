@@ -158,9 +158,12 @@ dataset_finops:
   name: meridian-finops-golden
   # v2 (2026-09-23): six non-discriminating cases dropped, 32 -> 26.
   # v3 (2026-09-24): MAP-014 dropped after it scored 1.000 from BOTH versions,
-  # 26 -> 25. Earlier versions are left registered rather than overwritten so
-  # any run scored against them stays interpretable.
-  version: "3"
+  # 26 -> 25.
+  # v4 (2026-09-24): cut to the 8-case demo set on the evidence of the full v3
+  # run -- two failure modes never fired at all. Earlier versions are left
+  # registered rather than overwritten so any run scored against them stays
+  # interpretable.
+  version: "4"
 
 evaluators_finops:
   builtin:

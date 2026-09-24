@@ -24,8 +24,8 @@ Three tracks, each a corpus plus a naive/hardened agent pair plus a golden set.
 | Track | Corpus | Agents | Golden set | Registered? |
 |---|---|---|---|---|
 | **Advisor** — wealth-management compliance | `corpus/` (12 docs) | `meridian-advisor-v1` / `-v2` | 30 cases, 3 refusals | ✅ full |
-| **FinOps** — AI platform cost governance | `corpus-finops/` (19 docs) | `meridian-finops-v1` / `-v2` | 26 cases, 3 refusals | ✅ full |
-| **People analytics** — HR inference | `corpus-hr/` (22 docs) | `meridian-people-v1` / `-v2` | 25 cases, 16 refusals | ⚠️ corpus + agents only |
+| **FinOps** — AI platform cost governance | `corpus-finops/` (19 docs) | `meridian-finops-v1` / `-v2` | 8 cases (cut from 25) | ✅ scored both versions |
+| **People analytics** — HR inference | `corpus-hr/` (22 docs) | `meridian-people-v1` / `-v2` | 25 cases, 16 refusals | ⚠️ rubric published; 2-case rehearsal only |
 
 "Registered" means the track has `dataset_*`, `evaluators_*` and `thresholds_*`
 in `evals.config.yaml` and can therefore be run and gated. HR has a corpus, an
@@ -175,27 +175,37 @@ working control in front of a client.
   four are now self-contained and say so explicitly
   (`docs/citation-delivery-finding.md`), **but every run produced before
   2026-09-24 was graded partly on plausibility.** The advisor scorecard has
-  since been reproduced under the corrected rubric (v8); the FinOps and HR
-  tracks have not. Delivering real retrieval to the judge is issue #15.
-- **MAP-014 still does not discriminate on recency.** It was rewritten on
-  2026-09-24 to target the labelling defect instead of card identification, and
-  probed: v1 opened "November 2025 used the October 2025 rate card" — correct.
-  The doc_id-in-body change genuinely fixed v1's card identification. The two
-  versions still separate on attribution (v1 cites opaque markers and omits the
-  disclosure; v2 gives inline doc_ids), so the case still earns its place, but
-  its `stale_rate_card` tag no longer describes why. Settle it with the full
-  FinOps run, then retag. Issue #13.
-- **The HR track has never been scored.** No rubric, not registered.
-- **A full both-version FinOps run has never been produced.**
+  since been reproduced under the corrected rubric (v8), and FinOps under v6.
+  HR has been scored only on a 2-case rehearsal. Delivering real retrieval to
+  the judge was issue #15, closed 2026-09-24 as plumbing with no demo payoff —
+  the rubric grades citations from the response prose, which works.
+- **MAP-014 was dropped, not fixed.** Scored against finops rubric v6 it
+  returned 1.000 from *both* versions — a flat perfect score on each side. The
+  id is retired rather than reused, so existing result files keep meaning what
+  they say.
+- **The HR track is barely scored.** The rubric is published (v3) and MHR-051
+  fires properly — v1 subtracted 3,499 from 3,500 and published the chief
+  executive's AI usage, scoring 0.451. But only **two of 25 cases** have ever
+  been run. Six of the eight rubric dimensions have scored nothing.
+- **MHR-023 flips between runs.** It scored 0.898 FAIL and 0.963 PASS on the
+  same day with nothing changed that touches the dimension under test, and has
+  never failed *for causal overreach*. Do not present it as a discriminator.
+- **MAP-019 does not discriminate.** It passes for both versions and is kept on
+  probation only.
 
 ---
 
 ## Open issues
 
-- **#11** — HR people-analytics track: rubric, registration, first scored run
-- **#13** — two unplanted FinOps failures worth promoting; re-probe first
-- **#14** — citation scoring: upstream half fixed and verified, downstream half
-  wired but unverified
+Scope was cut hard on 2026-09-24. Everything below #17 was closed as
+refinement of something that already demos, or as a track nobody asked for.
+
+- **#17** — *Closed by the capacity fix.* The agent deployment sat at 50 while
+  subscription quota was 1000; a 429 reached the evaluator as a null response
+  rather than a rate limit, so two full runs died as exit 2 with no mention of
+  quota. Raised to 500 and validated by a full 25-case run in both directions.
+
+Closed unfixed, deliberately: #11, #13, #14, #15, #16, #18.
 
 ---
 
