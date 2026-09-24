@@ -91,8 +91,50 @@ demonstrably catches MAP-010.
 > the `query`, or in the `response`. Anything else must be proven delivered
 > before the dimension is described as a control.
 
-## What was not proven
+## Follow-up: `messages` IS a live channel
 
-Whether `messages` (an accepted input) can carry the agent's retrieval tool
-calls and their outputs. If it can, it would repair the traceability half of
-both figure dimensions and give `citation_discipline` a real channel. Untested.
+**Probe:** `probes/messages_channel_probe.py`. Two arms, **identical assistant
+response** claiming gpt-5.5 output cost $50.00 in November 2025. Only the
+retrieved context carried in `messages` differed — one arm supplied the 2025-10
+card (which does say $50.00), the other supplied only the 2026-01 card (which
+says $40.00, so the stated figure is traceable to nothing).
+
+```
+grounded   (figure IS in context) : 1.0
+ungrounded (figure is NOT)        : 0.904
+```
+
+**The score moved on identical response text.** Content delivered through
+`messages` reaches the judge. This is the one channel that works.
+
+Four service constraints were discovered getting there, each a free 400:
+
+1. `messages` may not be mixed with `query`/`response` in one `data_mapping` —
+   they are distinct modes, "unified-messages" and "legacy request/response".
+2. Any *supported* field present in the inline data must be mapped. So the
+   item cannot merely stop mapping `query`/`response`; it must not contain
+   those columns at all.
+3. A unified-messages item_schema requires `evaluation_level` on the run.
+4. `evaluation_level: conversation` is rejected by rubric evaluators — "does
+   not support conversation-level evaluation and was skipped". Only `turn`
+   works.
+
+### But delivery alone did not fix the dimension
+
+In the ungrounded arm the judge scored `no_fabricated_figures` **5** — full
+marks — for a figure that appears in no retrieved document. The whole point of
+that dimension. The score only moved because `citation_discipline` slipped to
+3 on a technicality about naming the source.
+
+So the context arrived and the judge did not use it the way the prose intends.
+Delivery was necessary and is not sufficient: the dimension text says figures
+must "appear in the retrieved context" without telling the judge that the
+context is the system turn of the conversation it was handed.
+
+## What is still not proven
+
+Whether a **real agent run** can deliver its retrieved documents this way. The
+probe hand-built the conversation. In a live run the harness uses
+`azure_ai_target_completions` with an `azure_ai_agent` target, and whether that
+path exposes the agent's retrieval tool calls as mappable messages is untested.
+Without it, the channel works only for replayed conversations.
