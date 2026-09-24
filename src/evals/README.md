@@ -11,6 +11,11 @@ is an advisory fee.
 > **All data in this repository is synthetic.** No real client, account, or
 > personal information is present. See `docs/demo-traps.md`.
 
+> **New here, or coming back to it?** Start with
+> [`docs/demo-summary.md`](docs/demo-summary.md) — one page covering what is
+> built across all three tracks, how to run the demo, what it covers, and
+> what is not yet proven.
+
 ---
 
 ## What it shows
