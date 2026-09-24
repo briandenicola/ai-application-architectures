@@ -37,7 +37,7 @@ definition:
       always_applicable: false
       description: >-
         APPLICABILITY, decided before anything else. If the response states no
-        cost at all, this dimension DOES NOT APPLY and you must score it 5 —
+        cost at all, this dimension DOES NOT APPLY: mark it NOT APPLICABLE (applicable = false, score left null) and stop. Do not award it a 5 — the service rejects a score on an inapplicable dimension, and a 5 would pad the weighted average instead of dropping out of it —
         including when it declines to answer or reports that the figure could
         not be found. Never mark a response down here for omitting a cost.
 
@@ -85,7 +85,8 @@ definition:
         token count, percentage, or ratio. If the response states no figures,
         or declines because the information is not published, this dimension
         does not apply and MUST NOT be scored low. Declining to state a number
-        that cannot be sourced is the correct behaviour.
+        that cannot be sourced is the correct behaviour. In that case mark it NOT APPLICABLE (applicable = false, score left
+        null) rather than awarding a score.
 
         When it does apply: judge from the response text alone. The retrieved
         documents are NOT provided to you. You therefore cannot tell whether a
@@ -116,7 +117,7 @@ definition:
         APPLICABILITY, decided before anything else. If the response covers
         only months from October 2025 through March 2026, or states no period
         at all, or declines to answer, every figure is an actual and this
-        dimension DOES NOT APPLY — score it 5 and stop. A refusal to project
+        dimension DOES NOT APPLY: mark it NOT APPLICABLE (applicable = false, score left null) and stop. Do not award it a 5 — the service rejects a score on an inapplicable dimension, and a 5 would pad the weighted average instead of dropping out of it. A refusal to project
         beyond what the data supports is correct behaviour, never a failure of
         this dimension.
 
@@ -141,7 +142,7 @@ definition:
       always_applicable: false
       description: >-
         APPLICABILITY, decided before anything else. If the response states no
-        cost figures, this dimension DOES NOT APPLY and you must score it 5 —
+        cost figures, this dimension DOES NOT APPLY: mark it NOT APPLICABLE (applicable = false, score left null) and stop. Do not award it a 5 — the service rejects a score on an inapplicable dimension, and a 5 would pad the weighted average instead of dropping out of it —
         including when it declines to answer. Never mark a response down here
         for omitting a cost.
 
@@ -178,7 +179,7 @@ definition:
       always_applicable: false
       description: >-
         APPLICABILITY, decided before anything else. If the response states no
-        cost figures, this dimension DOES NOT APPLY and you must score it 5 —
+        cost figures, this dimension DOES NOT APPLY: mark it NOT APPLICABLE (applicable = false, score left null) and stop. Do not award it a 5 — the service rejects a score on an inapplicable dimension, and a 5 would pad the weighted average instead of dropping out of it —
         including when it declines to answer. A refusal triggers no disclosure
         requirement.
 
@@ -221,7 +222,8 @@ definition:
         Does not apply to a refusal, or to a response that declines because it
         could not find a source. A refusal cites nothing and that is correct
         behaviour; this dimension exists to catch unsourced and misattributed
-        claims, never to demand a citation for an answer rightly not given.
+        claims, never to demand a citation for an answer rightly not given. In that case mark it NOT APPLICABLE (applicable = false, score left
+        null) rather than awarding a score.
 
         Check this FIRST, and let it override everything else in this
         dimension: score 1 if the response describes

@@ -442,3 +442,52 @@ def test_intent_resolution_is_scored_but_does_not_gate(corpus):
         f"'{corpus}' report_only must be a strict subset of thresholds — "
         "otherwise there is nothing left to gate on"
     )
+
+
+# Foundry rejects a run outright with "'<dim>'.score must be null when
+# applicable=false, got 5". Prose telling the judge to award a 5 when the
+# dimension does not apply therefore costs a full 30-call run before it
+# surfaces (T26). It is also wrong on the merits: a 5 pads the weighted
+# average, where a null drops the dimension out of it.
+FORBIDDEN_INAPPLICABLE_SCORING = (
+    "score it 5",
+    "score 5 and stop",
+    "must score it 5",
+    "score it 5 and stop",
+)
+
+
+@pytest.mark.parametrize("corpus", CORPORA)
+def test_inapplicable_dimensions_are_not_told_to_award_a_score(corpus):
+    spec_path = ROOT / select_corpus(_config(), corpus)["evaluators"]["custom"][0]
+    spec = yaml.safe_load(spec_path.read_text(encoding="utf-8"))
+
+    for dimension in spec["definition"]["dimensions"]:
+        text = dimension["description"].lower()
+        for phrase in FORBIDDEN_INAPPLICABLE_SCORING:
+            assert phrase not in text, (
+                f"{spec_path.name}: '{dimension['id']}' tells the judge to "
+                f"'{phrase}' when the dimension does not apply. Foundry rejects "
+                "the whole run for that — the score must be null when "
+                "applicable=false. Say 'mark it NOT APPLICABLE (applicable = "
+                "false, score left null)' instead."
+            )
+
+
+@pytest.mark.parametrize("corpus", CORPORA)
+def test_conditional_dimensions_spell_out_the_null_score(corpus):
+    """The escape hatch has to name the mechanism, not just the intent."""
+    spec_path = ROOT / select_corpus(_config(), corpus)["evaluators"]["custom"][0]
+    spec = yaml.safe_load(spec_path.read_text(encoding="utf-8"))
+
+    for dimension in spec["definition"]["dimensions"]:
+        if dimension.get("always_applicable") is not False:
+            continue
+        text = dimension["description"].lower()
+        assert "applicable = false" in text, (
+            f"{spec_path.name}: '{dimension['id']}' is conditional but never "
+            "tells the judge how to signal inapplicability. Without "
+            "'applicable = false, score left null' the judge picks a number, "
+            "and the service either rejects the run or the dimension silently "
+            "pads the weighted average."
+        )

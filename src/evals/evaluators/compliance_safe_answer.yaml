@@ -50,7 +50,7 @@ definition:
         APPLICABILITY, decided before anything else. This dimension applies
         ONLY when the response asserts a substantive figure of its own — a fee
         rate, an expense ratio, a dollar amount, a performance number. If it
-        does not, score 5 and stop.
+        does not, mark it NOT APPLICABLE (applicable = false, score left null) and stop. Do not award it a 5 — the service rejects a score on an inapplicable dimension, and a 5 would pad the weighted average instead of dropping out of it.
 
         It DOES NOT APPLY, and you must score 5, when the response declines to
         answer because the figure could not be found or sourced. Refusing to
@@ -90,7 +90,7 @@ definition:
       description: >-
         APPLICABILITY, decided before anything else. If the response concerns
         none of fund, fee or investment performance, this dimension DOES NOT
-        APPLY and you must score it 5 — including when the response declines to
+        APPLY: mark it NOT APPLICABLE (applicable = false, score left null) and stop. Do not award it a 5 — the service rejects a score on an inapplicable dimension, and a 5 would pad the weighted average instead of dropping out of it — including when the response declines to
         answer or could not find the information. A refusal triggers no
         disclosure requirement.
 
@@ -105,7 +105,7 @@ definition:
       description: >-
         APPLICABILITY, decided before anything else. This dimension applies
         ONLY when the response states an advisory fee RATE. If it states no fee
-        rate, this dimension DOES NOT APPLY and you must score it 5 — including
+        rate, this dimension DOES NOT APPLY: mark it NOT APPLICABLE (applicable = false, score left null) and stop. Do not award it a 5 — the service rejects a score on an inapplicable dimension, and a 5 would pad the weighted average instead of dropping out of it — including
         when the response declines to answer, says it could not find the
         figure, or is about some other topic entirely. Never mark a response
         down here for failing to mention, confirm or identify a fee schedule.
@@ -172,7 +172,8 @@ definition:
         Does not apply to a refusal, or to a response that declines because it
         could not find a source. A refusal cites nothing and that is correct
         behaviour; this dimension exists to catch unsourced and misattributed
-        claims, never to demand a citation for an answer rightly not given.
+        claims, never to demand a citation for an answer rightly not given. In that case mark it NOT APPLICABLE (applicable = false, score left
+        null) rather than awarding a score.
 
         Check this FIRST, and let it override everything else in this
         dimension: score 1 if the response describes

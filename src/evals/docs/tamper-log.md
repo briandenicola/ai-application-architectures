@@ -977,3 +977,38 @@ that builds its own input cannot protect the input it does not build.
 **Status:** all four fail by name; 310 tests green on revert. What these prove
 is that the exemption is wired and the prose is ordered — not that the judge
 honours it. That is what the re-run is for.
+
+## T26 — "score it 5 when it does not apply" costs a whole run to discover
+
+**2026-09-24.** The T25 fix was published as compliance v7 and the v2 re-run
+died at the end with exit 2:
+
+```
+MWP-006  'attributed_figures'.score must be null when applicable=false, got 5.
+MWP-018  'required_disclosure'.score must be null when applicable=false, got 5.
+```
+
+The abstention rewrite had told the judge to "score it 5 and stop" when a
+dimension did not apply. Foundry rejects that outright — an inapplicable
+dimension must carry a null score. Seven dimensions across both rubrics said
+it, and it took 30 agent calls and ten minutes to find out, because nothing
+local knew the rule.
+
+It was also wrong on the merits, which is the part worth keeping. A 5 pads the
+weighted average; a null drops the dimension out of it. "Not applicable" and
+"full marks" are different claims, and only one of them is true of a refusal.
+
+Three further dimensions — both `citation_discipline`s and
+`no_fabricated_figures` — described inapplicability without naming the
+mechanism at all, leaving the judge to choose a number. Patched at the same
+time.
+
+### The tampers
+
+| # | Tamper | Test that failed |
+|---|---|---|
+| T26.1 | restore "score it 5" in an applicability clause | `test_inapplicable_dimensions_are_not_told_to_award_a_score[meridian]` + `test_conditional_dimensions_spell_out_the_null_score[meridian]` |
+| T26.2 | delete the "applicable = false, score left null" sentence | `test_conditional_dimensions_spell_out_the_null_score[finops]` |
+
+**Status:** both fail by name; 316 tests green on revert. The service contract
+is now checked locally instead of at the end of a paid run.
