@@ -50,21 +50,41 @@ def parse_args() -> argparse.Namespace:
         "rehearsing a run without paying for the full golden set.",
     )
     parser.add_argument(
+        "--cases",
+        nargs="+",
+        metavar="CASE_ID",
+        help="Publish only these case ids, in dataset order. Unlike --limit this "
+        "picks the cases worth running rather than whichever happen to be first. "
+        "An id that is not in the dataset is an error, not a smaller dataset.",
+    )
+    parser.add_argument(
         "--corpus",
         choices=("meridian", "finops"),
         default="meridian",
         help="Which track to operate on. Swaps in the _finops config blocks.",
     )
-    return parser.parse_args()
+    args = parser.parse_args()
+    if args.cases and args.limit:
+        fail("--cases and --limit both select a subset -- pass one or the other")
+    return args
 
 
-def to_eval_items(dataset_path: Path, limit: int | None = None) -> str:
+def to_eval_items(
+    dataset_path: Path,
+    limit: int | None = None,
+    cases: list[str] | None = None,
+) -> str:
     """Flatten the golden dataset into the item shape the eval reads.
 
     Only fields the evaluation actually consumes are published. Fields used for
     authoring notes stay out of the uploaded asset so the portal view is
     readable during the demo.
     """
+    # `is not None`, not truthiness: an empty selection must fail, not quietly
+    # fall through to publishing the entire golden set.
+    wanted = set(cases) if cases is not None else None
+    seen: set[str] = set()
+
     lines: list[str] = []
     for raw in dataset_path.read_text(encoding="utf-8").splitlines():
         if not raw.strip():
@@ -72,6 +92,10 @@ def to_eval_items(dataset_path: Path, limit: int | None = None) -> str:
         if limit is not None and len(lines) >= limit:
             break
         row = json.loads(raw)
+        if wanted is not None:
+            if row["case_id"] not in wanted:
+                continue
+            seen.add(row["case_id"])
         lines.append(
             json.dumps(
                 {
@@ -85,6 +109,14 @@ def to_eval_items(dataset_path: Path, limit: int | None = None) -> str:
                 }
             )
         )
+    if wanted is not None:
+        missing = sorted(wanted - seen)
+        if missing:
+            # Seeding fewer cases than asked for, silently, would produce a
+            # run that looks complete and covers less than it claims.
+            fail(f"--cases named {', '.join(missing)}, which are not in {dataset_path.name}")
+    if not lines:
+        fail(f"no cases selected from {dataset_path.name}")
     return "\n".join(lines) + "\n"
 
 
@@ -116,7 +148,7 @@ def main() -> int:
 
     name = args.name or dataset_cfg["name"]
     version = str(args.version or dataset_cfg.get("version", "1"))
-    payload = to_eval_items(dataset_path, args.limit)
+    payload = to_eval_items(dataset_path, args.limit, args.cases)
     case_count = len(payload.strip().splitlines())
 
     console.print()
