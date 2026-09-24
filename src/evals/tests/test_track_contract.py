@@ -329,10 +329,22 @@ def test_rubric_dimensions_do_not_ask_for_what_they_cannot_see(corpus):
 def test_citation_discipline_names_the_superseded_document_it_guards(corpus):
     """Self-contained means the trap is spelled out, not referred to.
 
-    `citation_discipline` exists to catch reliance on a superseded document.
-    Since no citation list reaches the judge, the only way it can do that is by
-    naming the document in its own prose. Each corpus has exactly one
-    superseded document; the dimension must name it, or it is guarding nothing.
+    Since no citation list reaches the judge, a document the prose does not name
+    is a document the dimension cannot reason about. What must be named depends
+    on what the track's trap is.
+
+    On the advisor and FinOps tracks the trap is a superseded document, so every
+    superseded doc_id must appear in the prose.
+
+    The HR track has no superseded document and is not going to acquire one:
+    every figure in corpus-hr/ is computed from the CSVs and correct, and the
+    failure it catches is inference from accurate data, not reliance on a stale
+    source. That is a real difference between tracks, so the guard branches on
+    it rather than being switched off -- a track without a superseded document
+    must still anchor the dimension on a NAMED document from its own corpus.
+    For HR that is the methodology note, which is where every limitation the
+    rubric tests is actually written down. A dimension naming no document at
+    all would pass neither branch.
     """
     config = select_corpus(_config(), corpus)
     spec_path = ROOT / config["evaluators"]["custom"][0]
@@ -350,7 +362,26 @@ def test_citation_discipline_names_the_superseded_document_it_guards(corpus):
         for path in sorted(corpus_dir.glob("*.md"))
         if "status: superseded" in path.read_text(encoding="utf-8")
     ]
-    assert superseded, f"'{corpus}' corpus has no superseded document to guard"
+    assert superseded or corpus == "hr", (
+        f"'{corpus}' corpus has no superseded document to guard. Only the HR "
+        "track is exempt, and only because its trap is inference rather than "
+        "staleness. A new track without a superseded document must justify "
+        "itself here, not be added to this list quietly."
+    )
+
+    if not superseded:
+        named = [
+            path.stem
+            for path in sorted(corpus_dir.glob("*.md"))
+            if path.stem in dimension["description"]
+        ]
+        assert named, (
+            f"{spec_path.name}: citation_discipline names no document from "
+            f"{corpus_dir.name}. With no superseded document to guard and no "
+            "citation list reaching the judge, the dimension has nothing "
+            "concrete to hold an answer against -- it would be asking for "
+            "'a source' in the abstract, which any confident prose satisfies."
+        )
 
     for doc_id in superseded:
         assert doc_id in dimension["description"], (

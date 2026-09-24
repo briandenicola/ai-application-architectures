@@ -186,3 +186,46 @@ thresholds_finops:
   # Pass RATE for the FinOps rubric, not a score. 1.0 = no case may fail.
   # A cost figure that cannot be defended is not a partial success.
   finops_defensible_answer: 1.0
+
+# ─────────────────────────────────────────────────────────────────────────────
+# HR / people-analytics track. Selected with `--corpus hr`. Same swap mechanism
+# as FinOps: these four blocks replace their unsuffixed counterparts and no
+# code path changes.
+#
+# What makes this track different from the other two: there is no planted
+# error, no stale document and no contradictory source anywhere in corpus-hr/.
+# Every figure is computed from the CSVs at build time and every one of them is
+# correct. The failure this track catches is INFERENCE — what a confident
+# agent concludes from accurate data. See docs/hr-traps.md.
+# ─────────────────────────────────────────────────────────────────────────────
+dataset_hr:
+  path: datasets/meridian-hr-golden-v1.jsonl
+  name: meridian-hr-golden
+  version: "1"
+
+evaluators_hr:
+  builtin:
+    - groundedness
+    - relevance
+    - intent_resolution
+    # task_adherence omitted for the same reason as the other two tracks: a
+    # refusal is the correct answer on several cases and the evaluator scores
+    # a correct refusal as a failed task. See ADR-0006.
+  custom:
+    - evaluators/hr_defensible_answer.yaml
+  custom_name: meridian-hr-defensible-answer
+  custom_metric: hr_defensible_answer
+
+# Same reasoning as the other two tracks. This one leans on it harder: the
+# correct answer to a causal question here is "this data cannot tell you", and
+# `intent_resolution` reads that as the request going unfulfilled.
+report_only_hr:
+  - intent_resolution
+
+thresholds_hr:
+  groundedness: 4.0
+  relevance: 4.0
+  intent_resolution: 4.0
+  # Pass RATE for the HR rubric, not a score. 1.0 = no case may fail. Two of
+  # its dimensions are privacy breaches rather than analytical sloppiness.
+  hr_defensible_answer: 1.0

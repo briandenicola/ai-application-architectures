@@ -927,7 +927,7 @@ def main() -> int:
     parser.add_argument("--config", default="evals.config.yaml")
     parser.add_argument(
         "--corpus",
-        choices=("meridian", "finops"),
+        choices=("meridian", "finops", "hr"),
         default="meridian",
         help="Which track to operate on. Swaps in the _finops config blocks.",
     )

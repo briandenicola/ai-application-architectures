@@ -59,7 +59,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--corpus",
-        choices=("meridian", "finops"),
+        choices=("meridian", "finops", "hr"),
         default="meridian",
         help="Which track to operate on. Swaps in the _finops config blocks.",
     )

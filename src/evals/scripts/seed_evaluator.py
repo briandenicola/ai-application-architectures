@@ -63,7 +63,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Publish the custom rubric evaluator.")
     parser.add_argument(
         "--corpus",
-        choices=("meridian", "finops"),
+        choices=("meridian", "finops", "hr"),
         default="meridian",
         help="Which track's rubric to publish. Swaps in the _finops config blocks.",
     )
