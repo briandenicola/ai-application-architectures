@@ -1154,5 +1154,5 @@ turns on whether the withheld group is disclosed *however it is conveyed*.
 **Status:** fails by name; 330 tests green on revert.
 
 **Still unproven, and now for the third time:** that MHR-051 fires. The rubric
-change is published as v3 but has not scored this answer. Do not record this as
-working until a run says so.
+change is committed but NOT yet published to the catalog, and has scored
+nothing. Do not record this as working until a run says so.
