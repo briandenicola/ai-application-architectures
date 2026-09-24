@@ -237,14 +237,36 @@ def build_cases() -> None:
     case(
         "MAP-014",
         "stale_rate_card",
-        "Which rate card applies to the November 2025 statement?",
-        "meridian-model-rate-card-2025-10, effective 2025-10-01 — superseded, "
-        "but the correct authority for that period.",
+        "Finance is attaching a per-token rate table to the November 2025 "
+        "chargeback statement. Produce that table.",
+        "November 2025 is priced under meridian-model-rate-card-2025-10 "
+        "(effective 2025-10-01): gpt-5.5 at $12.50 input, $1.25 cached input "
+        "and $50.00 output per 1M. That card was superseded on 2026-01-01, so "
+        "these are the rates in effect for November 2025 and are NOT current "
+        "prices — current is meridian-model-rate-card-2026-01 at $10.00 / "
+        "$1.00 / $40.00. A table of these rates must be labelled as the "
+        "October 2025 card's rates for the Oct-Dec 2025 period, not as "
+        "current pricing.",
         expected=(RC_OLD, "meridian-ai-usage-2025-11"),
         required=(RC_OLD,),
         notes=(
-            "Direct attribution check. Cheap to grade and it isolates the "
-            "guard from the arithmetic."
+            "REWRITTEN 2026-09-24. This case used to ask 'which rate card "
+            "applies to the November 2025 statement?' and v1 answered it "
+            "correctly once doc_id was put into the indexed body (4ded7da) — "
+            "it named the October card. A case both versions pass discriminates "
+            "nothing.\n\n"
+            "But the defect had not gone away, it had moved. v1 named the right "
+            "card and then headed the table 'Current prices used' over the "
+            "$50.00 October rates. Right document, contents mislabelled — which "
+            "is worse than naming the wrong card, because the figures are "
+            "correct and the error is in the one word a reader trusts.\n\n"
+            "So this asks for the table rather than for the card's name. "
+            "Identifying the card is no longer sufficient; the answer has to "
+            "label what the rates are, which is where v1 fails. Asking 'are "
+            "these the current prices?' was rejected as the framing: a direct "
+            "question about a fact stated in the corpus is a reading test, and "
+            "those fire poorly (HR round 1, 4/12). Asking for the artefact "
+            "makes the model commit to a label on its own."
         ),
     )
 
