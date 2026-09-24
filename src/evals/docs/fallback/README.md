@@ -48,7 +48,7 @@ people ask to see again.
 ## Using the fallback
 
 If the live run fails, say so plainly and move to these. Do not debug on stage —
-`docs/demo-guide.md` § 7 covers the transition. The argument does not depend on the
+`docs/run-of-show.md` covers the transition. The argument does not depend on the
 run happening live; it depends on the *contrast*, and that is fully present in
 the captured output.
 

@@ -11,10 +11,14 @@ is an advisory fee.
 > **All data in this repository is synthetic.** No real client, account, or
 > personal information is present. See `docs/demo-traps.md`.
 
-> **New here, or coming back to it?** Start with
-> [`docs/demo-guide.md`](docs/demo-guide.md) — the single guide to deploying,
-> running, presenting and defending this demo, including the timed scripts for
-> both tracks and an explicit list of what is *not* proven.
+> **New here, or coming back to it?** Three documents cover the demo end to
+> end:
+> [`docs/demo-guide.md`](docs/demo-guide.md) — what it is, what is tested,
+> what to expect, and what is *not* proven;
+> [`docs/deploy-and-run.md`](docs/deploy-and-run.md) — provision, run the
+> gate, tear down;
+> [`docs/run-of-show.md`](docs/run-of-show.md) — timed scripts for both
+> tracks.
 
 ---
 
@@ -303,7 +307,7 @@ agents/                v1-naive / v2-hardened prompt agent definitions
 evaluators/            custom compliance rubric
 scripts/               provisioning, seeding, evaluation, teardown
 tests/                 corpus, dataset, parity, gate and threshold invariants
-docs/                  demo guide, architecture, traps, threat model, ADRs
+docs/                  demo guide, deploy + run, run of show, architecture, traps, ADRs
 specs/                 the spec this was built from
 .specify/memory/       the constitution governing it
 ```
@@ -505,7 +509,9 @@ tamper-tested (§ T9.3). The remaining step is a scored run against Azure.
 
 | Read this | When |
 |---|---|
-| **`docs/demo-guide.md`** | **Start here — deploy, run, present, defend. Includes both timed scripts.** |
+| **`docs/demo-guide.md`** | **Start here — what it is, what is tested, what to expect, what is not proven** |
+| `docs/deploy-and-run.md` | Provision, load content, run the gate, exit codes, tear down |
+| `docs/run-of-show.md` | Timed minute-by-minute scripts for both tracks |
 | `docs/pre-flight-checklist.md` | 10 minutes before the meeting — covers both tracks |
 | `docs/demo-traps.md` | To understand what is planted and why — both tracks |
 | `docs/finops-data-dictionary.md` | When someone asks what the cost data actually contains |

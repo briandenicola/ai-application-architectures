@@ -131,7 +131,7 @@ fabrication; the compliance rubric judges whether a refusal was handled well.
 `relevance` and `intent_resolution` show a milder form of the same bias: both
 mark down refusal cases. They are kept because they still pass comfortably and
 do catch real problems, but the effect is visible in the per-case rollup and the
-demo guide tells the presenter how to answer it rather than hoping nobody asks.
+run-of-show tells the presenter how to answer it rather than hoping nobody asks.
 
 **The general lesson, and the one worth saying to a compliance audience:**
 choosing evaluators is engineering, not configuration. Three of Foundry's
