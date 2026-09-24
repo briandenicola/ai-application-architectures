@@ -882,6 +882,46 @@ control until it is redesigned around a delivered input. The same finding puts
 a caveat on `attributed_figures` and `no_fabricated_figures`, which check
 figures against a `context` that is likewise never delivered.
 
+## T24 — the rubrics now judge only from what they are given
+
+T23 proved the citation columns never reach a rubric evaluator. Following that
+thread showed the same defect in three more dimensions, including two at
+weight 10 and the one carrying the advisor track's central trap. All four were
+rewritten to be self-contained, and the guards were rebuilt around the actual
+rule rather than around the citation columns specifically.
+
+The rule: **a rubric dimension may depend only on its own prose, the query, or
+the response.**
+
+| # | tamper | verified destroyed | failed by name |
+|---|---|---|---|
+| 1 | map `forbidden_citations` back into the rubric criterion | key present in data_mapping | `test_no_undeliverable_inputs_are_mapped` |
+| 2 | replace the superseded doc_id in finops `citation_discipline` with "the older rate card" | doc_id absent from prose | `test_citation_discipline_names_the_superseded_document_it_guards` |
+| 3 | restore the old context-dependent `recency` prose | disclaimer absent | `test_rubric_dimensions_do_not_ask_for_what_they_cannot_see` |
+| 4 | repoint the finops corpus directory at one with no superseded document | directory changed in config | `test_citation_discipline_names_the_superseded_document_it_guards` |
+
+Tamper 1 is the successor to T20 and T23. Both earlier defects were the same
+shape — a citation column published and read by nothing — and the guard now
+catches the general case rather than the two field names that happened to be
+involved.
+
+Tamper 4 is the one that proves the guard is not decorative. The superseded
+document is found by **reading the corpus**, not from a hardcoded id, so the
+test cannot drift into asserting something that is no longer true of the data.
+Repointing the directory made it fail immediately.
+
+Tamper 3 restores the exact prose that shipped for months. It failing now is
+the point: that prose passed every test in the suite while instructing the
+judge to consult documents it has never been given.
+
+**Reverted.** All four restored, 290 tests green.
+
+**Status: PROVEN, with one part still to verify against the service.** The
+guards hold the rubrics to the rule. That the rewritten `citation_discipline`
+actually fires is checked separately by `probes/citation_discipline_probe.py`
+against the republished rubrics — a guard that the prose is well-formed is not
+evidence that the judge acts on it, which is the whole lesson of T23.
+
 ---
 
 > If a row in this log is empty, the corresponding guard is **unproven**. Do not
