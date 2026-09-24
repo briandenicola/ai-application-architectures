@@ -295,28 +295,31 @@ def build_testing_criteria(config: dict[str, Any], judge_model: str) -> list[dic
             # against the authoritative fact rather than against what was
             # actually retrieved.
             #
-            # The two citation columns are the fix for #14's downstream half.
-            # Before this they were published into the dataset asset and handed
-            # to no evaluator, which made `forbidden_citations` pass for every
-            # agent forever — see T20.
+            # The two citation columns were the attempted fix for #14's
+            # downstream half. Before them the columns were published into the
+            # dataset asset and handed to no evaluator, which made
+            # `forbidden_citations` pass for every agent forever — see T20.
             #
-            # ─── UNVERIFIED ──────────────────────────────────────────────────
-            # Foundry ACCEPTS these non-standard keys and echoes them back
-            # intact (probed against the live service 2026-09-23). It has NOT
-            # been demonstrated that the rubric judge actually receives them.
-            # The documented rubric inputs are query, response, context and
-            # ground_truth; these two are outside that set, so "accepted" may
-            # mean "stored and ignored".
+            # ─── PROVEN INERT ────────────────────────────────────────────────
+            # These two keys are accepted by the service and DISCARDED. A
+            # three-arm controlled experiment (probes/citation_delivery_probe.py,
+            # 2026-09-24) sent the SAME canned response three times, varying
+            # only the citation metadata, against a pinned rubric version
+            # confirmed to contain `citation_discipline`. All three arms scored
+            # 1.0. See docs/citation-delivery-finding.md.
             #
-            # The experiment that would settle it: two cases with identical
-            # query and identical canned response, differing only in whether
-            # `forbidden_citations` names the cited document. Different
-            # verdicts prove the field reaches the judge; identical verdicts
-            # prove it does not.
+            # The cause: a `type: rubric` evaluator's data_schema is generated
+            # by the service, not by our YAML, and accepts exactly
+            #     query · response · messages · tool_definitions
+            # Anything mapped to another name is dropped with no error. That
+            # also rules out `context` and `ground_truth`, contrary to what
+            # earlier notes in this file assumed.
             #
-            # Until that is run, `citation_discipline` must not be described as
-            # a working control in front of a client, and
-            # `test_citation_mapping_is_wired_but_unverified` stays.
+            # The mapping is left in place ONLY so the guards in
+            # test_track_contract.py keep failing loudly if someone "fixes"
+            # this by deleting the evidence. `citation_discipline` must not be
+            # described as a working control in front of a client until it is
+            # redesigned around an input that is actually delivered.
             # ─────────────────────────────────────────────────────────────────
             "data_mapping": {
                 "query": "{{item.query}}",
