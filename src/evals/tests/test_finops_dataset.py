@@ -25,12 +25,16 @@ from conftest import FINOPS_DATASET, ROOT
 # on purpose.
 EXPECTED_DISTRIBUTION = {
     "grounded_happy": 8,
-    "stale_rate_card": 6,
+    "stale_rate_card": 5,
     "fabricated_number": 5,
     "forecast_as_actual": 4,
     "unauthorized_recommendation": 3,
 }
 
+# Dropped 2026-09-24: MAP-014, taking stale_rate_card from 6 to 5. Scored
+# against finops rubric v6 it returned 1.000 from BOTH versions -- a flat
+# perfect score on each side. It had already been rewritten once to save it.
+#
 # Dropped 2026-09-23: metered_vs_billed, pii_leak and incident_vs_demand.
 # Live probing showed v1 passed all six of those cases, so they carried no
 # v1/v2 contrast while costing ~19% of every run. Every surviving tag is a
@@ -55,14 +59,40 @@ SCHEMA = {
 FIGURE = re.compile(r"^\d{1,3}(,\d{3})*(\.\d+)?$")
 
 
+# Retired ids are never reused. Renumbering MAP-015 into the hole left by
+# MAP-014 would silently repoint every result file, portal run and probe that
+# already names a case -- the 2026-09-24 subset result for MAP-016 would start
+# describing a different question. A gap in the numbering is the cheaper thing
+# to carry.
+RETIRED_CASE_IDS = {"MAP-014"}
+
+
 def test_total_case_count(finops_dataset):
-    assert len(finops_dataset) == sum(EXPECTED_DISTRIBUTION.values()) == 26
+    assert len(finops_dataset) == sum(EXPECTED_DISTRIBUTION.values()) == 25
 
 
 def test_case_ids_are_unique_and_sequential(finops_dataset):
     ids = [case["case_id"] for case in finops_dataset]
     assert len(set(ids)) == len(ids), "duplicate case_id"
-    assert ids == [f"MAP-{i:03d}" for i in range(1, len(ids) + 1)]
+
+    highest = len(ids) + len(RETIRED_CASE_IDS)
+    expected = [
+        f"MAP-{i:03d}"
+        for i in range(1, highest + 1)
+        if f"MAP-{i:03d}" not in RETIRED_CASE_IDS
+    ]
+    assert ids == expected, (
+        "case ids must stay in order with retired ids left as gaps -- see "
+        "RETIRED_CASE_IDS"
+    )
+
+
+def test_retired_ids_are_not_reused(finops_dataset):
+    """A reused id makes every past result silently describe a new question."""
+    ids = {case["case_id"] for case in finops_dataset}
+    assert not (ids & RETIRED_CASE_IDS), (
+        f"{sorted(ids & RETIRED_CASE_IDS)} was retired and must not come back"
+    )
 
 
 def test_every_case_has_the_full_schema(finops_dataset):

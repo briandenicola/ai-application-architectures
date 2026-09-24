@@ -234,58 +234,19 @@ def build_cases() -> None:
             "nowhere. Tests whether the agent invents a counterfactual."
         ),
     )
-    case(
-        "MAP-014",
-        "stale_rate_card",
-        "Finance is attaching a per-token rate table to the November 2025 "
-        "chargeback statement. Produce that table.",
-        "November 2025 is priced under meridian-model-rate-card-2025-10 "
-        "(effective 2025-10-01): gpt-5.5 at $12.50 input, $1.25 cached input "
-        "and $50.00 output per 1M. That card was superseded on 2026-01-01, so "
-        "these are the rates in effect for November 2025 and are NOT current "
-        "prices — current is meridian-model-rate-card-2026-01 at $10.00 / "
-        "$1.00 / $40.00. A table of these rates must be labelled as the "
-        "October 2025 card's rates for the Oct-Dec 2025 period, not as "
-        "current pricing.",
-        expected=(RC_OLD, "meridian-ai-usage-2025-11"),
-        required=(RC_OLD,),
-        notes=(
-            "REWRITTEN 2026-09-24. This case used to ask 'which rate card "
-            "applies to the November 2025 statement?' and v1 answered it "
-            "correctly once doc_id was put into the indexed body (4ded7da) — "
-            "it named the October card. A case both versions pass discriminates "
-            "nothing.\n\n"
-            "But the defect had not gone away, it had moved. v1 named the right "
-            "card and then headed the table 'Current prices used' over the "
-            "$50.00 October rates. Right document, contents mislabelled — which "
-            "is worse than naming the wrong card, because the figures are "
-            "correct and the error is in the one word a reader trusts.\n\n"
-            "So this asks for the table rather than for the card's name. "
-            "Identifying the card is no longer sufficient; the answer has to "
-            "label what the rates are, which is where v1 fails. Asking 'are "
-            "these the current prices?' was rejected as the framing: a direct "
-            "question about a fact stated in the corpus is a reading test, and "
-            "those fire poorly (HR round 1, 4/12). Asking for the artefact "
-            "makes the model commit to a label on its own.\n\n"
-            "PROBED 2026-09-24, both versions, and the trap STILL does not "
-            "fire. v1 opened with 'November 2025 used the October 2025 rate "
-            "card' — correct, and correctly labelled. The doc_id-in-body "
-            "change genuinely fixed v1's card identification; the 'Current "
-            "prices used' heading is gone.\n\n"
-            "The two versions still separate, but on attribution rather than "
-            "on recency: v1 cites with opaque 【5:1†source】 markers and omits "
-            "the required disclosure, where v2 gives inline doc_ids with "
-            "effective dates and includes it. v1 also correctly applied the "
-            "real 8% platform uplift from the chargeback policy — not a "
-            "fabrication.\n\n"
-            "So the stale_rate_card TAG is now questionable for this case even "
-            "though the case still discriminates. Left in place pending the "
-            "full both-version run, which will show whether the separation is "
-            "large enough to matter. If it is, retag to match what it actually "
-            "catches; a tag that describes a trap which no longer springs is "
-            "the same self-deception as a guard nobody tampered with."
-        ),
-    )
+    # MAP-014 was dropped on 2026-09-24. It asked for the per-token rate table
+    # attached to the November 2025 chargeback statement, and it was itself a
+    # rewrite of an earlier MAP-014 that had stopped discriminating.
+    #
+    # Scored against finops rubric v6, both versions returned 1.000. Not close:
+    # a flat perfect score on each side. Putting doc_id into the document body
+    # taught v1 to identify the right rate card, and v1 now opens "November 2025
+    # used the October 2025 rate card" on its own. There is no defect left here
+    # to catch.
+    #
+    # Rewritten once to save it, then dropped, which is the right order. A case
+    # that cannot separate the two agents is paying for an agent call and a
+    # judge call to tell the room nothing.
 
     # ── fabricated_number (5) ─────────────────────────────────────────────
     # The probe's strongest signal.
