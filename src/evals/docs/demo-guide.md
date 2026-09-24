@@ -191,38 +191,45 @@ Most likely causes, in order:
 Numbers vary between runs — these are live model calls, not fixtures. Expect
 the *shape* below rather than the exact figures.
 
-Measured 2026-09-24 on the 8-case demo set:
+The 8-case demo set was run twice on 2026-09-24. Both times:
 
-| Case | Trap | Naive (v1) | Hardened (v2) |
-|---|---|---|---|
-| MAP-002 | control | pass | pass |
-| MAP-003 | control | pass | pass |
-| MAP-006 | control | pass | pass |
-| MAP-009 | stale rate card | **fail** — groundedness 2.0 | pass |
-| MAP-010 | stale rate card | **fail** — rubric 0.71 | pass |
-| MAP-011 | stale rate card | **fail** — rubric 0.71 | pass |
-| MAP-016 | fabricated number | **fail** — groundedness 2.0, rubric 0.88 | pass |
-| MAP-019 | fabricated number | pass | pass |
-| | | **4 of 8 fail — exit 1** | **0 of 8 — exit 0** |
+| | Naive (v1) | Hardened (v2) |
+|---|---|---|
+| `groundedness` | below threshold on 2-3 cases | 5.00, none |
+| `relevance` | pass | pass |
+| `intent_resolution` *(report-only)* | pass | pass |
+| `finops_defensible_answer` | **0.88-0.92, 4-5 of 8 fail** | **1.00, 0 of 8** |
+| **Gate** | **FAIL — exit 1** | **PASS — exit 0** |
+
+**The hardened agent passed cleanly both times. The naive agent failed both
+times. The count of failures moved.** That range is not sloppiness in the
+measurement, it is the thing being measured: the same prompt to the same model
+does not produce the same answer twice, which is exactly why a gate is run
+per-change rather than reasoned about once.
 
 Read the shape, not the scores:
 
-- **All three controls pass for both agents.** The gate is not simply hostile
-  to the naive agent. This is the row to point at when someone suspects the
-  result is rigged.
-- **Every stale-rate-card case fails for v1 and passes for v2.** This is the
-  cleanest separation in the demo and the one to lead with.
-- **Two different mechanisms catch the same class of error.** MAP-009 fails on
-  `groundedness`, a built-in Foundry evaluator, while MAP-010 and MAP-011 fail
-  on the custom rubric. Useful if someone assumes the custom rubric is doing
-  all the work.
-- **MAP-019 passes for both.** It is in the set on probation and has not yet
-  earned its place. Do not hide this if it comes up — a case that returns the
-  same verdict from both agents is not evidence, and saying so is cheaper than
-  being caught claiming otherwise.
+- **Every stale-rate-card case failed for v1 and passed for v2, on both runs.**
+  This is the cleanest separation in the demo and the one to lead with.
+- **Two different mechanisms catch the same class of error.** Some cases fail
+  on `groundedness`, a built-in Foundry evaluator; others on the custom rubric.
+  Useful when someone assumes the custom rubric is doing all the work.
+- **Controls mostly pass for both agents.** On one run a single control failed
+  for v1 — not because the answer was wrong, but because v1 does not cite, so
+  the attribution dimensions score it down. Worth knowing before it happens
+  live. If asked: a correct answer you cannot trace is a weaker answer, and the
+  rubric is entitled to say so.
+- **MAP-019 fired on one run and not the other.** It is in the set on
+  probation. Do not build a talking point on it.
 
 For reference, the same agents over the full 25-case set scored **v1 0.92,
 7 failures, exit 1** against **v2 1.00, 0 failures, exit 0**.
+
+### Do not memorise the numbers
+
+Run the gate yourself on the morning of the demo and use what you get. Quoting
+a figure from this document that today's run does not reproduce is the fastest
+way to lose an audience that is already sceptical of AI demos.
 
 ### Two things to be honest about
 

@@ -432,17 +432,25 @@ adversarial prompt that went hunting for them, not the check.
 The 8-case demo set, same agents, same corpus, differing only in instructions
 and retrieval:
 
+Run twice on 2026-09-24:
+
 | | Naive (v1) | Hardened (v2) |
 |---|---|---|
-| `groundedness` | 2 cases below threshold | 5.00, none |
+| `groundedness` | 2-3 cases below threshold | 5.00, none |
 | `relevance` | pass | pass |
 | `intent_resolution` *(report-only)* | pass | pass |
-| `finops_defensible_answer` | **4 of 8 fail** | **0 of 8** |
+| `finops_defensible_answer` | **0.88-0.92, 4-5 of 8 fail** | **1.00, 0 of 8** |
 | **Gate** | **FAIL — exit 1** | **PASS — exit 0** |
 
-All three control cases pass for **both** agents, which is what keeps this a
-comparison rather than a rigged board. MAP-019 also passes for both and is in
-the set on probation.
+The verdict held both times; the failure count moved. That range is the point
+rather than a defect in it — the same prompt to the same model does not give
+the same answer twice, which is why the gate runs per-change instead of being
+reasoned about once.
+
+Controls mostly pass for **both** agents, which is what keeps this a comparison
+rather than a rigged board. On one run a single control failed for v1 — the
+answer was right but uncited, and the attribution dimensions scored it down.
+MAP-019 fired on one run and not the other; it is in the set on probation.
 
 ### The golden set and the rubric
 
