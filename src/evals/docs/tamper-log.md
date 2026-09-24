@@ -1060,3 +1060,34 @@ question. A gap in the numbering is the cheaper thing to carry.
 | T28.2 | restore `stale_rate_card: 6` without adding a case | `test_total_case_count` + `test_tag_distribution_matches_the_spec` |
 
 **Status:** both fail by name; 324 tests green on revert.
+
+---
+
+## T29 — the HR rubric's guards (2026-09-24)
+
+The third track's rubric is new prose, and new prose is exactly what this log
+exists to distrust. Four tampers, aimed at the things most likely to rot: the
+self-containment of the citation dimension, the rule ORDER lesson from T25, the
+null-score contract from T26, and whether the shipped config actually reaches
+the gate rather than a test fixture.
+
+The citation guard was the one worth branching rather than relaxing. HR has no
+superseded document and will not get one — its trap is inference from accurate
+data, not reliance on a stale source. So the guard now requires a track without
+a superseded document to anchor the dimension on a named document from its own
+corpus. Turning the assertion off for HR would have left a rubric asking for
+"a source" in the abstract, which any confident prose satisfies.
+
+| # | Tamper | Test that failed |
+|---|---|---|
+| T29.1 | removed `meridian-people-analytics-methodology` from `citation_discipline`, leaving it asking for "a source" | `test_citation_discipline_names_the_superseded_document_it_guards[hr]` |
+| T29.2 | moved `no_causal_overreach`'s applicability clause below the scoring rules | `test_applicability_is_stated_before_the_scoring_rules[hr]` |
+| T29.3 | told the judge to "score it 5" on an inapplicable `measured_vs_modelled` | `test_inapplicable_dimensions_are_not_told_to_award_a_score[hr]` + `test_conditional_dimensions_spell_out_the_null_score[hr]` |
+| T29.4 | emptied `report_only_hr` in the SHIPPED `evals.config.yaml` | `test_intent_resolution_is_scored_but_does_not_gate[hr]` |
+
+**Status:** all four fail by name; 327 tests green on revert.
+
+**Still unproven:** that the judge ACTS on this prose. Every dimension here is
+untested against a real answer — `no_causal_overreach` and `suppression_not_
+defeated` have never scored anything. Well-formed rubric prose is not evidence,
+and this log should not be read as saying otherwise until a run exists.
