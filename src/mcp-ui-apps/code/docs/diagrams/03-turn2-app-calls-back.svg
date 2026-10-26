@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 560" width="1000" height="560"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#495057"/></marker><marker id="ahr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#c92a2a"/></marker></defs><rect width="100%" height="100%" fill="#ffffff"/><rect x="15" y="20" width="170" height="46" rx="8" fill="#e6fcf5" stroke="#087f5b" stroke-width="1"/>
+<text x="100.0" y="43.0" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" font-weight="700" fill="#1e1e1e" text-anchor="middle" dominant-baseline="central" xml:space="preserve">MCP App view</text>
+<polyline points="100,66 100,540" fill="none" stroke="#ced4da" stroke-width="1" stroke-linejoin="round" stroke-dasharray="8 6"/>
+<rect x="215" y="20" width="170" height="46" rx="8" fill="#dbe4ff" stroke="#364fc7" stroke-width="1"/>
+<text x="300.0" y="43.0" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" font-weight="700" fill="#1e1e1e" text-anchor="middle" dominant-baseline="central" xml:space="preserve">Browser host</text>
+<polyline points="300,66 300,540" fill="none" stroke="#ced4da" stroke-width="1" stroke-linejoin="round" stroke-dasharray="8 6"/>
+<rect x="415" y="20" width="170" height="46" rx="8" fill="#f1f3f5" stroke="#495057" stroke-width="1"/>
+<text x="500.0" y="43.0" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" font-weight="700" fill="#1e1e1e" text-anchor="middle" dominant-baseline="central" xml:space="preserve">Host BFF + middleware</text>
+<polyline points="500,66 500,540" fill="none" stroke="#ced4da" stroke-width="1" stroke-linejoin="round" stroke-dasharray="8 6"/>
+<rect x="615" y="20" width="170" height="46" rx="8" fill="#e5dbff" stroke="#6741d9" stroke-width="1"/>
+<text x="700.0" y="43.0" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" font-weight="700" fill="#1e1e1e" text-anchor="middle" dominant-baseline="central" xml:space="preserve">MAF agent</text>
+<polyline points="700,66 700,540" fill="none" stroke="#ced4da" stroke-width="1" stroke-linejoin="round" stroke-dasharray="8 6"/>
+<rect x="805" y="20" width="170" height="46" rx="8" fill="#c5f6fa" stroke="#0b7285" stroke-width="1"/>
+<text x="890.0" y="43.0" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" font-weight="700" fill="#1e1e1e" text-anchor="middle" dominant-baseline="central" xml:space="preserve">MCP server</text>
+<polyline points="890,66 890,540" fill="none" stroke="#ced4da" stroke-width="1" stroke-linejoin="round" stroke-dasharray="8 6"/>
+<text x="20" y="96" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" font-weight="700" fill="#087f5b" text-anchor="start" dominant-baseline="central" xml:space="preserve">A · "Create hold request" calls an app-only tool</text>
+<polyline points="100,136 294,136" fill="none" stroke="#495057" stroke-width="2" stroke-linejoin="round" marker-end="url(#ah)"/>
+<rect x="105.2" y="118.1" width="189.5" height="13.8" fill="#ffffff"/>
+<text x="200.0" y="125" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" font-weight="400" fill="#868e96" text-anchor="middle" dominant-baseline="central" xml:space="preserve">tools/call create_hold_request</text>
+<polyline points="300,178 494,178" fill="none" stroke="#495057" stroke-width="2" stroke-linejoin="round" marker-end="url(#ah)"/>
+<rect x="326.4" y="160.1" width="147.2" height="13.8" fill="#ffffff"/>
+<text x="400.0" y="167" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" font-weight="400" fill="#868e96" text-anchor="middle" dominant-baseline="central" xml:space="preserve">POST /api/mcp (proxied)</text>
+<polyline points="500,220 884,220" fill="none" stroke="#495057" stroke-width="2" stroke-linejoin="round" marker-end="url(#ah)"/>
+<rect x="618.4" y="202.1" width="153.2" height="13.8" fill="#ffffff"/>
+<text x="695.0" y="209" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" font-weight="400" fill="#868e96" text-anchor="middle" dominant-baseline="central" xml:space="preserve">tools/call (allowlisted)</text>
+<polyline points="890,262 106,262" fill="none" stroke="#495057" stroke-width="2" stroke-linejoin="round" stroke-dasharray="8 6" marker-end="url(#ah)"/>
+<rect x="406.3" y="244.1" width="177.4" height="13.8" fill="#ffffff"/>
+<text x="495.0" y="251" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" font-weight="400" fill="#868e96" text-anchor="middle" dominant-baseline="central" xml:space="preserve">HOLD-1234 · PENDING_APPROVAL</text>
+<rect x="610" y="132" width="180" height="40" rx="8" fill="#fff5f5" stroke="#ffc9c9" stroke-width="1"/>
+<text x="700.0" y="148" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" font-weight="400" fill="#1e1e1e" text-anchor="middle" dominant-baseline="central" xml:space="preserve">MAF never sees this call</text>
+<text x="700.0" y="165" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" font-weight="400" fill="#1e1e1e" text-anchor="middle" dominant-baseline="central" xml:space="preserve">model never sees this tool</text>
+<polyline points="20,304 980,304" fill="none" stroke="#dee2e6" stroke-width="1" stroke-linejoin="round"/>
+<text x="20" y="328" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" font-weight="700" fill="#087f5b" text-anchor="start" dominant-baseline="central" xml:space="preserve">B · "Ask the agent" hands a turn back to the conversation</text>
+<polyline points="100,368 294,368" fill="none" stroke="#495057" stroke-width="2" stroke-linejoin="round" marker-end="url(#ah)"/>
+<rect x="108.3" y="350.1" width="183.5" height="13.8" fill="#ffffff"/>
+<text x="200.0" y="357" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" font-weight="400" fill="#868e96" text-anchor="middle" dominant-baseline="central" xml:space="preserve">ui/message "Summarize TX123…"</text>
+<polyline points="300,410 494,410" fill="none" stroke="#495057" stroke-width="2" stroke-linejoin="round" marker-end="url(#ah)"/>
+<rect x="323.4" y="392.1" width="153.2" height="13.8" fill="#ffffff"/>
+<text x="400.0" y="399" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" font-weight="400" fill="#868e96" text-anchor="middle" dominant-baseline="central" xml:space="preserve">POST /api/run (new turn)</text>
+<polyline points="500,452 694,452" fill="none" stroke="#495057" stroke-width="2" stroke-linejoin="round" marker-end="url(#ah)"/>
+<rect x="499.2" y="434.1" width="201.6" height="13.8" fill="#ffffff"/>
+<text x="600.0" y="441" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" font-weight="400" fill="#868e96" text-anchor="middle" dominant-baseline="central" xml:space="preserve">AG-UI run (history incl. result)</text>
+<polyline points="700,494 306,494" fill="none" stroke="#495057" stroke-width="2" stroke-linejoin="round" stroke-dasharray="8 6" marker-end="url(#ah)"/>
+<rect x="432.5" y="476.1" width="135.1" height="13.8" fill="#ffffff"/>
+<text x="500.0" y="483" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" font-weight="400" fill="#868e96" text-anchor="middle" dominant-baseline="central" xml:space="preserve">TEXT_MESSAGE_* stream</text></svg>
