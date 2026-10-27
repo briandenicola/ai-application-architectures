@@ -1,0 +1,8 @@
+**
+!Dockerfile
+!package.json
+!package-lock.json
+!host.json
+!dist/
+!dist/index.js
+!dist/wire-review.html

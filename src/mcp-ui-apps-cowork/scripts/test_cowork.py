@@ -1,6 +1,8 @@
 import io
 import json
 from pathlib import Path
+import shutil
+import subprocess
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -63,6 +65,77 @@ class CoworkPackagingTests(unittest.TestCase):
                 "kind": "prompt", "model": values["model_deployment"],
                 "instructions": (cowork.ROOT / "agent" / "wire-investigator.txt").read_text(encoding="utf-8"),
             })
+
+    def test_build_stages_the_existing_functions_and_ui_without_zip_or_local_install(self):
+        root = Path(self.directory.name)
+        server = root / "mcp-server"
+        (server / "dist").mkdir(parents=True)
+        (server / "functions").mkdir()
+        (server / "dist" / "wire-review.html").write_text("<html>banking panel</html>")
+        package = {"type": "module", "scripts": {"start": "local"}, "dependencies": {"@azure/functions": "^4.7.2"}}
+        (server / "package.json").write_text(json.dumps(package))
+        (server / "package-lock.json").write_text('{"lockfileVersion":3}')
+        for name in ("host.json", "Dockerfile", ".dockerignore"):
+            shutil.copyfile(cowork.ROOT / "mcp-server" / "functions" / name, server / "functions" / name)
+        build = root / "build"
+
+        def bundle(*args, cwd):
+            self.assertEqual(args[1], "functions/index.ts")
+            output = Path(next(arg.removeprefix("--outfile=") for arg in args if arg.startswith("--outfile=")))
+            output.parent.mkdir(parents=True)
+            output.write_text("// bundled handlers")
+
+        with patch.object(cowork, "ROOT", root), patch.object(cowork, "BUILD", build), \
+                patch.object(cowork, "run", side_effect=bundle) as command:
+            cowork.build_functions()
+        self.assertEqual(command.call_count, 1)
+        context = build / "functions"
+        deployed_package = json.loads((context / "package.json").read_text())
+        self.assertEqual(deployed_package["main"], "dist/index.js")
+        self.assertNotIn("scripts", deployed_package)
+        self.assertEqual(deployed_package["dependencies"], package["dependencies"])
+        self.assertEqual((context / "dist" / "wire-review.html").read_text(), "<html>banking panel</html>")
+        self.assertTrue((context / "Dockerfile").is_file())
+        self.assertTrue((context / ".dockerignore").is_file())
+        self.assertFalse((context / "node_modules").exists())
+        self.assertFalse((build / "banking-functions.zip").exists())
+
+    def test_publish_builds_once_and_records_an_immutable_image_for_both_apps(self):
+        root = Path(self.directory.name)
+        (root / "infra").mkdir()
+        values = {"registry_name": "crdemo", "registry_server": "crdemo.azurecr.io"}
+        digest = "sha256:" + "a" * 64
+        with patch.object(cowork, "ROOT", root), patch.object(cowork, "BUILD", root / "build"), \
+                patch.object(cowork.subprocess, "run") as build, \
+                patch.object(cowork, "run", return_value=digest) as lookup:
+            cowork.deploy_functions(values)
+        command = build.call_args.args[0]
+        self.assertEqual(command[:3], ["az", "acr", "build"])
+        self.assertEqual(command[command.index("--platform") + 1], "linux/amd64")
+        self.assertEqual(command[-1], str(root / "build" / "functions"))
+        tag = command[command.index("--image") + 1]
+        lookup.assert_called_once_with(
+            "az", "acr", "repository", "show", "--name", "crdemo",
+            "--image", tag, "--query", "digest", "--output", "tsv",
+        )
+        self.assertEqual(json.loads((root / "infra" / "cowork.auto.tfvars.json").read_text()),
+                         {"function_image": f"crdemo.azurecr.io/banking-functions@{digest}"})
+
+    def test_failed_build_or_missing_digest_does_not_replace_the_last_deployment(self):
+        root = Path(self.directory.name)
+        (root / "infra").mkdir()
+        path = root / "infra" / "cowork.auto.tfvars.json"
+        path.write_text('{"function_image":"previous"}')
+        values = {"registry_name": "crdemo", "registry_server": "crdemo.azurecr.io"}
+        for failure in ("build", "digest"):
+            with self.subTest(failure=failure), patch.object(cowork, "ROOT", root), \
+                    patch.object(cowork.subprocess, "run",
+                                 side_effect=subprocess.CalledProcessError(1, ["az", "acr", "build"])
+                                 if failure == "build" else None), \
+                    patch.object(cowork, "run", return_value=""):
+                with self.assertRaises(subprocess.CalledProcessError if failure == "build" else ValueError):
+                    cowork.deploy_functions(values)
+                self.assertEqual(path.read_text(), '{"function_image":"previous"}')
 
     def test_read_only_verification_uses_anonymous_requests_without_azure_cli(self):
         methods = []

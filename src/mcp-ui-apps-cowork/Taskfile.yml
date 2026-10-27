@@ -175,7 +175,7 @@ tasks:
       - terraform -chdir=infra plan
 
   infra:up:
-    desc: Provision Foundry and Cowork Functions (confirmation required), then configure the local agent
+    desc: Provision Foundry and Cowork Container Apps infrastructure (confirmation required), then configure the local agent
     interactive: true
     vars:
       SUBSCRIPTION_ID:
@@ -211,7 +211,7 @@ tasks:
     generates: [node_modules/.package-lock.json]
 
   cowork:check:
-    desc: Offline Function tests, type checks, packaging tests, and Terraform validation
+    desc: Offline Function tests, type checks, packaging tests, and Terraform validation/tests
     cmds:
       - task: setup:mcp
       - task: cowork:setup
@@ -219,9 +219,10 @@ tasks:
       - npx --prefix mcp-server tsc -p mcp-server
       - '{{.PYTHON}} -m unittest discover -s scripts -p test_cowork.py'
       - task: infra:validate
+      - terraform -chdir=infra test
 
   cowork:build:
-    desc: Build the shared MCP App and package both Azure Functions (no Azure changes)
+    desc: Build the shared MCP App and Functions container context (no Azure changes)
     cmds:
       - task: setup:mcp
       - task: build:ui
@@ -232,11 +233,13 @@ tasks:
     cmds: ['{{.PYTHON}} scripts/tamper_cowork.py']
 
   cowork:deploy:
-    desc: Register the Foundry prompt agent and deploy both Functions into provisioned infrastructure
+    desc: Build/publish a Functions image in ACR and confirm Terraform deployment to Container Apps
+    interactive: true
     cmds:
       - task: cowork:build
       - '{{.PYTHON}} scripts/cowork.py agent'
       - '{{.PYTHON}} scripts/cowork.py deploy'
+      - task: infra:up
       - '{{.PYTHON}} scripts/cowork.py configure'
 
   cowork:login:

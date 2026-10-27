@@ -5,11 +5,13 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+import re
 import shutil
 import struct
 import subprocess
 from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
+from uuid import uuid4
 import zipfile
 import zlib
 
@@ -65,16 +67,9 @@ def build_functions() -> None:
     package.pop("scripts", None)
     (destination / "package.json").write_text(json.dumps(package, indent=2) + "\n", encoding="utf-8")
     shutil.copyfile(ROOT / "mcp-server" / "package-lock.json", destination / "package-lock.json")
-    run("npm", "ci", "--omit=dev", "--no-audit", "--no-fund", cwd=destination)
-    archive_path = BUILD / "banking-functions.zip"
-    with zipfile.ZipFile(archive_path, "w", zipfile.ZIP_DEFLATED) as archive:
-        for name in ("host.json", "package.json", "package-lock.json", "dist", "node_modules"):
-            source = destination / name
-            files = sorted(source.rglob("*")) if source.is_dir() else [source]
-            for file in files:
-                if file.is_file():
-                    archive.write(file, file.relative_to(destination).as_posix())
-    print(f"Built {archive_path.relative_to(ROOT)}")
+    for name in ("Dockerfile", ".dockerignore"):
+        shutil.copyfile(ROOT / "mcp-server" / "functions" / name, destination / name)
+    print(f"Built container context {destination}")
 
 
 def deploy_agent(values: dict[str, str]) -> None:
@@ -98,14 +93,23 @@ def deploy_agent(values: dict[str, str]) -> None:
 
 
 def deploy_functions(values: dict[str, str]) -> None:
-    for name in ("banking_app", "gateway_app"):
-        print(f"Deploying {values[name]}", flush=True)
-        run(
-            "az", "functionapp", "deployment", "source", "config-zip",
-            "--resource-group", values["resource_group"], "--name", values[name],
-            "--src", str(BUILD / "banking-functions.zip"), "--build-remote", "false",
-            "--timeout", "180", "--only-show-errors",
-        )
+    tag = f"banking-functions:{uuid4().hex}"
+    print(f"Building {values['registry_server']}/{tag} with ACR Tasks (no local Docker required)", flush=True)
+    subprocess.run([
+        "az", "acr", "build", "--registry", values["registry_name"],
+        "--image", tag, "--platform", "linux/amd64", "--file", "Dockerfile",
+        str(BUILD / "functions"),
+    ], cwd=ROOT, check=True)
+    digest = run(
+        "az", "acr", "repository", "show", "--name", values["registry_name"],
+        "--image", tag, "--query", "digest", "--output", "tsv",
+    )
+    if not re.fullmatch(r"sha256:[a-f0-9]{64}", digest):
+        raise ValueError(f"ACR did not return an image digest: {digest!r}")
+    image = f"{values['registry_server']}/banking-functions@{digest}"
+    path = ROOT / "infra" / "cowork.auto.tfvars.json"
+    path.write_text(json.dumps({"function_image": image}, indent=2) + "\n", encoding="utf-8")
+    print(f"Published {image}; the next Terraform apply deploys both Functions on Container Apps", flush=True)
 
 
 def icon(size: int, outline: bool = False) -> bytes:

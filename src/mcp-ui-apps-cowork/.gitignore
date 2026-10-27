@@ -12,6 +12,7 @@ agent/.venv/
 infra/.terraform/
 infra/*.tfstate*
 infra/*.tfvars
+infra/*.tfvars.json
 infra/.terraform.tfstate.lock.info
 !infra/.terraform.lock.hcl
 cowork/env/

@@ -507,7 +507,7 @@ Microsoft Copilot Cowork + banking skill
   |
   | anonymous HTTPS / MCP
   v
-MCP gateway Function -- anonymous HTTPS --> banking-tools Function
+MCP gateway Function container -- internal HTTPS --> banking-tools Function container
   |                                          |
   | serves the existing MCP App               +-- synthetic wire records
   |                                          +-- pending requests in private Blob Storage
@@ -525,8 +525,11 @@ banking skill calls `analyze_wire`.
 
 The Azure Functions use the Node v4 programming model, stateless Streamable
 HTTP with JSON responses, and the same MCP Apps server and single-file UI as
-the local demo. The browser host, AG-UI middleware, and local Python agent are
-not involved. The local browser path still uses `task up` / `task up:fake`.
+the local demo. They run on **Azure Container Apps**, using the native
+`Microsoft.App/containerApps` integration with `kind=functionapp`, not Flex
+Consumption. The same image runs both roles. The browser host, AG-UI middleware,
+and local Python agent are not involved. The local browser path still uses
+`task up` / `task up:fake`.
 
 ### Deploy and install
 
@@ -534,6 +537,9 @@ Prerequisites: the existing Node/Python/Task/Terraform tools, Azure CLI signed
 in to the intended subscription, a Microsoft 365 work account with Cowork
 access, and permission to sideload custom apps. The provisioner needs Azure
 resource/RBAC permissions, but does not create applications or grants in Entra.
+The Azure CLI needs the Container Apps extension. Image builds run in Azure
+Container Registry Tasks; a local Docker daemon is not required. The provisioner
+also needs permission to run ACR builds and read image metadata.
 
 ```bash
 task cowork:check     # offline tests, type checking, and Terraform validation
@@ -541,23 +547,40 @@ task infra:plan       # preview the Azure resources
 task cowork:up        # confirm Terraform, deploy, sign in to M365, install
 ```
 
-`cowork:up` creates both Function apps and their managed identities, separate
-keyless storage accounts, and the Foundry project/model. It registers the prompt
-agent, builds and deploys both Functions, and personally installs
-`.build/banking-cowork.zip` using the pinned Agents Toolkit. The connector uses
+`cowork:up` first provisions a VNet-integrated Container Apps environment, a
+keyless registry, both managed identities, separate private storage accounts,
+and the Foundry project/model. It registers the prompt agent, publishes a
+Linux/amd64 Functions image through ACR Tasks, then requests a second Terraform
+confirmation to deploy both Function containers from that image's immutable
+digest. It personally installs `.build/banking-cowork.zip` using the pinned
+Agents Toolkit. The connector uses
 explicit `None` authentication, so there is no connector sign-in or OAuth
 registration. Interactive Azure/Microsoft 365 sign-in for deployment and plugin
 installation remains necessary.
+Offline infrastructure tests use Terraform's mock providers (Terraform 1.7+);
+they do not contact Azure.
 
-If an earlier apply stopped at an app-registration permission error, keep the
-existing Terraform state and review `task infra:plan`, then rerun
-`task cowork:up`. Terraform reuses the Azure resources that were already created.
-The anonymous configuration no longer creates directory applications or grants.
+**Migrating an existing Flex deployment:** keep the existing Terraform state and
+review `task infra:plan` before `task cowork:up`. The plan removes the old Flex
+apps, FC1 plans, and unused `deploy-banking` / `deploy-gateway` containers.
+It preserves the identities, storage accounts, `hold-requests` container,
+Foundry resources, and plugin ID. Existing endpoints stop working during
+migration; the plugin is reinstalled with the new Container Apps URL.
+No directory applications or grants are created.
+
+The generated, ignored `infra/cowork.auto.tfvars.json` records the published
+image digest. Keep it alongside your local Terraform state: subsequent plans
+use it to retain the apps and their deployed image. On a fresh checkout without
+an image configured, `infra:up` creates only the foundation; it does not deploy
+a placeholder app. `cowork:deploy` publishes the image and applies the complete
+configuration. If you lose the generated file but retain state, **do not apply
+an app-removal plan**: recover the `function_image` value from state or publish
+again with `cowork:deploy` before applying.
 
 Use the existing Terraform region/model configuration; no model or region is
 silently substituted. For example, set `TF_VAR_location` and `TF_VAR_model_name`
 in your environment before both plan and apply. The selected region must support
-Functions Flex Consumption as well as the chosen Foundry deployment. Override
+Container Apps as well as the chosen Foundry deployment. Override
 `SUBSCRIPTION_ID` on the Task target if needed. Deployment scripts refuse to
 modify Azure if the active CLI subscription or tenant differs from Terraform.
 
@@ -574,7 +597,7 @@ execution is implemented.
 
 ```bash
 task cowork:verify   # deployed read-only discovery, wire lookup, and UI-resource checks
-task cowork:deploy   # update the prompt agent and both Functions after code changes
+task cowork:deploy   # publish an image, then confirm Terraform deployment of both Functions
 ```
 
 The verifier makes anonymous HTTPS requests without acquiring an Azure token.
@@ -599,16 +622,34 @@ destroying Azure resources does not uninstall the plugin.
 
 There are no Function keys, client secrets, storage keys, SAS tokens, or service
 connection strings in this path. Cowork-to-gateway and gateway-to-banking HTTP
-calls are anonymous. Both endpoints are publicly reachable; the banking endpoint
-is not restricted to the gateway. No user identity is authenticated or recorded.
-Storage and Foundry access use managed identities and RBAC. Gateway storage and
-banking storage are separate; the gateway has no access to the persisted holds.
-Storage public network access is explicitly enabled because the Function apps
-have no private network connection to storage. Containers remain private and
-account-key access remains disabled; a reachable endpoint does not grant data access.
-However, anyone can request a pending hold through the public banking API.
+calls are anonymous, but only the gateway has public ingress. The banking app
+accepts requests from within the Container Apps environment. No user identity is
+authenticated or recorded. Storage and Foundry access use managed identities and
+RBAC. Gateway storage and banking storage are separate; the gateway has no
+access to the persisted holds.
+Storage public networking and account-key access are disabled. The dedicated
+VNet is `10.42.0.0/16`, with a delegated Container Apps subnet `10.42.0.0/24`
+and private-endpoint subnet `10.42.1.0/24`. Blob, Queue, and Table private
+endpoints for each account use VNet-linked private DNS zones. The standalone
+VNet has no peering; review these ranges before connecting it to other networks.
+Anyone can still submit pending demo requests through the public MCP gateway.
 App-only tool visibility is a host UX control, not an authorization boundary.
 No caller can approve or execute a payment through any tool.
+
+The deployment's Storage 403 was caused by the management-group policy
+`StorageAccount_PublicNetwork_Modify` in `MCAPSGovDeployPolicies`, which
+overrode attempts to enable public storage networking. Moving to container
+images removes Flex ZIP deployment storage, but does not bypass that policy.
+The Functions hosts and hold persistence reach private storage through the
+Container Apps environment's VNet. Terraform manages the hold container through
+ARM, so the workstation does not need storage data-plane connectivity.
+
+Both apps use single-revision mode, separate host storage, managed-identity
+image pulls, and one minimum replica each to reduce demo cold starts, scaling
+to at most five replicas per app. Minimum replicas, ACR, private endpoints,
+private DNS, and the VNet-integrated environment's managed networking incur
+charges even when the demo is idle. Environment logs are available as live
+streams; this sample does not provision persistent log retention.
 
 Investigations have a 25-second upstream deadline. A model/dependency failure,
 incomplete model response, or failed Blob write is reported as an error, never a
@@ -627,4 +668,6 @@ privacy, and terms links point to this repository and this section.
 Reference contracts:
 [Cowork plugin packaging](https://learn.microsoft.com/microsoft-365/copilot/cowork/cowork-plugin-development),
 [Anonymous authentication](https://learn.microsoft.com/microsoft-365/copilot/extensibility/plugin-authentication-none),
-[Foundry REST](https://learn.microsoft.com/rest/api/microsoft-foundry/aiproject).
+[Foundry REST](https://learn.microsoft.com/rest/api/microsoft-foundry/aiproject),
+[Functions on Container Apps](https://learn.microsoft.com/azure/container-apps/functions-overview),
+[Container Apps VNet integration](https://learn.microsoft.com/azure/container-apps/custom-virtual-networks).
