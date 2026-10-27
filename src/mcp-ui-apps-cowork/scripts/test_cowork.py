@@ -103,10 +103,21 @@ class CoworkPackagingTests(unittest.TestCase):
     def test_publish_builds_once_and_records_an_immutable_image_for_both_apps(self):
         root = Path(self.directory.name)
         (root / "infra").mkdir()
+        context = root / "build" / "functions"
+        context.mkdir(parents=True)
+        (context / "Dockerfile").write_text("FROM scratch\n")
         values = {"registry_name": "crdemo", "registry_server": "crdemo.azurecr.io"}
         digest = "sha256:" + "a" * 64
+
+        def publish(command, *, cwd, check):
+            dockerfile = (Path(command[command.index("--file") + 1]) if "--file" in command
+                          else Path(command[-1]) / "Dockerfile")
+            if not dockerfile.is_absolute():
+                dockerfile = cwd / dockerfile
+            self.assertEqual(dockerfile.read_text(), "FROM scratch\n")
+
         with patch.object(cowork, "ROOT", root), patch.object(cowork, "BUILD", root / "build"), \
-                patch.object(cowork.subprocess, "run") as build, \
+                patch.object(cowork.subprocess, "run", side_effect=publish) as build, \
                 patch.object(cowork, "run", return_value=digest) as lookup:
             cowork.deploy_functions(values)
         command = build.call_args.args[0]

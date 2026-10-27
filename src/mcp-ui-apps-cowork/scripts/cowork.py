@@ -97,7 +97,7 @@ def deploy_functions(values: dict[str, str]) -> None:
     print(f"Building {values['registry_server']}/{tag} with ACR Tasks (no local Docker required)", flush=True)
     subprocess.run([
         "az", "acr", "build", "--registry", values["registry_name"],
-        "--image", tag, "--platform", "linux/amd64", "--file", "Dockerfile",
+        "--image", tag, "--platform", "linux/amd64",
         str(BUILD / "functions"),
     ], cwd=ROOT, check=True)
     digest = run(
