@@ -4,7 +4,7 @@ A minimal, runnable sample showing how an **MCP App** (an interactive UI that sh
 
 A user asks *"show me high-risk wires"*, and the agent's model calls an MCP tool. A wire-review panel then renders inside the chat, in a sandboxed iframe. From the panel, the user can request a hold (the UI calls an app-only MCP tool) or hand a question back to the agent.
 
-![The running sample](screenshot.png)
+![The running sample](./docs/screenshot.png)
 
 **Contents**
 
