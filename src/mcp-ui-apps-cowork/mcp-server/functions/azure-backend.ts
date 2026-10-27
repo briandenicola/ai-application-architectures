@@ -1,7 +1,6 @@
 import { ManagedIdentityCredential } from "@azure/identity";
 import { z } from "zod";
 import { holdSchema, wireSchema, type BankingBackend, type Wire } from "../banking.js";
-import type { Actor } from "./auth.js";
 import { HttpError } from "./auth.js";
 
 export function required(name: string): string {
@@ -12,16 +11,12 @@ export function required(name: string): string {
 
 const credential = new ManagedIdentityCredential({ clientId: process.env.AZURE_CLIENT_ID });
 
-export function remoteBanking(actor: Actor): BankingBackend {
+export function remoteBanking(fetcher: typeof fetch = fetch): BankingBackend {
   async function call(path: string, body?: unknown): Promise<unknown> {
-    const token = await credential.getToken(`${required("BANKING_AUDIENCE")}/.default`);
-    const response = await fetch(new URL(path, required("BANKING_URL")), {
+    const response = await fetcher(new URL(path, required("BANKING_URL")), {
       method: body === undefined ? "GET" : "POST",
       headers: {
-        authorization: `Bearer ${token.token}`,
         "content-type": "application/json",
-        "x-analyst-object-id": actor.objectId,
-        "x-analyst-tenant-id": actor.tenantId,
       },
       body: body === undefined ? undefined : JSON.stringify(body),
       signal: AbortSignal.timeout(10_000),

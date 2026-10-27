@@ -8,7 +8,6 @@ from pathlib import Path
 import shutil
 import struct
 import subprocess
-from urllib.error import HTTPError
 from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
 import zipfile
@@ -40,29 +39,11 @@ def check_subscription(values: dict[str, str]) -> None:
     print(f"Using subscription {active['name']} ({active['id']})", flush=True)
 
 
-def read_env(path: Path) -> dict[str, str]:
-    if not path.exists():
-        return {}
-    values = {}
-    for line in path.read_text(encoding="utf-8").splitlines():
-        if line.strip() and not line.lstrip().startswith("#"):
-            key, value = line.split("=", 1)
-            values[key.strip()] = value.strip().strip("\"'")
-    return values
-
-
 def configure(values: dict[str, str], path: Path) -> None:
-    previous = read_env(path)
     current = {
         "PLUGIN_ID": values["plugin_id"],
         "MCP_URL": values["mcp_url"],
-        "TENANT_ID": values["tenant_id"],
-        "OAUTH_CLIENT_ID": values["oauth_client_id"],
-        "OAUTH_SCOPE": values["oauth_scope"],
     }
-    if all(previous.get(key) == value for key, value in current.items()):
-        if previous.get("OAUTH_CONFIG_ID"):
-            current["OAUTH_CONFIG_ID"] = previous["OAUTH_CONFIG_ID"]
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("".join(f"{key}={value}\n" for key, value in current.items()), encoding="utf-8")
     print(f"Updated {path} with non-secret connector configuration")
@@ -145,9 +126,7 @@ def icon(size: int, outline: bool = False) -> bytes:
             chunk(b"IDAT", zlib.compress(bytes(rows))) + chunk(b"IEND", b""))
 
 
-def manifest(values: dict[str, str], oauth_id: str) -> dict:
-    if not oauth_id:
-        raise ValueError("Missing OAUTH_CONFIG_ID; run task cowork:register before packaging")
+def manifest(values: dict[str, str]) -> dict:
     docs = f"{REPO_URL}/blob/main/src/mcp-ui-apps-cowork/README.md"
     return {
         "$schema": "https://developer.microsoft.com/json-schemas/teams/v1.29/MicrosoftTeams.schema.json",
@@ -170,15 +149,14 @@ def manifest(values: dict[str, str], oauth_id: str) -> dict:
             "description": "Synthetic wire review and Azure Foundry risk investigation",
             "toolSource": {"remoteMcpServer": {
                 "mcpServerUrl": values["mcp_url"],
-                "authorization": {"type": "OAuthPluginVault", "referenceId": oauth_id},
+                "authorization": {"type": "None"},
             }},
         }],
     }
 
 
 def package_plugin(values: dict[str, str]) -> None:
-    config = read_env(ROOT / "cowork" / "env" / ".env.local")
-    data = manifest(values, config.get("OAUTH_CONFIG_ID", ""))
+    data = manifest(values)
     subprocess.run(
         ["node", str(ROOT / "cowork" / "validate-manifest.cjs")],
         input=json.dumps(data), text=True, check=True,
@@ -194,18 +172,6 @@ def package_plugin(values: dict[str, str]) -> None:
 
 
 def verify(values: dict[str, str]) -> None:
-    public_request = Request(values["mcp_url"], headers={"accept": "application/json, text/event-stream"})
-    try:
-        with urlopen(public_request, timeout=30):
-            raise ValueError("Gateway allowed an unauthenticated request")
-    except HTTPError as error:
-        if error.code != 401:
-            raise
-    print("Gateway rejects unauthenticated requests")
-    token = json.loads(run(
-        "az", "account", "get-access-token", "--resource", f"api://{values['gateway_client_id']}",
-        "--output", "json",
-    ))["accessToken"]
     operations = [
         ("initialize", {"protocolVersion": "2025-03-26", "capabilities": {},
                         "clientInfo": {"name": "banking-verifier", "version": "1.0"}}),
@@ -217,7 +183,7 @@ def verify(values: dict[str, str]) -> None:
         request = Request(values["mcp_url"], data=json.dumps({
             "jsonrpc": "2.0", "id": index, "method": method, "params": params,
         }).encode(), headers={
-            "authorization": f"Bearer {token}", "content-type": "application/json",
+            "content-type": "application/json",
             "accept": "application/json, text/event-stream",
         })
         with urlopen(request, timeout=30) as response:
@@ -247,7 +213,7 @@ def main() -> None:
         build_functions()
         return
     values = settings()
-    if args.action in {"agent", "deploy", "verify"}:
+    if args.action in {"agent", "deploy"}:
         check_subscription(values)
     if args.action == "configure":
         configure(values, ROOT / "cowork" / "env" / ".env.local")

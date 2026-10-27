@@ -3,7 +3,7 @@ import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { build } from "esbuild";
 import { demoBanking } from "../banking.js";
-import { analyzeWire } from "./azure-backend.js";
+import { analyzeWire, remoteBanking } from "./azure-backend.js";
 
 test("the Function entry bundles as Node ESM with the runtime SDK external", async () => {
   const result = await build({
@@ -13,6 +13,30 @@ test("the Function entry bundles as Node ESM with the runtime SDK external", asy
   assert.equal(result.errors.length, 0);
   assert.match(result.outputFiles[0].text, /from "@azure\/functions"/);
   assert.match(result.outputFiles[0].text, /import\.meta\.url/);
+});
+
+test("gateway calls banking anonymously without requesting an API token or forwarding identity", async (t) => {
+  const previous = process.env.BANKING_URL;
+  process.env.BANKING_URL = "https://banking.example";
+  t.after(() => {
+    if (previous === undefined) delete process.env.BANKING_URL;
+    else process.env.BANKING_URL = previous;
+  });
+  const backend = remoteBanking(async (url, init) => {
+    const request = new Request(url, init);
+    assert.equal(request.headers.has("authorization"), false);
+    assert.equal(request.headers.has("x-analyst-object-id"), false);
+    if (request.method === "GET") {
+      assert.equal(request.url, "https://banking.example/wires?minRisk=80");
+      return Response.json(await demoBanking.getWires(80));
+    }
+    assert.equal(request.url, "https://banking.example/holds");
+    const input = await request.json();
+    assert.deepEqual(input, { wireId: "TX123", reason: "Review beneficiary" });
+    return Response.json(await demoBanking.createHold(input), { status: 201 });
+  });
+  assert.equal((await backend.getWires(80)).length, 3);
+  assert.equal((await backend.createHold({ wireId: "TX123", reason: "Review beneficiary" })).status, "PENDING_APPROVAL");
 });
 
 test("investigation calls the persisted Foundry agent with the selected banking record", async (t) => {

@@ -1,3 +1,4 @@
+import io
 import json
 from pathlib import Path
 import tempfile
@@ -16,48 +17,49 @@ class CoworkPackagingTests(unittest.TestCase):
         self.values = {
             "plugin_id": "00000000-0000-4000-8000-000000000001",
             "mcp_url": "https://example.azurewebsites.net/mcp",
-            "tenant_id": "tenant", "oauth_client_id": "client",
-            "oauth_scope": "api://gateway/access_as_user",
         }
 
-    def test_connector_reconfiguration_preserves_only_matching_oauth_registration(self):
+    def test_connector_configuration_discards_stale_oauth_settings(self):
+        self.path.write_text("OAUTH_CONFIG_ID=old-registration\nOAUTH_CLIENT_ID=old-client\n")
         cowork.configure(self.values, self.path)
-        with self.path.open("a") as file:
-            file.write("OAUTH_CONFIG_ID=registered\n")
-        cowork.configure(self.values, self.path)
-        self.assertEqual(cowork.read_env(self.path)["OAUTH_CONFIG_ID"], "registered")
-        cowork.configure({**self.values, "oauth_client_id": "replacement"}, self.path)
-        self.assertNotIn("OAUTH_CONFIG_ID", cowork.read_env(self.path))
+        self.assertEqual(self.path.read_text(), f"PLUGIN_ID={self.values['plugin_id']}\nMCP_URL={self.values['mcp_url']}\n")
 
-    def test_package_requires_oauth_and_contains_skill_icons_and_remote_connector(self):
-        with self.assertRaisesRegex(ValueError, "OAUTH_CONFIG_ID"):
-            cowork.manifest(self.values, "")
+    def test_package_without_oauth_contains_skill_icons_and_anonymous_remote_connector(self):
         build = Path(self.directory.name) / "build"
-        with patch.object(cowork, "BUILD", build), patch.object(cowork, "read_env",
-                                                             return_value={"OAUTH_CONFIG_ID": "registered"}):
+        with patch.object(cowork, "BUILD", build):
             cowork.package_plugin(self.values)
         with zipfile.ZipFile(build / "banking-cowork.zip") as archive:
             manifest = json.loads(archive.read("manifest.json"))
             connector = manifest["agentConnectors"][0]["toolSource"]["remoteMcpServer"]
             self.assertEqual(connector["mcpServerUrl"], self.values["mcp_url"])
-            self.assertEqual(connector["authorization"],
-                             {"type": "OAuthPluginVault", "referenceId": "registered"})
+            self.assertEqual(connector["authorization"], {"type": "None"})
             self.assertIn("PENDING_APPROVAL", archive.read("skills/wire-review/SKILL.md").decode())
             for name in ("color.png", "outline.png"):
                 self.assertTrue(archive.read(name).startswith(b"\x89PNG\r\n\x1a\n"))
 
-    def test_package_command_rejects_registration_for_a_changed_connector(self):
-        root = Path(self.directory.name)
-        path = root / "cowork" / "env" / ".env.local"
-        cowork.configure(self.values, path)
-        with path.open("a") as file:
-            file.write("OAUTH_CONFIG_ID=registered\n")
-        replacement = {**self.values, "oauth_client_id": "replacement"}
-        with patch.object(cowork, "ROOT", root), patch.object(cowork, "settings", return_value=replacement), \
-                patch("sys.argv", ["cowork.py", "package"]):
-            with self.assertRaisesRegex(ValueError, "OAUTH_CONFIG_ID"):
-                cowork.main()
-        self.assertNotIn("OAUTH_CONFIG_ID", cowork.read_env(path))
+    def test_read_only_verification_uses_anonymous_requests_without_azure_cli(self):
+        methods = []
+
+        def respond(request, timeout):
+            self.assertIsNone(request.get_header("Authorization"))
+            operation = json.loads(request.data)
+            method = operation["method"]
+            methods.append(method)
+            payload = {
+                "initialize": {},
+                "tools/list": {"tools": [
+                    {"name": "get_high_risk_wires"}, {"name": "analyze_wire"},
+                    {"name": "create_hold_request", "_meta": {"ui": {"visibility": ["app"]}}},
+                ]},
+                "tools/call": {"structuredContent": {"wires": [{}, {}, {}]}},
+                "resources/read": {"contents": [{"mimeType": "text/html;profile=mcp-app"}]},
+            }[method]
+            return io.BytesIO(json.dumps({"jsonrpc": "2.0", "id": operation["id"], "result": payload}).encode())
+
+        with patch.object(cowork, "urlopen", side_effect=respond), \
+                patch.object(cowork, "run", side_effect=AssertionError("Anonymous verification must not invoke Azure CLI")):
+            cowork.verify(self.values)
+        self.assertEqual(methods, ["initialize", "tools/list", "tools/call", "resources/read"])
 
 
 if __name__ == "__main__":

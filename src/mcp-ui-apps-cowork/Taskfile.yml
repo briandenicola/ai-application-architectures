@@ -228,7 +228,7 @@ tasks:
       - '{{.PYTHON}} scripts/cowork.py build'
 
   cowork:tamper:
-    desc: Disable each new authority/persistence/response guard, require test failure, and restore
+    desc: Disable persistence/response guards, require test failure, and restore
     cmds: ['{{.PYTHON}} scripts/tamper_cowork.py']
 
   cowork:deploy:
@@ -246,16 +246,8 @@ tasks:
       - task: cowork:setup
       - npx atk auth login m365
 
-  cowork:register:
-    desc: Register secretless OAuth/PKCE in Microsoft's token store using Terraform-created app registrations
-    cmds:
-      - task: cowork:setup
-      - '{{.PYTHON}} scripts/cowork.py configure'
-      - cmd: npx atk provision --env local
-        dir: cowork
-
   cowork:package:
-    desc: Create the Microsoft Copilot Cowork plugin ZIP from Terraform and OAuth registration outputs
+    desc: Create the anonymous Microsoft Copilot Cowork plugin ZIP from Terraform outputs
     cmds:
       - task: cowork:setup
       - '{{.PYTHON}} scripts/cowork.py package'
@@ -268,13 +260,12 @@ tasks:
         dir: cowork
 
   cowork:up:
-    desc: Provision, deploy, register OAuth, and personally install the Microsoft Cowork demo
+    desc: Provision, deploy, and personally install the anonymous synthetic Microsoft Cowork demo
     interactive: true
     cmds:
       - task: infra:up
       - task: cowork:deploy
       - task: cowork:login
-      - task: cowork:register
       - task: cowork:install
 
   cowork:verify:

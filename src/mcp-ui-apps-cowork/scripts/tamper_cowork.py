@@ -4,17 +4,11 @@ from pathlib import Path
 import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
-AUTH = ROOT / "mcp-server" / "functions" / "auth.ts"
 BANKING = ROOT / "mcp-server" / "functions" / "banking-api.ts"
 FOUNDRY = ROOT / "mcp-server" / "functions" / "azure-backend.ts"
 
 CASES = [
-    ("tenant", AUTH, 'claims.tid !== config.tenantId', "false"),
-    ("delegated scope", AUTH, '!claims.scp.split(" ").includes("access_as_user")', "false"),
-    ("gateway caller", AUTH, 'claims.azp !== config.callerId', "false"),
-    ("application role", AUTH, '!claims.roles.includes("Banking.Invoke")', "false"),
-    ("no delegated backend token", AUTH, 'claims.scp !== undefined', "false"),
-    ("persist before success", BANKING, "await record(hold, actor);", ""),
+    ("persist before success", BANKING, 'await record(hold, { kind: "anonymous-demo" });', ""),
     ("completed Foundry response", FOUNDRY, 'result.status !== "completed"', "false"),
     ("nonempty Foundry answer", FOUNDRY, "if (!text)", "if (false)"),
 ]

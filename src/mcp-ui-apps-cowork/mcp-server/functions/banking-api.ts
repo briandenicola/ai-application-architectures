@@ -1,12 +1,11 @@
 import { z } from "zod";
 import { demoBanking, holdInputSchema, type HoldRequest } from "../banking.js";
-import { HttpError, type Actor } from "./auth.js";
+import { HttpError } from "./auth.js";
 
-export type HoldRecorder = (hold: HoldRequest, actor: Actor) => Promise<void>;
+export type HoldRecorder = (hold: HoldRequest, submittedBy: { kind: "anonymous-demo" }) => Promise<void>;
 
 export async function handleBanking(
   request: Request,
-  actor: Actor,
   record: HoldRecorder,
 ): Promise<Response> {
   const url = new URL(request.url);
@@ -28,7 +27,7 @@ export async function handleBanking(
     if (!input.success) throw new HttpError(400, "A wireId and a non-empty reason of at most 1000 characters are required");
     if (!await demoBanking.getWire(input.data.wireId)) throw new HttpError(404, "Unknown wire");
     const hold = await demoBanking.createHold(input.data);
-    await record(hold, actor);
+    await record(hold, { kind: "anonymous-demo" });
     return Response.json(hold, { status: 201 });
   }
   throw new HttpError(404, "Unknown banking operation");

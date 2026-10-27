@@ -496,12 +496,18 @@ This is **Microsoft Copilot Cowork**, not Anthropic Claude Cowork. It uses a
 Microsoft 365 plugin containing a banking skill and a remote MCP connector.
 Microsoft documents native [MCP App rendering and callbacks in Cowork](https://learn.microsoft.com/microsoft-365/copilot/cowork/mcp-apps-support).
 
+**Temporary synthetic demo only:** both HTTP Functions are intentionally
+anonymous. No app registrations, OAuth setup, or Entra directory-administrator
+permissions are required. Anyone who can reach the endpoints can read demo
+wires, create pending demo requests, and invoke the investigator against your
+model quota. Remove the deployment after the demo; never use real customer data.
+
 ```text
 Microsoft Copilot Cowork + banking skill
   |
-  | Entra delegated token (OAuth authorization code + PKCE)
+  | anonymous HTTPS / MCP
   v
-MCP gateway Function -- managed identity --> banking-tools Function
+MCP gateway Function -- anonymous HTTPS --> banking-tools Function
   |                                          |
   | serves the existing MCP App               +-- synthetic wire records
   |                                          +-- pending requests in private Blob Storage
@@ -527,23 +533,26 @@ not involved. The local browser path still uses `task up` / `task up:fake`.
 Prerequisites: the existing Node/Python/Task/Terraform tools, Azure CLI signed
 in to the intended subscription, a Microsoft 365 work account with Cowork
 access, and permission to sideload custom apps. The provisioner needs Azure
-resource/RBAC permissions **and** Entra application-management and delegated
-consent permissions; Azure subscription Owner alone does not grant those
-directory permissions.
+resource/RBAC permissions, but does not create applications or grants in Entra.
 
 ```bash
 task cowork:check     # offline tests, type checking, and Terraform validation
-task infra:plan       # preview the resources, including app registrations
-task cowork:up        # confirm Terraform, deploy, sign in to M365, register OAuth, install
+task infra:plan       # preview the Azure resources
+task cowork:up        # confirm Terraform, deploy, sign in to M365, install
 ```
 
 `cowork:up` creates both Function apps and their managed identities, separate
-keyless storage accounts, the Foundry project/model, and the Entra API/client
-registrations and grants. It registers the prompt agent, builds and deploys
-both Functions, registers OAuth/PKCE using the pinned Agents Toolkit, and
-personally installs `.build/banking-cowork.zip`. No app registrations or OAuth
-configurations need to be created manually. Interactive Azure/Microsoft 365
-sign-in and consent remain user actions.
+keyless storage accounts, and the Foundry project/model. It registers the prompt
+agent, builds and deploys both Functions, and personally installs
+`.build/banking-cowork.zip` using the pinned Agents Toolkit. The connector uses
+explicit `None` authentication, so there is no connector sign-in or OAuth
+registration. Interactive Azure/Microsoft 365 sign-in for deployment and plugin
+installation remains necessary.
+
+If an earlier apply stopped at an app-registration permission error, keep the
+existing Terraform state and review `task infra:plan`, then rerun
+`task cowork:up`. Terraform reuses the Azure resources that were already created.
+The anonymous configuration no longer creates directory applications or grants.
 
 Use the existing Terraform region/model configuration; no model or region is
 silently substituted. For example, set `TF_VAR_location` and `TF_VAR_model_name`
@@ -559,52 +568,44 @@ After installation, enable **Banking Wire Review** under Cowork's
 
 Select TX123, use **Ask the agent**, and confirm the `analyze_wire` tool runs.
 Then use **Create hold request** and confirm `PENDING_APPROVAL`. Requests are
-persisted with the authenticated analyst's tenant/object IDs before success is
-returned. No approval worker or payment execution is implemented.
+persisted with `submittedBy: {"kind":"anonymous-demo"}` before success is returned;
+caller-supplied identity headers are not trusted. No approval worker or payment
+execution is implemented.
 
 ```bash
 task cowork:verify   # deployed read-only discovery, wire lookup, and UI-resource checks
 task cowork:deploy   # update the prompt agent and both Functions after code changes
 ```
 
-The verifier uses your Azure CLI identity, pre-authorized for the gateway's
-delegated scope. It does not create hold requests or call the model. The actual
-Cowork render, button callbacks, tenant policy, OAuth sign-in, and agent response
-must be checked in the native client after deployment; offline tests are not
-proof that those tenant-dependent steps work.
+The verifier makes anonymous HTTPS requests without acquiring an Azure token.
+It does not create hold requests or call the model. The actual Cowork render,
+button callbacks, tenant plugin policy, and agent response must be checked in
+the native client after deployment; offline tests are not proof that those
+tenant-dependent steps work.
 
-`task cowork:tamper` deliberately disables each new tenant/scope/caller/role,
-persist-before-success, and completed/nonempty-response guard individually,
+`task cowork:tamper` deliberately disables the persist-before-success and
+completed/nonempty-response guards individually,
 requires a failing assertion, and restores the original file in `finally`.
-On 2026-10-27 all eight mutations failed as expected, and the restored suite
+On 2026-10-27 all three remaining guard mutations failed as expected, and the restored suite
 passed. This checks implementation guards, not the quality of model reasoning.
 
-Individual lifecycle targets (`cowork:build`, `cowork:login`,
-`cowork:register`, `cowork:package`, `cowork:install`) support retries without
-reprovisioning infrastructure. Matching OAuth configuration IDs are preserved
-across reconfiguration; changing the endpoint/client/scope requires registration
-again. Microsoft 365 deployment is a separate lifecycle from Terraform;
-destroying Azure resources does not uninstall the plugin or remove its token-store
-registration.
+Individual lifecycle targets (`cowork:build`, `cowork:login`, `cowork:package`,
+`cowork:install`) support retries without reprovisioning infrastructure.
+Reconfiguration discards obsolete OAuth settings from the previous authenticated
+version. Microsoft 365 deployment is a separate lifecycle from Terraform;
+destroying Azure resources does not uninstall the plugin.
 
 ### Authentication and data boundaries
 
 There are no Function keys, client secrets, storage keys, SAS tokens, or service
-connection strings in this path. Cowork obtains an Entra delegated token through
-OAuth/PKCE. The gateway validates its signature, issuer, audience, tenant, expiry,
-identity and `access_as_user` scope. OAuth discovery metadata is public; MCP calls
-are not. Entra does not support DCR, so Agents Toolkit registers a static
-secretless OAuth configuration in Microsoft's token store.
-
-Gateway-to-banking calls use a managed identity token for the banking API.
-The banking Function requires the gateway application identity **and**
-`Banking.Invoke` application role; a user token is not accepted. The analyst
-identity is propagated only over that authenticated service-to-service call.
+connection strings in this path. Cowork-to-gateway and gateway-to-banking HTTP
+calls are anonymous. Both endpoints are publicly reachable; the banking endpoint
+is not restricted to the gateway. No user identity is authenticated or recorded.
 Storage and Foundry access use managed identities and RBAC. Gateway storage and
 banking storage are separate; the gateway has no access to the persisted holds.
+However, anyone can request a pending hold through the public banking API.
 App-only tool visibility is a host UX control, not an authorization boundary.
-An authorized caller can submit a pending request directly, but cannot approve
-or execute a payment through any tool.
+No caller can approve or execute a payment through any tool.
 
 Investigations have a 25-second upstream deadline. A model/dependency failure,
 incomplete model response, or failed Blob write is reported as an error, never a
@@ -614,7 +615,7 @@ fails after submission, inspect persisted requests before submitting again.
 ### Synthetic data and demo terms
 
 All wire/customer data is synthetic. This sample is for demonstration, not
-production payment processing. It stores pending requests and Entra actor IDs in
+production payment processing. It stores anonymous pending requests in
 your Azure storage, and sends selected synthetic wire data/questions to your
 Foundry agent. Microsoft 365 retains the conversation according to your tenant's
 policies. Do not enter real customer information. The plugin's developer,
@@ -622,5 +623,5 @@ privacy, and terms links point to this repository and this section.
 
 Reference contracts:
 [Cowork plugin packaging](https://learn.microsoft.com/microsoft-365/copilot/cowork/cowork-plugin-development),
-[OAuth/PKCE registration](https://learn.microsoft.com/microsoft-365/copilot/extensibility/plugin-authentication-oauth),
+[Anonymous authentication](https://learn.microsoft.com/microsoft-365/copilot/extensibility/plugin-authentication-none),
 [Foundry REST](https://learn.microsoft.com/rest/api/microsoft-foundry/aiproject).

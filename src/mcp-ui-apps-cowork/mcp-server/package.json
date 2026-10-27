@@ -21,7 +21,6 @@
     "@modelcontextprotocol/server": "2.0.0",
     "cors": "^2.8.5",
     "express": "^5.1.0",
-    "jose": "^6.1.0",
     "zod": "^4.2.0"
   },
   "devDependencies": {
