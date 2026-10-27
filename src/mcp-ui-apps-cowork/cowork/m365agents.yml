@@ -1,0 +1,23 @@
+# yaml-language-server: $schema=https://aka.ms/teams-toolkit/v1.9/yaml.schema.json
+version: v1.9
+environmentFolderPath: ./env
+
+provision:
+  - uses: oauth/register
+    with:
+      name: Banking wire review
+      appId: ${{PLUGIN_ID}}
+      baseUrl: ${{MCP_URL}}
+      applicableToApps: AnyApp
+      targetAudience: HomeTenant
+      flow: authorizationCode
+      clientId: ${{OAUTH_CLIENT_ID}}
+      isPKCEEnabled: true
+      identityProvider: Custom
+      tokenExchangeMethodType: PostRequestBody
+      authorizationUrl: https://login.microsoftonline.com/${{TENANT_ID}}/oauth2/v2.0/authorize
+      tokenUrl: https://login.microsoftonline.com/${{TENANT_ID}}/oauth2/v2.0/token
+      refreshUrl: https://login.microsoftonline.com/${{TENANT_ID}}/oauth2/v2.0/token
+      scope: ${{OAUTH_SCOPE}},offline_access
+    writeToEnvironmentFile:
+      configurationId: OAUTH_CONFIG_ID

@@ -1,0 +1,6 @@
+{
+  "version": "2.0",
+  "functionTimeout": "00:02:00",
+  "extensions": { "http": { "routePrefix": "", "maxOutstandingRequests": 100, "maxConcurrentRequests": 20 } },
+  "logging": { "logLevel": { "default": "Information", "Host.Results": "Information" } }
+}

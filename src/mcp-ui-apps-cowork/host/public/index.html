@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22%3E%3Crect width=%2216%22 height=%2216%22 rx=%223%22 fill=%22%23087f5b%22/%3E%3C/svg%3E" />
+  <title>MCP Apps × AG-UI × MAF</title>
+  <style>
+    :root { --ink:#1e1e1e; --muted:#6b7280; --line:#e5e7eb; --bg:#f8fafc; --user:#1971c2; }
+    * { box-sizing:border-box; }
+    body { margin:0; font:14px/1.45 "Segoe UI", Inter, system-ui, sans-serif; color:var(--ink); background:var(--bg); height:100vh; display:grid; grid-template-columns: minmax(0,1fr) 380px; }
+    main { display:flex; flex-direction:column; min-height:0; border-right:1px solid var(--line); background:#fff; }
+    header { padding:12px 18px; border-bottom:1px solid var(--line); }
+    header h1 { margin:0; font-size:16px; }
+    header p { margin:2px 0 0; color:var(--muted); font-size:12px; }
+    #chat { flex:1; overflow:auto; padding:18px; display:flex; flex-direction:column; gap:10px; }
+    .msg { max-width:78%; padding:8px 12px; border-radius:10px; white-space:pre-wrap; }
+    .msg.user { align-self:flex-end; background:var(--user); color:#fff; }
+    .msg.assistant { align-self:flex-start; background:#f1f3f5; }
+    .chip { align-self:flex-start; font-size:12px; color:var(--muted); border:1px dashed var(--line); border-radius:999px; padding:2px 10px; }
+    iframe.mcp-app { width:100%; height:180px; border:0; align-self:stretch; transition:height .2s; }
+    form { display:flex; gap:8px; padding:12px 18px; border-top:1px solid var(--line); }
+    #input { flex:1; font:inherit; padding:8px 10px; border:1px solid var(--line); border-radius:8px; }
+    button { font:inherit; padding:8px 14px; border-radius:8px; border:1px solid var(--user); background:var(--user); color:#fff; cursor:pointer; }
+    button:disabled { opacity:.5; }
+    .prompts { display:flex; gap:6px; flex-wrap:wrap; padding:0 18px 10px; }
+    .prompts button { background:#e7f5ff; color:var(--user); font-size:12px; padding:4px 10px; }
+    aside { display:flex; flex-direction:column; min-height:0; }
+    aside h2 { margin:0; padding:12px 14px; font-size:13px; border-bottom:1px solid var(--line); }
+    #log { flex:1; overflow:auto; padding:8px 10px; font:12px/1.4 Consolas, Menlo, monospace; }
+    .ev { padding:3px 4px; border-bottom:1px solid #eef0f2; word-break:break-all; }
+    .ev b { font-weight:600; }
+    .ev span { color:var(--muted); }
+    .ev-TOOL_CALL_START b, .ev-TOOL_CALL_ARGS b, .ev-TOOL_CALL_END b { color:#6741d9; }
+    .ev-TOOL_CALL_RESULT b { color:#0b7285; }
+    .ev-ACTIVITY_SNAPSHOT b { color:#087f5b; }
+    .ev-note { color:#d9480f; }
+    @media (max-width: 800px) { body { grid-template-columns:1fr; grid-template-rows: 1fr 35vh; } main { border-right:0; border-bottom:1px solid var(--line); } }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>MCP Apps × AG-UI × Microsoft Agent Framework</h1>
+      <p>MAF agent (Python) ← AG-UI ← MCPAppsMiddleware (Node BFF) → banking MCP server</p>
+    </header>
+    <div id="chat"></div>
+    <div class="prompts">
+      <button data-prompt="Show me high-risk wires">Show me high-risk wires</button>
+      <button data-prompt="Any wires flagged with risk above 85?">Risk above 85</button>
+    </div>
+    <form id="form"><input id="input" placeholder="Ask about wires…" autocomplete="off" /><button id="send">Send</button></form>
+  </main>
+  <aside>
+    <h2>AG-UI event stream</h2>
+    <div id="log"></div>
+  </aside>
+  <script type="module" src="/host.js"></script>
+</body>
+</html>

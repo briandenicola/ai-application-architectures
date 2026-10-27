@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 370" width="1000" height="370"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#495057"/></marker><marker id="ahr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#c92a2a"/></marker></defs><rect width="100%" height="100%" fill="#ffffff"/><rect x="20" y="150" width="130" height="50" rx="8" fill="#1c7ed6" stroke="#1864ab" stroke-width="1"/>
+<text x="85.0" y="175.0" font-family="'Cascadia Code', Consolas, Menlo, monospace" font-size="14" font-weight="700" fill="#ffffff" text-anchor="middle" dominant-baseline="central" xml:space="preserve">task up:fake</text>
+<rect x="200" y="30" width="230" height="300" rx="8" fill="#ffffff" stroke="#868e96" stroke-width="2"/>
+<text x="315" y="54" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" fill="#1e1e1e" text-anchor="middle" dominant-baseline="central" xml:space="preserve">1 · setup</text>
+<rect x="220" y="76" width="190" height="58" rx="8" fill="#ffffff" stroke="#868e96" stroke-width="1"/>
+<text x="315.0" y="96.0" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" fill="#1e1e1e" text-anchor="middle" dominant-baseline="central" xml:space="preserve">setup:mcp</text>
+<text x="315.0" y="116.0" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#868e96" text-anchor="middle" dominant-baseline="central" xml:space="preserve">npm install</text>
+<rect x="220" y="154" width="190" height="58" rx="8" fill="#ffffff" stroke="#868e96" stroke-width="1"/>
+<text x="315.0" y="174.0" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" fill="#1e1e1e" text-anchor="middle" dominant-baseline="central" xml:space="preserve">setup:host</text>
+<text x="315.0" y="194.0" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#868e96" text-anchor="middle" dominant-baseline="central" xml:space="preserve">npm install</text>
+<rect x="220" y="232" width="190" height="58" rx="8" fill="#ffffff" stroke="#868e96" stroke-width="1"/>
+<text x="315.0" y="252.0" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" fill="#1e1e1e" text-anchor="middle" dominant-baseline="central" xml:space="preserve">setup:agent</text>
+<text x="315.0" y="272.0" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#868e96" text-anchor="middle" dominant-baseline="central" xml:space="preserve">venv · pip · .env</text>
+<rect x="480" y="30" width="230" height="300" rx="8" fill="#ffffff" stroke="#868e96" stroke-width="2"/>
+<text x="595" y="54" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" fill="#1e1e1e" text-anchor="middle" dominant-baseline="central" xml:space="preserve">2 · build</text>
+<rect x="500" y="76" width="190" height="58" rx="8" fill="#ffffff" stroke="#868e96" stroke-width="1"/>
+<text x="595.0" y="96.0" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" fill="#1e1e1e" text-anchor="middle" dominant-baseline="central" xml:space="preserve">build:ui</text>
+<text x="595.0" y="116.0" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#868e96" text-anchor="middle" dominant-baseline="central" xml:space="preserve">vite → single-file HTML</text>
+<rect x="500" y="154" width="190" height="58" rx="8" fill="#ffffff" stroke="#868e96" stroke-width="1"/>
+<text x="595.0" y="174.0" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" fill="#1e1e1e" text-anchor="middle" dominant-baseline="central" xml:space="preserve">build:host</text>
+<text x="595.0" y="194.0" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#868e96" text-anchor="middle" dominant-baseline="central" xml:space="preserve">esbuild → public/host.js</text>
+<text x="595" y="300" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" font-weight="400" fill="#868e96" text-anchor="middle" dominant-baseline="central" xml:space="preserve">skipped when sources unchanged</text>
+<rect x="760" y="30" width="220" height="300" rx="8" fill="#ffffff" stroke="#868e96" stroke-width="2"/>
+<text x="870" y="54" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" fill="#1e1e1e" text-anchor="middle" dominant-baseline="central" xml:space="preserve">3 · run (parallel)</text>
+<rect x="780" y="72" width="180" height="50" rx="8" fill="#c5f6fa" stroke="#0b7285" stroke-width="1"/>
+<text x="870.0" y="88.0" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" fill="#1e1e1e" text-anchor="middle" dominant-baseline="central" xml:space="preserve">run:mcp</text>
+<text x="870.0" y="108.0" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#868e96" text-anchor="middle" dominant-baseline="central" xml:space="preserve">:3001</text>
+<rect x="780" y="134" width="180" height="50" rx="8" fill="#e5dbff" stroke="#6741d9" stroke-width="1"/>
+<text x="870.0" y="150.0" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" fill="#1e1e1e" text-anchor="middle" dominant-baseline="central" xml:space="preserve">run:agent</text>
+<text x="870.0" y="170.0" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#868e96" text-anchor="middle" dominant-baseline="central" xml:space="preserve">:8888</text>
+<rect x="780" y="196" width="180" height="50" rx="8" fill="#f1f3f5" stroke="#495057" stroke-width="1"/>
+<text x="870.0" y="212.0" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" fill="#1e1e1e" text-anchor="middle" dominant-baseline="central" xml:space="preserve">run:host</text>
+<text x="870.0" y="232.0" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#868e96" text-anchor="middle" dominant-baseline="central" xml:space="preserve">:3000</text>
+<rect x="780" y="258" width="180" height="50" rx="8" fill="#d0ebff" stroke="#1864ab" stroke-width="1"/>
+<text x="870.0" y="274.0" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" fill="#1e1e1e" text-anchor="middle" dominant-baseline="central" xml:space="preserve">run:fake-llm</text>
+<text x="870.0" y="294.0" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#868e96" text-anchor="middle" dominant-baseline="central" xml:space="preserve">:8889</text>
+<polyline points="150,175 200,175" fill="none" stroke="#495057" stroke-width="2" stroke-linejoin="round" marker-end="url(#ah)"/>
+<polyline points="430,175 480,175" fill="none" stroke="#495057" stroke-width="2" stroke-linejoin="round" marker-end="url(#ah)"/>
+<polyline points="710,175 760,175" fill="none" stroke="#495057" stroke-width="2" stroke-linejoin="round" marker-end="url(#ah)"/>
+<text x="870" y="340" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" font-weight="400" fill="#868e96" text-anchor="middle" dominant-baseline="central" xml:space="preserve">Ctrl+C stops all · then: task verify</text></svg>
