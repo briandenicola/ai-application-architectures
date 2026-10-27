@@ -37,6 +37,33 @@ class CoworkPackagingTests(unittest.TestCase):
             for name in ("color.png", "outline.png"):
                 self.assertTrue(archive.read(name).startswith(b"\x89PNG\r\n\x1a\n"))
 
+    def test_agent_deployment_creates_versions_on_first_and_repeated_runs(self):
+        values = {
+            "project_endpoint": "https://example.services.ai.azure.com/api/projects/demo",
+            "agent_name": "wire-investigator-demo", "model_deployment": "demo-model",
+        }
+        definitions = []
+
+        def register(*args):
+            self.assertEqual(args[:4], ("az", "rest", "--method", "post"))
+            self.assertEqual(args[args.index("--url") + 1],
+                             f"{values['project_endpoint']}/agents/{values['agent_name']}/versions?api-version=v1")
+            self.assertEqual(args[args.index("--resource") + 1], "https://ai.azure.com")
+            path = Path(args[args.index("--body") + 1].removeprefix("@"))
+            definitions.append(json.loads(path.read_text(encoding="utf-8")))
+            return json.dumps({"name": values["agent_name"], "version": str(len(definitions))})
+
+        with patch.object(cowork, "BUILD", Path(self.directory.name) / "build"), \
+                patch.object(cowork, "run", side_effect=register) as command:
+            cowork.deploy_agent(values)
+            cowork.deploy_agent(values)
+        self.assertEqual(command.call_count, 2)
+        for payload in definitions:
+            self.assertEqual(payload["definition"], {
+                "kind": "prompt", "model": values["model_deployment"],
+                "instructions": (cowork.ROOT / "agent" / "wire-investigator.txt").read_text(encoding="utf-8"),
+            })
+
     def test_read_only_verification_uses_anonymous_requests_without_azure_cli(self):
         methods = []
 

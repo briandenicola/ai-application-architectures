@@ -91,7 +91,7 @@ def deploy_agent(values: dict[str, str]) -> None:
     path.write_text(json.dumps(definition), encoding="utf-8")
     run(
         "az", "rest", "--method", "post",
-        "--url", f"{values['project_endpoint']}/agents/{values['agent_name']}?api-version=v1",
+        "--url", f"{values['project_endpoint']}/agents/{values['agent_name']}/versions?api-version=v1",
         "--resource", "https://ai.azure.com", "--body", f"@{path}",
     )
     print(f"Registered Foundry prompt agent {values['agent_name']}")
