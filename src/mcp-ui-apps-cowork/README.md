@@ -603,6 +603,9 @@ calls are anonymous. Both endpoints are publicly reachable; the banking endpoint
 is not restricted to the gateway. No user identity is authenticated or recorded.
 Storage and Foundry access use managed identities and RBAC. Gateway storage and
 banking storage are separate; the gateway has no access to the persisted holds.
+Storage public network access is explicitly enabled because the Function apps
+have no private network connection to storage. Containers remain private and
+account-key access remains disabled; a reachable endpoint does not grant data access.
 However, anyone can request a pending hold through the public banking API.
 App-only tool visibility is a host UX control, not an authorization boundary.
 No caller can approve or execute a payment through any tool.
