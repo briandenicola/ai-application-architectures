@@ -15,7 +15,7 @@
     "@azure/functions": "^4.7.2",
     "@azure/identity": "^4.13.0",
     "@azure/storage-blob": "^12.29.1",
-    "@modelcontextprotocol/express": "2.0.0",
+    "@modelcontextprotocol/express": "2.0.2",
     "@modelcontextprotocol/ext-apps": "2.0.3",
     "@modelcontextprotocol/node": "2.0.0",
     "@modelcontextprotocol/server": "2.0.0",
