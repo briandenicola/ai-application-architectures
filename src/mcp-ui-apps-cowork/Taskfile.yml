@@ -257,10 +257,10 @@ tasks:
 
   cowork:install:
     desc: Package and personally install the banking Cowork plugin in Microsoft 365
+    dir: cowork
     cmds:
       - task: cowork:package
-      - cmd: npx atk install --file-path ../.build/banking-cowork.zip --scope Personal
-        dir: cowork
+      - npx atk install --file-path ../.build/banking-cowork.zip --scope Personal
 
   cowork:up:
     desc: Provision, deploy, and personally install the anonymous synthetic Microsoft Cowork demo
