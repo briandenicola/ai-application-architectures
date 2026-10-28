@@ -26,6 +26,7 @@ The browser/AG-UI demo below remains available unchanged.
 10. [From sample to production](#10-from-sample-to-production)
 11. [Threat model and security controls](#11-threat-model-and-security-controls)
 12. [References](#12-references)
+13. [Microsoft Copilot Cowork on Azure](#microsoft-copilot-cowork-on-azure): [design](#cowork-design-and-integration), [setup](#deploy-and-install), [verification](#verify-the-native-integration), [operations](#authentication-and-data-boundaries)
 
 ---
 
@@ -282,12 +283,14 @@ task infra:up        # review Terraform's plan and type yes to provision
 task up             # run the local application against the deployed model
 ```
 
-Terraform creates a resource group, Foundry account, project, GPT-4.1 deployment,
+Terraform creates a resource group, Foundry account, project, model deployment,
 and Foundry User role assignments for your Azure CLI identity and the project's
-managed identity. Names derive from `random_pet` and `random_id`; no resource names
-need to be supplied. The default region is `eastus2`, with a `GlobalStandard`
-deployment and capacity of 10 (10,000 tokens/minute for GPT-4.1). This provisions
-model access only; the agent, host, and MCP server still run locally.
+managed identity, plus the [Cowork Azure foundation](#deploy-and-install).
+Names derive from `random_pet` and `random_id`; no resource names need to be
+supplied. Defaults are `eastus2`, `gpt-5.5`, `GlobalStandard`, and capacity 10;
+quota units and availability depend on the selected model. Without a published
+`function_image`, no Function containers are deployed. For the browser path,
+the agent, host, and MCP server still run locally.
 
 `infra:up` writes the account's Azure OpenAI endpoint and generated deployment name
 to `agent/.env`, selects `LLM_MODE=azure`, and removes any leftover
@@ -481,11 +484,16 @@ Keep dependencies patched, reassess new capabilities and server integrations, an
 ```
 Taskfile.yml
 infra/        providers.tf · main.tf · variables.tf · outputs.tf
+              cowork.tf · container-apps.tf · tests/
 mcp-server/   server.ts · main.ts · wire-review.html · src/wire-review.ts · vite.config.ts
+              functions/ (gateway, banking API, managed-identity clients, container)
 agent/        main.py · fake_llm.py · requirements.txt · .env.example
+              wire-investigator.txt (Foundry prompt-agent instructions)
 host/         server.ts · src/host.ts · public/index.html
-scripts/      verify.mjs · configure_foundry.py · test_configure_foundry.py
+scripts/      verify.mjs · configure_foundry.py · cowork.py · test_*.py · tamper_cowork.py
+cowork/       skills/wire-review/SKILL.md · validate-manifest.cjs · m365agents.yml
 docs/diagrams/  *.svg (rendered above) · *.excalidraw (editable) · generate.py
+docs/         Banking Application 1–3.excalidraw + .svg (conceptual designs)
 ```
 
 Regenerate the diagrams with `python docs/diagrams/generate.py`. The SVG and Excalidraw files come from the same drawing code.
@@ -495,6 +503,109 @@ Regenerate the diagrams with `python docs/diagrams/generate.py`. The SVG and Exc
 This is **Microsoft Copilot Cowork**, not Anthropic Claude Cowork. It uses a
 Microsoft 365 plugin containing a banking skill and a remote MCP connector.
 Microsoft documents native [MCP App rendering and callbacks in Cowork](https://learn.microsoft.com/microsoft-365/copilot/cowork/mcp-apps-support).
+
+### Cowork design and integration
+
+![Implemented Cowork architecture](docs/diagrams/06-cowork-architecture.svg)
+
+[Editable Excalidraw source](docs/diagrams/06-cowork-architecture.excalidraw).
+This is a second host for the same MCP App, not an AG-UI adapter inside Cowork.
+
+| Responsibility | Local browser path | Native Cowork path |
+|---|---|---|
+| Conversation and tool selection | Python MAF agent behind AG-UI | Microsoft Copilot Cowork and the packaged banking skill |
+| MCP client and UI host | TypeScript BFF/middleware and browser `AppBridge` | Cowork's native MCP client and MCP Apps rendering |
+| Banking tool/resource endpoint | Local Node MCP server | Public gateway Function at the generated HTTPS `/mcp` URL |
+| Wire records and hold requests | In-memory synthetic backend | Separate internal banking Function; pending requests persisted to Blob |
+| Investigation | Local agent answers using conversation history | `analyze_wire` invokes a registered Foundry prompt agent with the selected wire |
+
+**Plugin integration.** `scripts/cowork.py` creates the Microsoft 365 manifest
+and `.build/banking-cowork.zip`. The package contains `manifest.json`, two icons,
+and `skills/wire-review/SKILL.md`. Its `agentSkills` entry loads the banking
+instructions; `agentConnectors` declares the remote MCP server with
+`authorization.type: "None"`. Terraform supplies the stable plugin ID and gateway
+URL. `cowork:package` validates the manifest against the schema shipped with the
+pinned Agents Toolkit before producing the ZIP.
+
+**Backend separation.** The same Functions container image runs twice, with
+`APP_ROLE=gateway` or `APP_ROLE=banking`. The gateway owns MCP discovery,
+tool execution, the UI resource, and the Foundry client. The internal banking
+Function owns synthetic records and pending-request persistence. Each role has
+its own managed identity and host storage. Internal ingress limits the banking
+endpoint's reachability; it does not authenticate individual callers.
+
+| MCP surface | Caller | Integration |
+|---|---|---|
+| `get_high_risk_wires` | Cowork model | Gateway queries `GET /wires?minRisk=...`; returns model-readable `content` and UI `structuredContent`; tool metadata links the UI resource |
+| `ui://banking/wire-review` | Cowork host via `resources/read` | Returns the shared single-file HTML with MIME type `text/html;profile=mcp-app` |
+| `analyze_wire` | Cowork model, guided by the skill | Gateway fetches `GET /wires/{wireId}`, then calls the Foundry Responses API using its managed identity |
+| `create_hold_request` | Panel through Cowork's bridge; app-only | Gateway calls `POST /holds`; banking persists the pending request before returning success |
+
+### Rendering, investigation, and hold-request flows
+
+1. **Render:** Cowork calls `get_high_risk_wires`. Its host reads the linked
+   HTML resource, mounts the panel, and delivers the tool result through the
+   MCP Apps bridge. Neither the HTML nor the wire lookup requires a Foundry call.
+2. **Investigate:** the panel's **Ask the agent** action sends a `ui/message`
+   back to Cowork. The banking skill directs Cowork to call `analyze_wire`.
+   The gateway retrieves the record server-side and sends `{question, wire}`
+   to `/openai/v1/responses`, referencing the registered agent by name.
+   The Foundry agent returns advice as text; it has no banking tools and
+   cannot create or approve requests.
+3. **Request a hold:** the analyst selects a wire and clicks **Create hold
+   request**. The panel supplies the fixed reason `"Flagged in MCP App review"`;
+   `app.callServerTool` invokes the app-only `create_hold_request`.
+   The banking Function validates the input and writes
+   `hold-requests/<holdRequestId>.json`, including
+   `submittedBy: {"kind":"anonymous-demo"}`, before returning `PENDING_APPROVAL`.
+   No approval worker or payment execution exists.
+
+The shared implementation lives in `mcp-server/server.ts` and
+`mcp-server/src/wire-review.ts`. Azure-specific routing is in
+`mcp-server/functions/index.ts`, `banking-api.ts`, and `azure-backend.ts`;
+the Cowork skill and `agent/wire-investigator.txt` keep conversation guidance
+separate from the investigator's evidence-only instructions.
+
+### Banking design diagrams
+
+These are **conceptual designs**, not additional deployed components. They
+explain where an application/domain harness, identity, policy, approvals, and
+deterministic workflows would sit in a fuller banking system. The current
+Cowork sample implements only wire review, advisory investigation, and
+persisted pending requests.
+
+**1. Banking application and Microsoft harness integration.** Both experiences
+can reach a banking capability gateway; business authorization and execution
+belong behind that gateway, not in the model or panel.
+
+![Banking application and Copilot Cowork integration](docs/Banking%20Application%201.svg)
+
+[Editable Excalidraw source](docs/Banking%20Application%201.excalidraw).
+
+**2. Application-owned banking harness.** A richer banking application can own
+identity/context, orchestration, policy, approvals, and telemetry while
+presenting chat alongside forms, tables, charts, and workflow UI.
+
+![Banking application harness responsibilities](docs/Banking%20Application%202.svg)
+
+[Editable Excalidraw source](docs/Banking%20Application%202.excalidraw).
+
+**3. Domain services and capability plane.** Banking services remain separate
+from their consumers. MCP exposes capabilities to Cowork and other agents;
+the banking application retains its domain harness and richer UI.
+
+![Banking domain and MCP capability plane](docs/Banking%20Application%203.svg)
+
+[Editable Excalidraw source](docs/Banking%20Application%203.excalidraw).
+
+The SVGs above are exports of the existing Excalidraw scenes; retain those
+sources when editing the designs. `docs/diagrams/generate.py` regenerates the
+numbered implementation diagrams, including the Cowork architecture, in both
+SVG and Excalidraw formats. It does not regenerate the three conceptual scenes.
+To update those SVGs, open their `.excalidraw` sources in Excalidraw and export
+as SVG with the background and embedded fonts enabled.
+
+### Demo access model
 
 **Temporary synthetic demo only:** both HTTP Functions are intentionally
 anonymous. No app registrations, OAuth setup, or Entra directory-administrator
@@ -540,8 +651,12 @@ resource/RBAC permissions, but does not create applications or grants in Entra.
 The Azure CLI needs the Container Apps extension. Image builds run in Azure
 Container Registry Tasks; a local Docker daemon is not required. The provisioner
 also needs permission to run ACR builds and read image metadata.
+Use Terraform **1.7+** for `cowork:check`, which includes mock-provider tests.
+The Microsoft 365 account is for the target Cowork tenant; Azure CLI selects
+the Azure deployment subscription. These are separate sign-ins.
 
 ```bash
+cd src/mcp-ui-apps
 task cowork:check     # offline tests, type checking, and Terraform validation
 task infra:plan       # preview the Azure resources
 task cowork:up        # confirm Terraform, deploy, sign in to M365, install
@@ -568,6 +683,18 @@ Foundry resources, and plugin ID. Existing endpoints stop working during
 migration; the plugin is reinstalled with the new Container Apps URL.
 No directory applications or grants are created.
 
+| Target | When to use it |
+|---|---|
+| `task cowork:up` | First run: provision, deploy, sign in, and personally install |
+| `task cowork:check` | Local tests/type checks and Terraform mock-provider checks; no Azure deployment |
+| `task cowork:build` | Rebuild the shared panel and stage `.build/functions`; no Azure changes |
+| `task cowork:deploy` | Register a new prompt-agent version, publish the image through ACR Tasks, and confirm Terraform apply |
+| `task cowork:login` | Sign in to the Microsoft 365 tenant using the pinned Agents Toolkit |
+| `task cowork:package` | Generate connector configuration and rebuild the validated plugin ZIP |
+| `task cowork:install` | Repackage and personally install the plugin; useful after URL/skill/package changes |
+| `task cowork:verify` | Read-only deployed MCP discovery, wire lookup, and resource checks |
+| `task cowork:tamper` | Locally mutate the implementation guards, require failures, and restore |
+
 The generated, ignored `infra/cowork.auto.tfvars.json` records the published
 image digest. Keep it alongside your local Terraform state: subsequent plans
 use it to retain the apps and their deployed image. On a fresh checkout without
@@ -583,6 +710,15 @@ in your environment before both plan and apply. The selected region must support
 Container Apps as well as the chosen Foundry deployment. Override
 `SUBSCRIPTION_ID` on the Task target if needed. Deployment scripts refuse to
 modify Azure if the active CLI subscription or tenant differs from Terraform.
+
+Generated files stay local: `.build/functions` is the container build context,
+`.build/banking-cowork.zip` is the installable plugin, and
+`cowork/env/.env.local` contains only `PLUGIN_ID` and `MCP_URL`. No manual
+manifest editing, app registration, or connector OAuth configuration is needed.
+Changing `agent/.env` affects the local browser agent, not the deployed gateway;
+the deployed Functions receive settings from Terraform.
+
+### Verify the native integration
 
 After installation, enable **Banking Wire Review** under Cowork's
 **Sources & Skills > Plugins**, then ask:
@@ -655,6 +791,19 @@ Investigations have a 25-second upstream deadline. A model/dependency failure,
 incomplete model response, or failed Blob write is reported as an error, never a
 successful request. Hold writes are not automatically retried; if a connection
 fails after submission, inspect persisted requests before submitting again.
+
+### Cowork troubleshooting
+
+| Symptom | Check or action |
+|---|---|
+| Plugin cannot be installed or is unavailable | Confirm the Microsoft 365 sign-in, Cowork access, and tenant custom-app policy; installation is Personal, not tenant-wide |
+| Cowork answers without the review panel | Enable the plugin in Sources & Skills and explicitly request the interactive panel; `cowork:verify` checks the MCP tool/resource contract, not native rendering |
+| Gateway returns an error after deployment | Check Container Apps revision health and live logs, the published image digest, and gateway-to-banking internal connectivity |
+| Wire review works but investigation fails | Check the registered Foundry agent/model, gateway Foundry User assignment, and the 25-second upstream deadline; review does not exercise Foundry |
+| Hold submission fails | Check the banking identity's storage RBAC, private endpoints, and private DNS; failed persistence must not return success |
+| Deployment reports a subscription/tenant mismatch | Select the Azure CLI account matching the existing Terraform deployment before retrying |
+| Terraform proposes removing both apps unexpectedly | Restore `infra/cowork.auto.tfvars.json` or republish with `cowork:deploy`; do not apply the removal plan |
+| Endpoints changed after migration | Run `cowork:install` to regenerate the connector URL and reinstall, then verify in Cowork |
 
 ### Synthetic data and demo terms
 

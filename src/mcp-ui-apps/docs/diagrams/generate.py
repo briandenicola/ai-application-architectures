@@ -194,6 +194,41 @@ d.arrow([(150, 175), (200, 175)]); d.arrow([(430, 175), (480, 175)]); d.arrow([(
 d.text(870, 340, 'Ctrl+C stops all · then: task verify', 11, color=GRAY)
 diagrams.append(d)
 
+# ---------------------------------------------------------------- 6. Cowork
+d = D('06-cowork-architecture', 1200, 730)
+d.text(600, 28, 'Microsoft Copilot Cowork: implemented Azure path', 20, True)
+d.rect(20, 70, 300, 540, 'exp')
+d.text(170, 96, 'MICROSOFT 365', 15, True, C('exp'))
+d.box(40, 120, 260, 110, 'exp', 'Copilot Cowork',
+      ['Banking skill + MCP client', 'Native MCP App host'], lsize=13)
+d.box(40, 300, 260, 140, 'app', 'Wire-review panel',
+      ['Same single-file HTML', 'tools/call: request a hold', 'ui/message: ask the agent'], lsize=13)
+d.arrow([(170, 230), (170, 300)], label='MCP Apps bridge', lx=182, ly=265)
+d.text(170, 535, 'Plugin ZIP: skill + connector', 13)
+d.text(170, 560, 'Remote MCP auth: None', 13, True, RED)
+d.rect(390, 70, 790, 540, 'plain')
+d.text(785, 96, 'AZURE', 15, True)
+d.box(410, 140, 320, 150, 'mcp', 'Gateway Function',
+      ['Public HTTPS /mcp', 'Tools + UI resource', 'Managed identity: Foundry'], lsize=13)
+d.box(810, 140, 340, 150, 'domain', 'Banking Function',
+      ['Internal ingress only', 'Synthetic wire lookup', 'Persist pending hold requests'], lsize=13)
+d.arrow([(300, 177), (410, 177)], label='MCP / HTTPS', lx=355, ly=155,
+        lanchor='middle', lsize=11)
+d.arrow([(730, 200), (810, 200)], label='HTTP', lx=770, ly=182,
+        lanchor='middle', lsize=11)
+d.box(410, 370, 320, 140, 'harness', 'Foundry prompt agent',
+      ['Gateway calls Responses API', 'Selected wire + question', 'Text advice; no banking tools'], lsize=13)
+d.arrow([(570, 290), (570, 370)], label='analyze_wire / Entra token', lx=582, ly=333, lsize=11)
+d.box(810, 370, 340, 140, 'workflow', 'Private banking storage',
+      ['hold-requests/*.json', 'PENDING_APPROVAL', 'Banking managed identity'], lsize=13)
+d.arrow([(980, 290), (980, 370)], label='Blob private endpoint', lx=992, ly=333, lsize=11)
+d.text(785, 550, 'Both Functions: one ACR image, separate identities and host storage', 13)
+d.text(785, 577, 'Container Apps environment + VNet + private Blob / Queue / Table DNS', 12, color=GRAY)
+d.text(600, 646, 'Read: tool data + UI URI -> native panel (no Foundry call)', 14)
+d.text(600, 674, 'Investigate: panel message -> Cowork -> analyze_wire -> Foundry', 14)
+d.text(600, 702, 'Request: panel -> app-only tool -> persist before success; no approval or execution', 14, True)
+diagrams.append(d)
+
 for d in diagrams:
     d.save(OUT)
 print(f'{len(diagrams)} diagrams written to {OUT}')
