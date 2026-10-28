@@ -23,23 +23,19 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { z } from "zod";
+import { demoBanking, holdInputSchema, type BankingBackend } from "./banking.js";
 
 const DIST_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "dist");
 const WIRE_REVIEW_URI = "ui://banking/wire-review";
 
-// Demo data. In a real system this comes from the wire service.
-const WIRES = [
-  { id: "TX123", customer: "Contoso Corp", amount: 4_200_000, currency: "USD", destination: "KY", risk: 92,
-    signals: ["New beneficiary", "Unusual amount", "High-risk destination"] },
-  { id: "TX456", customer: "Fabrikam Ltd", amount: 2_100_000, currency: "USD", destination: "AE", risk: 87,
-    signals: ["Velocity spike", "New beneficiary"] },
-  { id: "TX789", customer: "Northwind Traders", amount: 8_700_000, currency: "USD", destination: "PA", risk: 84,
-    signals: ["Round-dollar amount", "Shell-company indicators"] },
-  { id: "TX901", customer: "Woodgrove Bank", amount: 350_000, currency: "USD", destination: "GB", risk: 41,
-    signals: [] },
-];
+export interface ServerOptions {
+  banking?: BankingBackend;
+  analyzeWire?: (wireId: string, question: string) => Promise<string>;
+  readUi?: () => Promise<string>;
+}
 
-export function createServer(): McpServer {
+export function createServer(options: ServerOptions = {}): McpServer {
+  const banking = options.banking ?? demoBanking;
   const server = new McpServer({ name: "banking-mcp-server", version: "1.0.0" });
 
   // 1. Model-visible tool, linked to a UI resource
@@ -55,7 +51,7 @@ export function createServer(): McpServer {
       _meta: { ui: { resourceUri: WIRE_REVIEW_URI } },
     },
     async ({ minRisk }) => {
-      const wires = WIRES.filter((w) => w.risk >= minRisk).sort((a, b) => b.risk - a.risk);
+      const wires = await banking.getWires(minRisk);
       return {
         // `content` is what the model reads.
         content: [{
@@ -76,7 +72,7 @@ export function createServer(): McpServer {
     WIRE_REVIEW_URI,
     { mimeType: RESOURCE_MIME_TYPE, description: "Interactive high-risk wire review" },
     async () => {
-      const html = await fs.readFile(path.join(DIST_DIR, "wire-review.html"), "utf-8");
+      const html = await (options.readUi?.() ?? fs.readFile(path.join(DIST_DIR, "wire-review.html"), "utf-8"));
       return { contents: [{ uri: WIRE_REVIEW_URI, mimeType: RESOURCE_MIME_TYPE, text: html }] };
     },
   );
@@ -88,31 +84,36 @@ export function createServer(): McpServer {
     {
       title: "Create hold request",
       description: "Submits a hold request for a wire. It goes to the approval workflow; it does not hold the wire itself.",
-      inputSchema: {
-        wireId: z.string(),
-        reason: z.string().default("Analyst review from MCP App"),
-      },
+      inputSchema: holdInputSchema.shape,
       _meta: { ui: { visibility: ["app"] } },
     },
     async ({ wireId, reason }) => {
-      const wire = WIRES.find((w) => w.id === wireId);
+      const wire = await banking.getWire(wireId);
       if (!wire) {
         return { isError: true, content: [{ type: "text", text: `Unknown wire ${wireId}` }] };
       }
-      const holdRequest = {
-        holdRequestId: `HOLD-${Math.floor(1000 + Math.random() * 9000)}`,
-        wireId,
-        reason,
-        status: "PENDING_APPROVAL", // intent recorded; the workflow decides
-        submittedAt: new Date().toISOString(),
-      };
-      console.log("[mcp] hold request recorded:", holdRequest);
+      const holdRequest = await banking.createHold({ wireId, reason });
       return {
         content: [{ type: "text", text: `Hold request ${holdRequest.holdRequestId} submitted for ${wireId}` }],
         structuredContent: holdRequest,
       };
     },
   );
+
+  const analyzeWire = options.analyzeWire;
+  if (analyzeWire) {
+    registerAppTool(server, "analyze_wire", {
+      title: "Investigate a wire",
+      description: "Ask the Azure Foundry banking agent to explain a wire's risk signals and recommend next steps. Does not approve or hold wires.",
+      inputSchema: {
+        wireId: z.string().min(1).max(64).describe("Wire identifier from the review panel"),
+        question: z.string().trim().min(1).max(2000).describe("The analyst's investigation question"),
+      },
+      _meta: { ui: { visibility: ["model"] } },
+    }, async ({ wireId, question }) => ({
+      content: [{ type: "text", text: await analyzeWire(wireId, question) }],
+    }));
+  }
 
   return server;
 }

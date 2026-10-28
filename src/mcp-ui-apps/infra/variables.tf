@@ -47,3 +47,14 @@ variable "model_capacity" {
     error_message = "Model capacity must be a positive integer."
   }
 }
+
+variable "function_image" {
+  description = "Immutable ACR image published by cowork:deploy. Null provisions infrastructure without app placeholders."
+  type        = string
+  default     = null
+
+  validation {
+    condition     = var.function_image == null ? true : can(regex("^[a-z0-9]+\\.azurecr\\.io/banking-functions@sha256:[a-f0-9]{64}$", var.function_image))
+    error_message = "Use an immutable banking-functions image digest from Azure Container Registry."
+  }
+}

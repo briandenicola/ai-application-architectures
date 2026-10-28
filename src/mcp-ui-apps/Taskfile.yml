@@ -175,7 +175,7 @@ tasks:
       - terraform -chdir=infra plan
 
   infra:up:
-    desc: Provision Foundry (Terraform confirmation required), then configure the local agent
+    desc: Provision Foundry and Cowork Container Apps infrastructure (confirmation required), then configure the local agent
     interactive: true
     vars:
       SUBSCRIPTION_ID:
@@ -201,6 +201,79 @@ tasks:
     cmds:
       - task: setup:agent
       - 'agent/{{.PY}} -m unittest discover -s scripts -p "test_*.py"'
+
+  # ---------- Microsoft Copilot Cowork ----------
+  cowork:setup:
+    desc: Install the pinned Microsoft 365 Agents Toolkit for plugin registration and installation
+    dir: cowork
+    cmds: [npm ci --no-audit --no-fund]
+    sources: [package.json, package-lock.json]
+    generates: [node_modules/.package-lock.json]
+
+  cowork:check:
+    desc: Offline Function tests, type checks, packaging tests, and Terraform validation/tests
+    cmds:
+      - task: setup:mcp
+      - task: cowork:setup
+      - npm --prefix mcp-server test
+      - npx --prefix mcp-server tsc -p mcp-server
+      - '{{.PYTHON}} -m unittest discover -s scripts -p test_cowork.py'
+      - task: infra:validate
+      - terraform -chdir=infra test
+
+  cowork:build:
+    desc: Build the shared MCP App and Functions container context (no Azure changes)
+    cmds:
+      - task: setup:mcp
+      - task: build:ui
+      - '{{.PYTHON}} scripts/cowork.py build'
+
+  cowork:tamper:
+    desc: Disable persistence/response guards, require test failure, and restore
+    cmds: ['{{.PYTHON}} scripts/tamper_cowork.py']
+
+  cowork:deploy:
+    desc: Build/publish a Functions image in ACR and confirm Terraform deployment to Container Apps
+    interactive: true
+    cmds:
+      - task: cowork:build
+      - '{{.PYTHON}} scripts/cowork.py agent'
+      - '{{.PYTHON}} scripts/cowork.py deploy'
+      - task: infra:up
+      - '{{.PYTHON}} scripts/cowork.py configure'
+
+  cowork:login:
+    desc: Sign in to the Microsoft 365 tenant used for Cowork
+    dir: cowork
+    cmds:
+      - task: cowork:setup
+      - npx atk auth login m365
+
+  cowork:package:
+    desc: Create the anonymous Microsoft Copilot Cowork plugin ZIP from Terraform outputs
+    cmds:
+      - task: cowork:setup
+      - '{{.PYTHON}} scripts/cowork.py package'
+
+  cowork:install:
+    desc: Package and personally install the banking Cowork plugin in Microsoft 365
+    dir: cowork
+    cmds:
+      - task: cowork:package
+      - npx atk install --file-path ../.build/banking-cowork.zip --scope Personal
+
+  cowork:up:
+    desc: Provision, deploy, and personally install the anonymous synthetic Microsoft Cowork demo
+    interactive: true
+    cmds:
+      - task: infra:up
+      - task: cowork:deploy
+      - task: cowork:login
+      - task: cowork:install
+
+  cowork:verify:
+    desc: Read-only deployed MCP smoke test (no hold submissions or model calls)
+    cmds: ['{{.PYTHON}} scripts/cowork.py verify']
 
   clean:
     desc: Remove build output, node_modules and the Python venv

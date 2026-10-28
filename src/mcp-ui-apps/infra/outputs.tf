@@ -11,3 +11,21 @@ output "agent_environment" {
     AZURE_OPENAI_DEPLOYMENT = azurerm_cognitive_deployment.model.name
   }
 }
+
+output "cowork" {
+  description = "Non-secret deployment and Microsoft Cowork packaging settings."
+  value = {
+    subscription_id  = var.subscription_id
+    resource_group   = azurerm_resource_group.demo.name
+    tenant_id        = data.azurerm_client_config.current.tenant_id
+    gateway_app      = local.container_app_names.gateway
+    banking_app      = local.container_app_names.banking
+    registry_name    = azurerm_container_registry.functions.name
+    registry_server  = azurerm_container_registry.functions.login_server
+    mcp_url          = "https://${local.gateway_hostname}/mcp"
+    plugin_id        = random_uuid.plugin.result
+    project_endpoint = local.project_endpoint
+    agent_name       = local.investigator
+    model_deployment = azurerm_cognitive_deployment.model.name
+  }
+}
