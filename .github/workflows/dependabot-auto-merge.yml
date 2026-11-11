@@ -1,0 +1,49 @@
+# Auto-merges Dependabot patch and minor updates once required checks pass.
+# Major updates are never merged here; they wait for manual review.
+#
+# Safety: if the base branch has no required status checks, this workflow does
+# nothing. Without them `gh pr merge --auto` would merge before CI has run.
+name: Dependabot auto-merge
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  auto-merge:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      REPO: ${{ github.repository }}
+      BASE: ${{ github.event.pull_request.base.ref }}
+      PR_URL: ${{ github.event.pull_request.html_url }}
+    steps:
+      - name: Read Dependabot metadata
+        id: meta
+        uses: dependabot/fetch-metadata@v2
+
+      - name: Check the base branch requires status checks
+        id: guard
+        run: |
+          classic=$(gh api "repos/$REPO/branches/$BASE" \
+            --jq '(.protection.required_status_checks.contexts // []) | length' || echo 0)
+          rules=$(gh api "repos/$REPO/rules/branches/$BASE" \
+            --jq '[.[] | select(.type == "required_status_checks")] | length' || echo 0)
+          if [ "$((classic + rules))" -gt 0 ]; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::$BASE has no required status checks, so auto-merge was skipped. Add required checks in branch protection to turn it on."
+          fi
+
+      - name: Enable auto-merge for patch and minor updates
+        if: >-
+          steps.guard.outputs.ok == 'true' &&
+          (steps.meta.outputs.update-type == 'version-update:semver-patch' ||
+           steps.meta.outputs.update-type == 'version-update:semver-minor')
+        run: gh pr merge --auto --squash "$PR_URL"
