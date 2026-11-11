@@ -7,6 +7,9 @@ updates:
     open-pull-requests-limit: 5
     commit-message:
       prefix: "ci"
+    groups:
+      github-actions-minor-patch:
+        update-types: [minor, patch]
 
   - package-ecosystem: pip
     directory: "/src/evals"
@@ -24,6 +27,8 @@ updates:
           - "ruff"
           - "pyright"
           - "pytest*"
+      pip-minor-patch:
+        update-types: [minor, patch]
 
   - package-ecosystem: terraform
     directory: "/infrastructure"
@@ -32,3 +37,6 @@ updates:
     open-pull-requests-limit: 3
     commit-message:
       prefix: "deps"
+    groups:
+      terraform-minor-patch:
+        update-types: [minor, patch]
