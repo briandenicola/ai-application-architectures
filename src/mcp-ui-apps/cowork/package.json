@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "devDependencies": {
-    "@microsoft/m365agentstoolkit-cli": "1.1.18",
+    "@microsoft/m365agentstoolkit-cli": "1.1.19",
     "ajv-draft-04": "1.0.0",
     "ajv-formats": "3.0.1"
   }
