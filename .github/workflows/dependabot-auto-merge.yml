@@ -25,7 +25,7 @@ jobs:
     steps:
       - name: Read Dependabot metadata
         id: meta
-        uses: dependabot/fetch-metadata@v2
+        uses: dependabot/fetch-metadata@v3
 
       - name: Check the base branch requires status checks
         id: guard
