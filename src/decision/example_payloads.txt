@@ -1,0 +1,45 @@
+payload = {
+    "model": MODEL,
+
+    "state": {
+        "message": "Checkout is down again for all EU customers. "
+                   "This is my third support request."
+    },
+
+    "questions": {
+
+        # Binary decision -> probability from 0 to 1
+        "repeat_contact": {
+            "type": "noul",
+            "instructions": "Has this customer contacted support before?",
+            "criteria": {
+                "true": "The customer indicates they contacted support previously",
+                "false": "There is no indication of previous support contact"
+            }
+        },
+
+        # Classification -> one of these choices
+        "team": {
+            "type": "choice",
+            "instructions": "Which team should handle this issue?",
+            "criteria": {
+                "billing": "Charges, invoices, or refunds",
+                "engineering": "Software failures, errors, or outages",
+                "support": "General usage or account questions"
+            }
+        },
+
+        # Ordered score
+        "severity": {
+            "type": "score",
+            "instructions": "How severe is this incident?",
+            "criteria": [
+                "Cosmetic",
+                "Minor",
+                "Major",
+                "Critical"
+            ]
+        }
+    }
+}
+
