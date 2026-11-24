@@ -23,7 +23,7 @@ FOUNDRY_AUDIENCE = "https://ai.azure.com/"
 MANAGEMENT_AUDIENCE = "https://management.azure.com/"
 STORAGE_AUDIENCE = "https://storage.azure.com/"
 DEFAULT_MODELS = {
-    "chat": ("gpt-5-mini", "2025-08-07", "GlobalStandard"),
+    "chat": ("gpt-5.4-mini", "2026-03-17", "GlobalStandard"),
     "embedding": ("text-embedding-3-small", "1", "Standard"),
 }
 INSTRUCTIONS = """You are the Northstar Demo Company employee handbook assistant.
@@ -356,7 +356,7 @@ def verify_model(models, name, version, sku):
     if not any(
         entry.get("model", {}).get("name") == name
         and entry["model"].get("version") == version
-        and any(option.get("name") == sku for option in entry.get("skus", []))
+        and any(option.get("name") == sku for option in entry["model"].get("skus", []))
         for entry in models
     ):
         raise RuntimeError(

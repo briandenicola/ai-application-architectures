@@ -51,7 +51,7 @@ content; each agent composes its own cited answer.
   your Power Platform environment.
 - Ruff for `task check` only; no Python runtime packages are required.
 
-The defaults are `gpt-5-mini` version `2025-08-07` (`GlobalStandard`) and
+The defaults are `gpt-5.4-mini` version `2026-03-17` (`GlobalStandard`) and
 `text-embedding-3-small` version `1` (`Standard`). `task up` checks the selected
 subscription's regional model catalog before provisioning. Catalog presence is
 not a quota or capacity guarantee; deployment reports those errors explicitly.

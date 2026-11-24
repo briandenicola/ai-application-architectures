@@ -68,7 +68,7 @@ queried or asserted available during preparation.
 
 ## Preparation results
 
-- Offline formatting, lint, and nine mocked-service unit tests pass.
+- Initial offline formatting, lint, and nine mocked-service unit tests passed.
 - Eleven in-memory guard mutations were detected by the existing tests;
   originals were restored and `task check` passed again. See `docs/tamper-log.md`.
 - The user subsequently approved Terraform provider downloads for local schema
@@ -88,3 +88,18 @@ queried or asserted available during preparation.
 - Deferred to user: Azure authentication, Terraform plan review, live
   provisioning, quota/capacity checks, live ingestion/retrieval, and Copilot
   Studio preview.
+
+## Model-catalog correction
+
+- Read-only troubleshooting confirmed Azure CLI nests deployment SKUs under
+  `model.skus`, not at the catalog entry's root.
+- The user approved fixing the parser and changing the chat model to
+  `gpt-5.4-mini`, version `2026-03-17`, with `GlobalStandard` deployment.
+- Updated the Python/Terraform/example defaults and ignored local `.env`.
+- Catalog presence and available quota were confirmed in `eastus2` using
+  read-only Azure queries; no resources were provisioned or changed.
+- Passed after the correction: `task check` (ten tests),
+  `terraform -chdir=infra validate -no-color`, and the actual read-only preflight
+  using the updated `.env`.
+- Terraform plan/apply and end-to-end ingestion, agent, and Copilot Studio
+  verification remain for the user to run.

@@ -90,18 +90,44 @@ class ConfigurationTests(unittest.TestCase):
     def test_model_check_matches_name_version_and_sku_together(self):
         models = [
             {
-                "model": {"name": "gpt-5-mini", "version": "2025-08-07"},
-                "skus": [{"name": "GlobalStandard"}],
+                "kind": "OpenAI",
+                "skuName": "S0",
+                "model": {
+                    "name": "gpt-5.4-mini",
+                    "version": "2026-03-17",
+                    "skus": [{"name": "GlobalStandard"}],
+                },
             }
         ]
-        demo.verify_model(models, "gpt-5-mini", "2025-08-07", "GlobalStandard")
+        demo.verify_model(models, "gpt-5.4-mini", "2026-03-17", "GlobalStandard")
         for name, version, sku in [
-            ("other", "2025-08-07", "GlobalStandard"),
-            ("gpt-5-mini", "other", "GlobalStandard"),
-            ("gpt-5-mini", "2025-08-07", "Standard"),
+            ("other", "2026-03-17", "GlobalStandard"),
+            ("gpt-5.4-mini", "other", "GlobalStandard"),
+            ("gpt-5.4-mini", "2026-03-17", "Standard"),
         ]:
             with self.subTest(name=name, version=version, sku=sku), self.assertRaises(RuntimeError):
                 demo.verify_model(models, name, version, sku)
+
+    def test_model_check_does_not_accept_skus_outside_the_selected_model(self):
+        models = [
+            {
+                "model": {
+                    "name": "gpt-5.4-mini",
+                    "version": "2026-03-17",
+                    "skus": [{"name": "Standard"}],
+                },
+                "skus": [{"name": "GlobalStandard"}],
+            },
+            {
+                "model": {
+                    "name": "gpt-5.5",
+                    "version": "2026-04-24",
+                    "skus": [{"name": "GlobalStandard"}],
+                },
+            },
+        ]
+        with self.assertRaises(RuntimeError):
+            demo.verify_model(models, "gpt-5.4-mini", "2026-03-17", "GlobalStandard")
 
 
 class RestTests(unittest.TestCase):
@@ -150,7 +176,7 @@ class SetupTests(unittest.TestCase):
             "knowledge_base": "handbook",
             "openai_endpoint": "https://model.example.com",
             "chat_deployment": "chat",
-            "chat_model": "gpt-5-mini",
+            "chat_model": "gpt-5.4-mini",
             "embedding_deployment": "embedding",
             "embedding_model": "text-embedding-3-small",
             "project_resource_id": "/subscriptions/subscription/project",

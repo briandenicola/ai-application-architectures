@@ -28,13 +28,13 @@ variable "search_sku" {
 variable "chat_model_name" {
   type        = string
   description = "Model used for the agent and knowledge-base query planning."
-  default     = "gpt-5-mini"
+  default     = "gpt-5.4-mini"
 }
 
 variable "chat_model_version" {
   type        = string
   description = "Explicit model version."
-  default     = "2025-08-07"
+  default     = "2026-03-17"
 }
 
 variable "chat_model_sku" {
