@@ -1,0 +1,49 @@
+version: '3'
+
+dotenv: ['.env']
+
+env:
+  TF_VAR_subscription_id: '{{.AZURE_SUBSCRIPTION_ID | default ""}}'
+  TF_VAR_location: '{{.AZURE_LOCATION | default "eastus2"}}'
+
+tasks:
+  default:
+    cmds:
+      - task --list
+
+  up:
+    desc: Provision infrastructure, upload policies, and configure Foundry IQ and its agent
+    cmds:
+      - python3 scripts/demo.py preflight
+      - terraform -chdir=infra init -input=false
+      - terraform -chdir=infra validate
+      - terraform -chdir=infra apply
+      - python3 scripts/demo.py setup
+      - task: outputs
+
+  setup:
+    desc: Re-upload policies and reconcile knowledge and agent configuration after provisioning
+    cmds:
+      - python3 scripts/demo.py setup
+
+  ask:
+    desc: Ask the deployed Foundry agent (task ask -- "your question")
+    requires:
+      vars: [CLI_ARGS]
+    env:
+      DEMO_QUESTION: '{{.CLI_ARGS}}'
+    cmds:
+      - python3 scripts/demo.py ask
+
+  outputs:
+    desc: Show the service endpoint, knowledge base, MCP endpoint, and agent details
+    cmds:
+      - python3 scripts/demo.py outputs
+
+  check:
+    desc: Run offline formatting, lint, and unit checks (no Azure calls)
+    cmds:
+      - terraform -chdir=infra fmt -check
+      - ruff check scripts tests
+      - ruff format --check scripts tests
+      - python3 -m unittest discover -s tests -v
