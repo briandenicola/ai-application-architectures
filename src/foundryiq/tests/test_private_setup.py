@@ -4,6 +4,8 @@ import io
 import json
 import os
 import socket
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -100,6 +102,8 @@ class PrivateJobTests(unittest.TestCase):
             "setup_runner_name": "setup",
             "setup_runner_image": "mcr.microsoft.com/azure-cli:synthetic",
             "setup_runner_client_id": "synthetic-managed-identity",
+            "application_insights_id": "/subscriptions/s/components/insights",
+            "application_insights_app_id": "synthetic-application",
         }
 
     def test_job_status_controls_success_and_failure(self):
@@ -184,6 +188,7 @@ class PrivateJobTests(unittest.TestCase):
             root = Path(directory)
             (root / "scripts").mkdir()
             (root / "scripts/demo.py").write_text("print('synthetic worker')\n")
+            (root / "scripts/telemetry.py").write_text("# Synthetic telemetry helper\n")
             (root / "data").mkdir()
             (root / "data/policy.md").write_text("Synthetic policy")
             (root / ".env").write_text("secret-placeholder")
@@ -192,14 +197,34 @@ class PrivateJobTests(unittest.TestCase):
                 bundle = gzip.decompress(base64.b64decode(demo.runner_payload(self.config())))
             self.assertNotIn(b"secret-placeholder", bundle)
             self.assertEqual(
-                set(json.loads(bundle)["files"]), {"scripts/demo.py", "data/policy.md"}
+                set(json.loads(bundle)["files"]),
+                {"scripts/demo.py", "scripts/telemetry.py", "data/policy.md"},
             )
+
+    def test_real_worker_bundle_imports_without_runtime_packages(self):
+        bundle = json.loads(gzip.decompress(base64.b64decode(demo.runner_payload(self.config()))))
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for name, content in bundle["files"].items():
+                path = root / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(content)
+            result = subprocess.run(
+                [sys.executable, str(root / "scripts/demo.py"), "--help"],
+                cwd=root,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("worker", result.stdout)
 
     def test_empty_policy_bundle_cannot_start_a_demo(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root / "scripts").mkdir()
             (root / "scripts/demo.py").write_text("print('synthetic')\n")
+            (root / "scripts/telemetry.py").write_text("# Synthetic telemetry helper\n")
             with (
                 patch.object(demo, "ROOT", root),
                 self.assertRaisesRegex(RuntimeError, "No policy documents"),

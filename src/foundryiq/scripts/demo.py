@@ -21,6 +21,11 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urlsplit
 from urllib.request import Request, urlopen
 
+if __package__:
+    from . import telemetry
+else:
+    import telemetry
+
 ROOT = Path(__file__).resolve().parents[1]
 SEARCH_API = "2026-11-01-preview"
 SEARCH_AUDIENCE = "https://search.azure.com/"
@@ -94,7 +99,16 @@ class AzureRest:
         return cached[0]
 
     def request(
-        self, method, url, audience, payload=None, *, headers=None, propagation=False, raw=False
+        self,
+        method,
+        url,
+        audience,
+        payload=None,
+        *,
+        headers=None,
+        propagation=False,
+        raw=False,
+        timeout=180,
     ):
         data = (
             payload
@@ -114,7 +128,7 @@ class AzureRest:
                 },
             )
             try:
-                with urlopen(request, timeout=180) as response:
+                with urlopen(request, timeout=timeout) as response:
                     body = response.read()
                     if raw:
                         return body
@@ -228,9 +242,10 @@ def verify_private_storage(config):
 
 
 def runner_payload(config):
-    files = [ROOT / "scripts/demo.py", *sorted((ROOT / "data").glob("*.md"))]
-    if len(files) == 1:
+    policies = sorted((ROOT / "data").glob("*.md"))
+    if not policies:
         raise RuntimeError("No policy documents found in data/.")
+    files = [ROOT / "scripts/demo.py", ROOT / "scripts/telemetry.py", *policies]
     bundle = {
         "config": config,
         "files": {str(path.relative_to(ROOT)): path.read_text() for path in files},
@@ -287,6 +302,7 @@ def show_runner_logs(config, execution):
 def private_setup(client, config):
     if not config.get("setup_runner_id") or not config.get("search_index"):
         raise RuntimeError("Run task up to provision the private setup runner before task setup.")
+    telemetry.require_configuration(config)
     base = f"https://management.azure.com{config['setup_runner_id']}"
     page = f"{base}/executions?api-version={JOB_API}"
     while page:
@@ -635,6 +651,27 @@ def index_blobs(client, config):
 
 
 def setup(client, config):
+    telemetry.require_configuration(config)
+    client.request(
+        "PUT",
+        f"https://management.azure.com{config['project_resource_id']}/connections/"
+        f"{config['telemetry_connection_name']}?api-version=2025-10-01-preview",
+        MANAGEMENT_AUDIENCE,
+        {
+            "properties": {
+                "category": "AppInsights",
+                "authType": "ProjectManagedIdentity",
+                "target": config["application_insights_id"],
+                "isSharedToAll": False,
+                "metadata": {
+                    "ApiType": "Azure",
+                    "ResourceId": config["application_insights_id"],
+                    "ApplicationId": config["application_insights_app_id"],
+                },
+            }
+        },
+        propagation=True,
+    )
     files = sorted((ROOT / "data").glob("*.md"))
     if not files:
         raise RuntimeError("No policy documents found in data/.")
@@ -733,6 +770,9 @@ def response_text(response):
 
 
 def ask(client, config, question):
+    telemetry.require_configuration(config)
+    telemetry.wait_seconds()
+    started = time.monotonic()
     response = client.request(
         "POST",
         f"{config['project_endpoint']}/openai/v1/responses",
@@ -745,8 +785,31 @@ def ask(client, config, question):
             },
         },
     )
-    print(response_text(response))
-    print("\n[Foundry IQ MCP retrieval confirmed]")
+    summary = telemetry.response_summary(response, time.monotonic() - started)
+    failure = None
+    try:
+        answer = response_text(response)
+    except RuntimeError as error:
+        failure = error
+        print(f"Agent validation failed: {error}", file=sys.stderr)
+    else:
+        print(answer)
+        print("\n[Foundry IQ MCP retrieval confirmed]")
+    telemetry.print_summary(summary)
+    try:
+        telemetry.report(
+            client,
+            config,
+            response.get("id"),
+            ROOT,
+            {"response": response, "summary": summary},
+        )
+    except (RuntimeError, ValueError, KeyError, OSError) as error:
+        if failure is not None:
+            raise RuntimeError(f"{failure}\nTelemetry lookup also failed: {error}") from error
+        raise
+    if failure is not None:
+        raise failure
 
 
 def verify_model(models, name, version, sku):
@@ -867,7 +930,16 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "command",
-        choices=["preflight", "setup", "ask", "outputs", "resource-group", "operator-id", "worker"],
+        choices=[
+            "preflight",
+            "setup",
+            "ask",
+            "traces",
+            "outputs",
+            "resource-group",
+            "operator-id",
+            "worker",
+        ],
     )
     args = parser.parse_args()
     try:
@@ -892,6 +964,8 @@ def main():
         client = AzureRest(config["subscription_id"])
         if args.command == "setup":
             private_setup(client, config)
+        elif args.command == "traces":
+            telemetry.report(client, config, os.environ.get("DEMO_RESPONSE_ID", "").strip(), ROOT)
         else:
             question = os.environ.get("DEMO_QUESTION", "").strip()
             if not question:

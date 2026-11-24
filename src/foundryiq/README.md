@@ -15,6 +15,7 @@ flowchart LR
     Runner -->|"Chunk, embed, and push index"| IQ
     Foundry -->|"MCP + project managed identity"| IQ
     Studio -->|"Native Foundry IQ tool\nEntra ID Integrated"| IQ
+    Foundry -->|"Project managed identity\nserver-side traces"| Insights["Application Insights\nLog Analytics workspace"]
 ```
 
 **No separate application API, API keys, SAS tokens, or storage credentials.**
@@ -37,7 +38,9 @@ All implementation files and local state stay inside `src/foundryiq`.
 | `data/*.md` | Fictional leave, expenses, and remote-work policies |
 | `scripts/demo.py` | Private-job orchestration, Blob uploads/downloads, chunking/embedding/indexing, knowledge/agent setup, questions |
 | `scripts/runner_bootstrap.py` | Authenticate the job with managed identity and execute the supplied demo bundle |
-| `Taskfile.yaml` | Provision/setup, destroy, ask, display endpoints, offline checks |
+| Application Insights + Log Analytics | Keyless Foundry server-side agent/model/tool traces; 30-day retention, 1 GB/day caps |
+| `scripts/telemetry.py` | Immediate response/MCP diagnostics and response-correlated trace queries |
+| `Taskfile.yaml` | Provision/setup, destroy, ask, query traces, display endpoints, offline checks |
 | [Copilot Studio walkthrough](docs/copilot-studio.md) | Connect the same knowledge base to a second agent |
 
 The runner reads Markdown documents from the private Blob container, chunks and
@@ -67,8 +70,10 @@ This demo defaults to **Search Basic**. The private runner handles indexing, so
 Search never needs to connect to private Blob Storage. Search, NAT Gateway, and
 private endpoints add charges even when the setup job is idle. The job itself runs only
 when started. This is a disposable single-region demo, not an HA architecture or
-an all-services-private deployment. Console logs are fetched after each execution;
-no persistent Log Analytics workspace or keys are introduced.
+an all-services-private deployment. Job console logs are fetched after each execution;
+the monitoring workspace stores Foundry traces, not job console logs or detailed
+Search resource diagnostics. Monitoring adds ingestion/storage charges. The daily
+ingestion caps are not a strict billing ceiling.
 
 The defaults are `gpt-5.4-mini` version `2026-03-17` (`GlobalStandard`) and
 `text-embedding-3-small` version `1` (`GlobalStandard`). `task up` checks the selected
@@ -125,6 +130,30 @@ From `src/foundryiq`:
    task ask -- "Can I work remotely four days a week, and claim a $450 monitor?"
    task ask -- "What is the parental leave entitlement?"
    ```
+
+   After adding observability to an existing deployment, run `task up` once first.
+   The answer is printed immediately, followed by response ID, elapsed time,
+   returned token usage, and MCP call arguments/result previews. The command then
+   waits up to `TRACE_WAIT_SECONDS=120` for matching App Insights telemetry.
+   `TRACE_WAIT_SECONDS=0` performs one query (up to 30 seconds), without polling.
+   Available traces show span/operation IDs, timings, status, and log messages;
+   the full response, returned records, and exact KQL query are saved in ignored
+   `.artifacts/traces/<response-id>.json`.
+
+   If ingestion is delayed, the command explicitly reports **pending**.
+   Retry without another model call:
+
+   ```bash
+   task traces -- <response-id>
+   ```
+
+   Correlation starts from the exact response ID and expands only its operation
+   IDs over the last 24 hours; it never substitutes another request's traces.
+   Finding some records does not mean every span has arrived. Output is capped at
+   200 records; expand the saved KQL in App Insights for larger traces.
+   A pending result does not fail a valid answer. API/auth/query errors do fail
+   the task, after preserving the response artifact; retry `task traces`, not `ask`.
+   Agent/tool failures remain failures even if telemetry arrives.
 
 4. Run `task outputs`, then follow [Connect Copilot Studio](docs/copilot-studio.md).
    Ask the same questions in Copilot Studio to demonstrate reuse.
@@ -195,9 +224,11 @@ Indexing runs only through `task up` or `task setup`, not on a background schedu
 |---|---|---|
 | Search system identity | Foundry account hosting the models | Cognitive Services OpenAI User |
 | Foundry project system identity | Search service | Search Index Data Reader |
+| Foundry project system identity | Application Insights | Monitoring Metrics Publisher |
 | Azure CLI demo operator | Handbook container | Storage Blob Data Contributor |
 | Azure CLI demo operator | Search service | Search Service Contributor + Search Index Data Contributor |
 | Azure CLI demo operator | Foundry account | Foundry User + Foundry Project Manager |
+| Azure CLI demo operator | Application Insights and its Log Analytics workspace | Log Analytics Reader |
 | Setup job managed identity | Handbook container | Storage Blob Data Contributor |
 | Setup job managed identity | Search service | Search Service Contributor + Search Index Data Contributor |
 | Setup job managed identity | Foundry account | Foundry User + Foundry Project Manager + Cognitive Services OpenAI User |
@@ -205,11 +236,15 @@ Indexing runs only through `task up` or `task setup`, not on a background schedu
 `task up` derives the operator object ID from the selected Azure CLI token.
 Terraform's deployment service principal can be different; its identity is not
 silently reused for operator permissions. The private job signs in with its own
-user-assigned managed identity. Only the sample script, synthetic policy files,
+user-assigned managed identity. Only the sample scripts, synthetic policy files,
 and non-secret configuration are sent to the job: never `.env`, Terraform state,
 Azure CLI caches, or access tokens.
 
 The connection uses `ProjectManagedIdentity` with the Search audience.
+The project also has an `AppInsights` connection authenticated with its managed
+identity. Monitoring resources disable local authentication. Only resource IDs
+and the non-secret application ID are output; no instrumentation key or
+connection string is output, bundled, or supplied by the sample.
 The runner uses its managed identity for Blob downloads and embedding requests.
 Search uses its system identity to vectorize queries with the same embedding model.
 Terraform state is local and can contain provider-managed sensitive attributes;
@@ -228,6 +263,8 @@ with `-foundry`, `-project`, and `-ai_rg` suffixes. Search uses
 | Search reports regional capacity exhaustion | Choose another supported region; use `task down` first if moving an existing deployment |
 | Blob `403 AuthorizationFailure` | A network block, not a generic RBAC wait: check the runner's private endpoint/DNS. The script fails immediately and shows the request URL and server error |
 | Other setup 401/403 | Confirm the correct runtime identity and roles above; propagation retries are bounded and show method, endpoint, and error detail |
+| Traces pending | Ingestion and role/connection propagation can take several minutes; use the printed response ID with `task traces` |
+| Telemetry query 401/403 or query error | Confirm the CLI operator's Log Analytics Reader access and the project identity's Monitoring Metrics Publisher role; inspect the saved error and retry `task traces` after propagation |
 | Private Blob DNS check fails | Check the private DNS zone, VNet link, and Blob endpoint; the worker rejects public or mixed DNS answers |
 | Private setup job fails | `task setup` prints that execution's console logs and returns failure; correct the reported cause and rerun it |
 | Setup execution already active | Wait for that execution; the script refuses to start another known-active setup |

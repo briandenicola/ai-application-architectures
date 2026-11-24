@@ -283,6 +283,9 @@ class SetupTests(unittest.TestCase):
             "project_endpoint": "https://project.example.com",
             "connection_name": "handbook-mcp",
             "agent_name": "handbook-agent",
+            "application_insights_id": "/subscriptions/subscription/components/insights",
+            "application_insights_app_id": "synthetic-application",
+            "telemetry_connection_name": "handbook-insights",
         }
 
     def run_setup(self, exists):
@@ -314,13 +317,26 @@ class SetupTests(unittest.TestCase):
         source = next(payload for payload in payloads if payload.get("name") == "handbook-source")
         self.assertEqual(source["kind"], "searchIndex")
         self.assertEqual(source["searchIndexParameters"]["searchIndexName"], "handbook-index")
-        connection = next(payload for payload in payloads if "properties" in payload)
+        connection = next(
+            payload
+            for payload in payloads
+            if payload.get("properties", {}).get("category") == "RemoteTool"
+        )
         self.assertEqual(connection["properties"]["authType"], "ProjectManagedIdentity")
         agent = next(payload for payload in payloads if "definition" in payload)
         tool = agent["definition"]["tools"][0]
         self.assertEqual(tool["server_url"], connection["properties"]["target"])
         self.assertEqual(tool["allowed_tools"], ["knowledge_base_retrieve"])
         self.assertNotIn("apiKey", json.dumps(payloads))
+        insights = next(
+            payload["properties"]
+            for payload in payloads
+            if payload.get("properties", {}).get("category") == "AppInsights"
+        )
+        self.assertEqual(insights["authType"], "ProjectManagedIdentity")
+        self.assertEqual(insights["target"], self.config()["application_insights_id"])
+        self.assertEqual(insights["metadata"]["ApplicationId"], "synthetic-application")
+        self.assertNotIn("credentials", insights)
         self.assertTrue(any(url.endswith("/agents?api-version=v1") for _, url, _, _ in calls))
 
     def test_repeat_setup_creates_version_instead_of_duplicate_agent(self):

@@ -108,6 +108,10 @@ You cannot approve requests or perform business transactions.
 The activity trace matters: a plausible answer by itself does not prove that the
 knowledge base was used. Source links point to private blobs; the link does not
 grant permission to download a document.
+`task ask` and `task traces` query the **Foundry agent's** Application Insights
+telemetry. They do not capture this independently running Copilot Studio agent;
+inspect its activity trace in Studio. Detailed Search service diagnostic logs
+are not enabled by this sample.
 Blob Storage also has public network access disabled; following a source link
 requires private network connectivity as well as Blob permissions. Copilot
 Studio retrieves through Search, not by opening that Blob link.

@@ -5,4 +5,5 @@
 *.tfplan
 __pycache__/
 .ruff_cache/
+.artifacts/
 !infra/.terraform.lock.hcl

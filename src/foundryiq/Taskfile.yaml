@@ -47,13 +47,22 @@ tasks:
       - python3 scripts/demo.py setup
 
   ask:
-    desc: Ask the deployed Foundry agent (task ask -- "your question")
+    desc: Ask the agent and show call diagnostics plus correlated traces
     requires:
       vars: [CLI_ARGS]
     env:
       DEMO_QUESTION: '{{.CLI_ARGS}}'
     cmds:
       - python3 scripts/demo.py ask
+
+  traces:
+    desc: Fetch correlated traces without another model call (task traces -- response-id)
+    requires:
+      vars: [CLI_ARGS]
+    env:
+      DEMO_RESPONSE_ID: '{{.CLI_ARGS}}'
+    cmds:
+      - python3 scripts/demo.py traces
 
   outputs:
     desc: Show the service endpoint, knowledge base, MCP endpoint, and agent details

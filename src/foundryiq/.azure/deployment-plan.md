@@ -1,6 +1,6 @@
 # Foundry IQ demo deployment plan
 
-Status: Offline checks passed; live Basic indexing deferred to the user
+Status: Ready for Validation
 
 ## Confirmed scope
 
@@ -34,7 +34,7 @@ Status: Offline checks passed; live Basic indexing deferred to the user
 - Terraform creates infrastructure and RBAC. Python automation uploads synthetic
   documents, creates the knowledge source/base, waits for ingestion, and creates
   the Foundry prompt agent from the VNet-integrated managed-identity job.
-- Principal Task targets: `up`, `down`, `setup`, `ask`, `outputs`, and `check`. `up` includes
+- Principal Task targets: `up`, `down`, `setup`, `ask`, `traces`, `outputs`, and `check`. `up` includes
   provisioning and setup; `ask` exercises the deployed Foundry agent.
 
 ## Execution boundary
@@ -218,3 +218,91 @@ without approval.
 - The user must run `task up` to apply the updated role/output configuration
   and exercise live private indexing, Foundry retrieval, and Copilot Studio.
   No live indexing success is claimed.
+
+## Observability addition (approved)
+
+- Requested: connect the project/agent to Application Insights and show
+  diagnostics alongside `task ask`.
+- Preserve Basic Search, private Blob indexing, existing Task targets, naming,
+  keyless authentication, and the `src/foundryiq` boundary.
+- Proposed infrastructure: workspace-backed Application Insights in the
+  existing Canada Central resource group/subscription, 30-day retention and
+  a 1 GB/day ingestion cap, Entra-only ingestion/query access, project
+  managed-identity connection, scoped publisher and query-reader roles.
+- Microsoft documents Project Managed Identity for the App Insights connection
+  and Monitoring Metrics Publisher for the project identity. The existing
+  project's RemoteTool connection confirms that auth representation is accepted
+  by its ARM connection API, despite older template enum documentation.
+- Terraform owns monitoring resources/RBAC; setup reconciles the App Insights
+  project connection alongside the existing MCP connection. No connection
+  string, instrumentation key, or credentials are output or packaged.
+- Proposed ask output: answer plus response ID, elapsed time, token usage when
+  supplied, MCP call details, and correlated server-side telemetry.
+- Scope: Foundry server-side agent/model/MCP spans and related events/errors;
+  detailed Search resource diagnostics are excluded from this increment.
+- Query the App Insights v1 API using Azure CLI Entra tokens; correlate exact
+  `gen_ai.response.id` to `operation_Id`, then retrieve that operation's spans
+  and logs. Scope queries to 24 hours and the linked App Insights resource.
+- Print immediate response diagnostics, then poll for at most 120 seconds
+  by default (configurable). Missing telemetry is explicitly pending, never
+  presented as a verified trace. API/auth/partial-query errors remain failures.
+- Add `task traces -- <response-id>` to query later without invoking the model
+  again. No additional application/runtime dependencies or local containers.
+- Verify Terraform schema/graph, mocked API payloads/correlation, failure paths,
+  and tamper-test changed guards. Commit/push the scoped change.
+- Approved: the existing Azure context, these resources and boundaries, and a
+  120-second default trace wait. The user runs provisioning and agent calls
+  through Task targets. Local checks and code changes are approved.
+
+## Observability preparation results
+
+- Implemented workspace-backed App Insights, 30-day retention, 1 GB/day caps,
+  disabled local auth, project publisher RBAC, and operator query RBAC.
+- The private setup job reconciles a keyless `AppInsights` project connection.
+  Only non-secret resource/application IDs enter outputs and the worker bundle.
+- `ask` preserves the full response, prints MCP/request diagnostics, and queries
+  exact-response telemetry. `traces` retries queries without invoking the agent.
+  Missing records are pending; API/query/agent failures remain failures.
+- Passed offline: Terraform schema/format, Ruff, 50 unit/integration-fixture
+  tests, Task trace-target dry run, and 23 independent assertion-detected
+  mutations. Originals restored; proof is in `docs/tamper-log.md`.
+- Read-only regional checks: App Insights advertises Canada Central and this
+  subscription has zero regional Log Analytics workspaces. Generic
+  `Microsoft.Insights` quota discovery returned `BadRequest`; it does not prove
+  unlimited quota or future availability.
+- No Azure resources or roles were changed. The new connection payload, trace
+  ingestion, and live query correlation still require user-run `task up` and
+  `task ask`. Copilot Studio activity traces remain separate.
+
+## Section 7: Validation Proof - observability
+
+- [ ] All validation checks pass (Azure preview/policy/runtime remain user-run).
+  - [x] Terraform installation: `terraform version -json` reports 1.16.4.
+  - [x] Azure CLI installation: `az version` reports 2.93.0.
+  - [x] Authentication: scoped read-only regional resource/provider queries succeeded.
+  - [x] Initialize: reused the existing initialized, locked providers; no downloads.
+  - [x] Format check: `task check` runs `terraform fmt -check` and Ruff.
+  - [x] Validate syntax: `task check` runs `terraform validate`; passed.
+  - [ ] Plan preview: reserved for the interactive Terraform apply plan in `task up`.
+  - [x] State backend: `terraform -chdir=infra state list` succeeded.
+  - [ ] Azure Policy validation: deployment-time checks remain unverified.
+  - [x] Template variable resolution: not applicable; plain Terraform, not azd.
+- Additional proof: `task check` passed all 50 tests; all 23 isolated mutations
+  caused assertion failures without test errors; `git diff --check`, plan JSON
+  parsing, `task --list`, and `task --dry traces -- resp_synthetic` passed.
+- No Terraform plan/apply, model invocation, role changes, or Azure writes were
+  executed by the assistant. Status is not `Validated` for live deployment.
+
+## Role Assignment Verification
+
+- Status: statically verified against the documented service operations.
+- Project identity: existing Search reader plus Monitoring Metrics Publisher
+  scoped to this App Insights resource, not the account identity.
+- CLI operator: existing Blob/Search/Foundry roles plus Log Analytics Reader
+  scoped to this App Insights resource and workspace, not the Terraform deployer.
+- Setup identity: existing Blob contributor, Search service/index contributor,
+  Foundry user/project manager, and OpenAI user roles; reconciles the project
+  connection without ingesting/querying agent telemetry itself.
+- Search identity: existing OpenAI user role for query vectorization.
+- Native Terraform graph checks verify project/publisher/workspace ordering;
+  actual assigned-role propagation and trace ingestion remain user-run checks.

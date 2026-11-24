@@ -196,3 +196,42 @@ All 25 mutations caused assertion failures, with no test errors. After restoring
 the originals, all 39 tests passed. Final `task check` also passed Terraform
 format/schema validation and Ruff lint/format checks. `git diff --check` passed.
 These checks do not prove live indexing or either agent's Azure integration.
+
+## Foundry observability guards
+
+After adding keyless monitoring and response-correlated diagnostics, independently
+broke these guards in memory or isolated Terraform copies. Each mutation produced
+an assertion failure, with zero test errors. Runtime originals were restored in
+`finally`; the real Terraform files, state, and Azure resources were not mutated.
+
+| Broken guard | Detecting test |
+|---|---|
+| Accept unsafe response IDs | `test_query_is_exact_response_scoped_then_expands_only_its_operations` |
+| Remove the exact response-ID seed | Same correlation test |
+| Return unrelated operations | Same correlation test |
+| Expand the query's lookback | Same correlation test |
+| Accept partial query errors | `test_partial_missing_or_malformed_query_data_is_not_success` |
+| Accept missing result tables | Same query-schema test |
+| Accept a missing PrimaryResult | Same query-schema test |
+| Accept malformed rows | Same query-schema test |
+| Remove configuration checks before a paid request | `test_legacy_config_and_invalid_wait_fail_before_agent_call` |
+| Accept only one required telemetry identifier | Same pre-request test |
+| Accept a negative wait | Same pre-request test |
+| Report absent telemetry as observed | `test_timeout_remains_pending_and_retry_preserves_original_response` |
+| Make another query after the polling deadline | `test_positive_wait_stops_at_deadline_without_an_extra_query` |
+| Swallow query/auth failures | `test_query_failure_is_recorded_and_propagated_not_treated_as_pending` |
+| Swallow an agent/tool failure | `test_ask_prints_details_and_collects_traces_even_on_validation_failure` |
+| Mask the agent failure with a telemetry failure | `test_agent_failure_is_not_masked_by_a_second_telemetry_failure` |
+| Replace the connection's project identity with key auth | `test_setup_wires_existing_index_and_shared_knowledge_base` |
+| Point the telemetry connection at the wrong resource | Same connection wiring test |
+| Omit the helper from the worker bundle | `test_real_worker_bundle_imports_without_runtime_packages` |
+| Accept a script-only bundle without policies | `test_empty_policy_bundle_cannot_start_a_demo` |
+| Start setup without the publisher-role dependency | `test_foundry_and_private_setup_dependency_ordering` |
+| Disconnect App Insights from its workspace | Same native Terraform graph test |
+| Publish under an identity other than the project | Same native Terraform graph test |
+
+All **23 mutations** were detected. After restoring originals, the offline gate
+covers 50 tests plus Terraform format/schema and Ruff lint/format. Native graph
+checks use installed providers and no Azure operations. The existing Basic
+setup was confirmed working by the user; this proof does not verify the new
+live telemetry connection, ingestion, or query results.

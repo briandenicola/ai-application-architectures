@@ -63,5 +63,6 @@ resource "azurerm_container_app_job" "setup" {
     azurerm_role_assignment.setup_search,
     azurerm_role_assignment.setup_foundry,
     azurerm_role_assignment.setup_model_user,
+    azurerm_role_assignment.project_telemetry_publisher,
   ]
 }

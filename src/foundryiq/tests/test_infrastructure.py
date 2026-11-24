@@ -46,6 +46,12 @@ class InfrastructureTests(unittest.TestCase):
             ("azurerm_container_app_job.setup", "azurerm_role_assignment.setup_search"),
             ("azurerm_container_app_job.setup", "azurerm_role_assignment.setup_foundry"),
             ("azurerm_container_app_job.setup", "azurerm_role_assignment.setup_model_user"),
+            ("azurerm_application_insights.this", "azurerm_log_analytics_workspace.this"),
+            (
+                "azurerm_container_app_job.setup",
+                "azurerm_role_assignment.project_telemetry_publisher",
+            ),
+            ("azurerm_role_assignment.project_telemetry_publisher", "azapi_resource.project"),
         ]:
             with self.subTest(resource=resource, dependency=dependency):
                 self.assertTrue(
