@@ -70,3 +70,28 @@ After the fixes, `task check` passed Terraform schema validation, Ruff, and all
 thirteen tests, including the native dependency-graph assertions.
 `task --dry down` confirmed initialization followed by interactive destruction;
 no destroy command was executed.
+
+## 2026-11-24: fast resource-group teardown
+
+Replaced interactive `terraform destroy` with the document-intelligence
+Taskfile's `az group delete --yes --no-wait` pattern and local artifact cleanup.
+The resource group resolver reads partial state and permits a region change for
+teardown, but still rejects a subscription mismatch. Added focused tests for
+those cases and for missing group state.
+
+The Taskfile blocks cleanup while a Terraform lock exists. Azure deletion
+failure stops the task before state removal; the provider version lock remains
+tracked.
+
+Ran the actual `task down` target inside temporary fixtures using a fake Azure
+CLI: verified the asynchronous deletion arguments, state/cache removal after
+acceptance, state preservation after rejection, and no deletion while locked.
+Disabled each of the subscription, missing-group, deletion-failure, and state-lock
+guards independently in memory or the temporary Taskfile copy. Each mutation
+caused an assertion failure; all four tests passed again after restoration.
+Production code and real deployment state were not mutated by these checks.
+
+Ruff lint/format checks and all sixteen Python/teardown tests passed. The full
+`task check` stopped at Terraform validation because the local provider cache is
+absent; the unchanged infrastructure dependency-graph test was not rerun.
+No live Azure deletion or provisioning was executed.

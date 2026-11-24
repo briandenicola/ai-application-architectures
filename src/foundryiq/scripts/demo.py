@@ -118,7 +118,7 @@ def configuration():
     return config
 
 
-def verify_context(config):
+def verify_context(config, *, allow_region_change=False):
     selected = os.environ.get("AZURE_SUBSCRIPTION_ID", "").strip()
     if selected and selected.lower() != config["subscription_id"].lower():
         raise RuntimeError(
@@ -126,21 +126,38 @@ def verify_context(config):
             "or a separate copy of this demo; do not reuse this state for another deployment."
         )
     location = os.environ.get("AZURE_LOCATION", "").strip()
-    if location and location.lower() != config["location"].lower():
+    if not allow_region_change and location and location.lower() != config["location"].lower():
         raise RuntimeError(
             "The .env region differs from Terraform state. Restore the original region, "
             "or run task down to remove the old deployment before changing regions."
         )
 
 
-def verify_state_context():
+def state_resource_group():
     state = command_json(["terraform", "-chdir=infra", "show", "-json"])
     for resource in state.get("values", {}).get("root_module", {}).get("resources", []):
         if resource["address"] == "azurerm_resource_group.this":
-            group = resource["values"]
-            verify_context(
-                {"subscription_id": group["id"].split("/")[2], "location": group["location"]}
-            )
+            return resource["values"]
+    return None
+
+
+def verify_state_context():
+    group = state_resource_group()
+    if group:
+        verify_context(
+            {"subscription_id": group["id"].split("/")[2], "location": group["location"]}
+        )
+
+
+def resource_group_name():
+    group = state_resource_group()
+    if not group:
+        raise RuntimeError("No demo resource group found in Terraform state; no cleanup performed.")
+    verify_context(
+        {"subscription_id": group["id"].split("/")[2], "location": group["location"]},
+        allow_region_change=True,
+    )
+    return group["name"]
 
 
 def search_url(config, path):
@@ -442,11 +459,16 @@ def outputs(config):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=["preflight", "setup", "ask", "outputs"])
+    parser.add_argument(
+        "command", choices=["preflight", "setup", "ask", "outputs", "resource-group"]
+    )
     args = parser.parse_args()
     try:
         if args.command == "preflight":
             preflight()
+            return 0
+        if args.command == "resource-group":
+            print(resource_group_name())
             return 0
         config = configuration()
         if args.command == "outputs":

@@ -22,10 +22,18 @@ tasks:
       - task: outputs
 
   down:
-    desc: Destroy all Azure resources in this demo's Terraform state (asks for confirmation)
+    desc: Delete the demo resource group asynchronously and clean local Terraform state
+    requires:
+      vars: [AZURE_SUBSCRIPTION_ID]
+    preconditions:
+      - sh: test ! -f infra/.terraform.tfstate.lock.info
+        msg: Terraform holds a state lock. Finish or stop the running Terraform command first.
     cmds:
-      - terraform -chdir=infra init -input=false
-      - terraform -chdir=infra destroy
+      - az group delete --subscription "{{.AZURE_SUBSCRIPTION_ID}}" --name "{{.RG}}" --yes --no-wait
+      - rm -rf infra/.terraform infra/terraform.tfstate.d infra/terraform.tfstate infra/terraform.tfstate.backup
+    vars:
+      RG:
+        sh: python3 scripts/demo.py resource-group
 
   setup:
     desc: Re-upload policies and reconcile knowledge and agent configuration after provisioning

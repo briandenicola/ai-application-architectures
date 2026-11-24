@@ -128,3 +128,21 @@ queried or asserted available during preparation.
   tests, and native Terraform dependency-graph assertions.
 - Verified `task --dry down` schedules only initialization and interactive
   destruction; destruction itself was not executed.
+
+## Teardown consistency correction
+
+- The user requested the faster pattern from the document-intelligence
+  Taskfile instead of `terraform destroy`.
+- `task down` now requests resource-group deletion with `--yes --no-wait`, then
+  cleans only this demo's local Terraform state and cache directories.
+- Target lookup supports partial state and the already-selected Canada region,
+  while verifying that the subscription still matches the tracked group.
+- An active Terraform state lock blocks cleanup. Azure request failure leaves
+  local state untouched. The committed provider lock file is retained.
+- No cleanup command is executed by the assistant.
+- Local proof: Ruff lint/format checks and sixteen Python/teardown tests passed.
+  The teardown tests execute the real Taskfile only in temporary fixtures with a
+  fake Azure CLI. Four disabled guards were detected, then restored green.
+- Full `task check` could not pass Terraform validation because the local
+  provider cache is absent. Providers were not reinstalled, and the unchanged
+  infrastructure graph check was not rerun.

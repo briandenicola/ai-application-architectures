@@ -73,6 +73,36 @@ class ResponseTests(unittest.TestCase):
 
 
 class ConfigurationTests(unittest.TestCase):
+    def test_teardown_resolves_partial_state_across_regions_but_not_subscriptions(self):
+        group = {
+            "id": "/subscriptions/original/resourceGroups/synthetic",
+            "name": "synthetic",
+            "location": "eastus2",
+        }
+        with patch.object(demo, "state_resource_group", return_value=group):
+            with patch.dict(
+                demo.os.environ,
+                {"AZURE_SUBSCRIPTION_ID": "original", "AZURE_LOCATION": "canadacentral"},
+                clear=True,
+            ):
+                self.assertEqual(demo.resource_group_name(), "synthetic")
+            with (
+                patch.dict(
+                    demo.os.environ,
+                    {"AZURE_SUBSCRIPTION_ID": "different", "AZURE_LOCATION": "canadacentral"},
+                    clear=True,
+                ),
+                self.assertRaises(RuntimeError),
+            ):
+                demo.resource_group_name()
+
+    def test_teardown_without_a_tracked_group_fails_explicitly(self):
+        with (
+            patch.object(demo, "state_resource_group", return_value=None),
+            self.assertRaises(RuntimeError),
+        ):
+            demo.resource_group_name()
+
     def test_empty_state_allows_a_new_region_after_destroy(self):
         with (
             patch.dict(demo.os.environ, {"AZURE_LOCATION": "canadacentral"}, clear=True),

@@ -99,11 +99,16 @@ assistant; the tasks are for you to execute.
 task down
 ```
 
-Review Terraform's destroy plan and enter `yes` to remove every resource managed
-by this demo's state, including a partially created deployment. Agents, knowledge
-bases, and uploaded data are removed with their parent services. The task does
-not manually delete state files or suppress failures; if destruction fails,
-correct the reported problem and rerun it.
+This follows the document-intelligence Taskfile's fast cleanup pattern:
+`az group delete --yes --no-wait`, followed by local Terraform state and cache
+cleanup. The resource group is read from state, including after a partial apply.
+Azure continues deleting the group in the background. Agents, knowledge bases,
+and uploaded data are removed with their parent services.
+
+Cleanup stops if Terraform has an active state lock, the selected subscription
+does not match state, or Azure rejects the deletion request. Local state is
+removed only after Azure accepts the request. The committed provider lock file
+is retained.
 
 To move an existing deployment to Canada Central, run `task down` **before**
 `task up`. Set these values in `.env` for the new deployment:
@@ -115,7 +120,7 @@ TF_VAR_embedding_model_sku=GlobalStandard
 
 Then run `task up`. The region guard blocks provisioning over a state that still
 contains the old region's resource group. Keep the same subscription selected
-while destroying the old deployment. Canada Central advertises GlobalStandard,
+while deleting the old deployment. Canada Central advertises GlobalStandard,
 not regional Standard, for this embedding model. Search service capacity can
 still change between checking regional support and provisioning.
 
@@ -173,7 +178,8 @@ with `-foundry`, `-project`, and `-ai_rg` suffixes. Search uses
 | Ingestion takes too long | Setup stops after 20 minutes with the last status; inspect the indexer before retrying |
 | Agent tool call fails | Check the project's Search reader role, managed-identity connection, and MCP endpoint from `task outputs` |
 | Blob citation link prompts for access or returns 403 | Documents are private; a citation is not a public download link. Review the matching local policy or open the blob using an authorized identity |
-| Region/subscription mismatch with state | Restore the original `.env`; for a region move, run `task down` before provisioning in the new region |
+| Region/subscription mismatch with state | Restore the original subscription; `task down` accepts a changed region while targeting the group recorded in state |
+| Cleanup reports a Terraform state lock | Finish or stop the running Terraform operation before running `task down` |
 
 Changing the subscription or region in an existing state can replace resources.
 Use one copy/state per deployment. Cleanup is explicit through `task down`;
