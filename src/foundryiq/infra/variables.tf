@@ -16,13 +16,39 @@ variable "location" {
 
 variable "search_sku" {
   type        = string
-  description = "Basic or Standard; Free does not support this managed-identity demo."
-  default     = "basic"
+  description = "Private managed Blob ingestion requires S2, S3, L1, or L2."
+  default     = "standard2"
 
   validation {
-    condition     = contains(["basic", "standard"], var.search_sku)
-    error_message = "Use basic or standard."
+    condition     = contains(["standard2", "standard3", "storage_optimized_l1", "storage_optimized_l2"], var.search_sku)
+    error_message = "Use standard2 or another tier supporting managed private Blob ingestion."
   }
+}
+
+variable "operator_object_id" {
+  type        = string
+  description = "Azure CLI identity running Task, independently of Terraform's deployment credentials."
+
+  validation {
+    condition     = can(regex("^[0-9a-fA-F-]{36}$", var.operator_object_id))
+    error_message = "Use task up to derive the operator object ID from the selected Azure CLI identity."
+  }
+}
+
+variable "network_address_space" {
+  type        = string
+  description = "IPv4 VNet CIDR supplied in .env; two /27 subnets are derived from it."
+
+  validation {
+    condition     = can(cidrnetmask(var.network_address_space)) && try(tonumber(split("/", var.network_address_space)[1]) <= 26, false)
+    error_message = "Supply an IPv4 CIDR large enough for two /27 subnets (prefix length <= 26)."
+  }
+}
+
+variable "setup_runner_image" {
+  type        = string
+  description = "Pinned official Azure CLI image with Python for the private setup job."
+  default     = "mcr.microsoft.com/azure-cli:2.93.0-azurelinux3.0"
 }
 
 variable "chat_model_name" {

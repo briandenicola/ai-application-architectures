@@ -2,18 +2,23 @@
 """Configure and exercise the Blob-backed Foundry IQ demo using Azure CLI tokens."""
 
 import argparse
+import base64
+import gzip
+import ipaddress
 import json
 import os
 import shutil
+import socket
 import subprocess
 import sys
+import tempfile
 import time
 import uuid
 from datetime import datetime, timezone
 from email.utils import formatdate
 from pathlib import Path
 from urllib.error import HTTPError, URLError
-from urllib.parse import quote
+from urllib.parse import quote, urlsplit
 from urllib.request import Request, urlopen
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -22,6 +27,10 @@ SEARCH_AUDIENCE = "https://search.azure.com/"
 FOUNDRY_AUDIENCE = "https://ai.azure.com/"
 MANAGEMENT_AUDIENCE = "https://management.azure.com/"
 STORAGE_AUDIENCE = "https://storage.azure.com/"
+SEARCH_MANAGEMENT_API = "2025-05-01"
+STORAGE_MANAGEMENT_API = "2023-05-01"
+JOB_API = "2025-07-01"
+PRIVATE_SEARCH_SKUS = {"standard2", "standard3", "storage_optimized_l1", "storage_optimized_l2"}
 DEFAULT_MODELS = {
     "chat": ("gpt-5.4-mini", "2026-03-17", "GlobalStandard"),
     "embedding": ("text-embedding-3-small", "1", "GlobalStandard"),
@@ -101,10 +110,24 @@ class AzureRest:
                     return json.loads(body) if body else {}
             except HTTPError as error:
                 detail = error.read().decode(errors="replace")
+                code = error.headers.get("x-ms-error-code")
+                blob = (urlsplit(url).hostname or "").endswith(".blob.core.windows.net")
+                if error.code == 403 and blob and code == "AuthorizationFailure":
+                    raise ServiceError(
+                        error.code,
+                        method,
+                        url,
+                        f"{detail}\nBlob network access is blocked. Check the runner's private "
+                        "endpoint and DNS; retrying RBAC propagation will not fix this.",
+                    ) from error
                 transient = error.code in {429, 500, 502, 503, 504} and method in {"GET", "PUT"}
                 auth_pending = propagation and error.code in {401, 403}
                 if (transient or auth_pending) and time.monotonic() < deadline:
-                    print(f"HTTP {error.code}; retrying {method} in 10 seconds.", flush=True)
+                    print(
+                        f"{method} {url}: HTTP {error.code} ({code or detail[:300]}); "
+                        "retrying in 10 seconds.",
+                        flush=True,
+                    )
                     if error.code == 401:
                         self.tokens.pop(audience, None)
                     time.sleep(10)
@@ -160,6 +183,222 @@ def resource_group_name():
     return group["name"]
 
 
+def operator_object_id():
+    token = AzureRest(os.environ["AZURE_SUBSCRIPTION_ID"]).token(MANAGEMENT_AUDIENCE)
+    encoded = token.split(".")[1]
+    claims = json.loads(base64.urlsafe_b64decode(encoded + "=" * (-len(encoded) % 4)))
+    return str(uuid.UUID(claims["oid"]))
+
+
+def verify_private_configuration():
+    if os.environ.get("TF_VAR_search_sku", "standard2") not in PRIVATE_SEARCH_SKUS:
+        raise RuntimeError(
+            "Managed private Blob ingestion requires S2 or higher. "
+            "Set TF_VAR_search_sku=standard2 in .env."
+        )
+    try:
+        network = ipaddress.IPv4Network(os.environ.get("TF_VAR_network_address_space", ""))
+    except ValueError as error:
+        raise RuntimeError(
+            "Set TF_VAR_network_address_space in .env to an IPv4 VNet CIDR."
+        ) from error
+    if network.prefixlen > 26:
+        raise RuntimeError("The VNet CIDR must contain two /27 subnets (prefix length <= 26).")
+
+
+def verify_private_storage(config):
+    host = f"{config['storage_account']}.blob.core.windows.net"
+    addresses = {entry[4][0] for entry in socket.getaddrinfo(host, 443, family=socket.AF_INET)}
+    if addresses != {config["storage_private_ip"]}:
+        raise RuntimeError(
+            f"{host} resolved to {sorted(addresses)}, not exclusively the configured private "
+            f"endpoint {config['storage_private_ip']}. Check the Blob private DNS zone/VNet link."
+        )
+    print(f"Verified private Blob DNS: {host} -> {config['storage_private_ip']}", flush=True)
+
+
+def approve_storage_link(client, config):
+    link_url = (
+        f"https://management.azure.com{config['shared_private_link_id']}"
+        f"?api-version={SEARCH_MANAGEMENT_API}"
+    )
+    deadline = time.monotonic() + 300
+    while time.monotonic() < deadline:
+        link = client.request("GET", link_url, MANAGEMENT_AUDIENCE)["properties"]
+        if link["status"] == "Approved" and link["provisioningState"] == "Succeeded":
+            print("Search-to-Blob shared private link is ready.", flush=True)
+            return
+        if link["status"] in {"Rejected", "Disconnected"} or link["provisioningState"] == "Failed":
+            raise RuntimeError(f"Search-to-Blob private link is not usable: {json.dumps(link)}")
+        connections = client.request(
+            "GET",
+            f"https://management.azure.com{config['storage_resource_id']}"
+            f"/privateEndpointConnections?api-version={STORAGE_MANAGEMENT_API}",
+            MANAGEMENT_AUDIENCE,
+        )["value"]
+        matching = [
+            item
+            for item in connections
+            if item["properties"]["privateLinkServiceConnectionState"].get("description")
+            == config["shared_private_link_request_message"]
+        ]
+        if len(matching) > 1:
+            raise RuntimeError(
+                "Multiple matching private endpoint requests; refusing ambiguous approval."
+            )
+        if matching:
+            connection = matching[0]
+            state = connection["properties"]["privateLinkServiceConnectionState"]["status"]
+            if state == "Pending":
+                client.request(
+                    "PUT",
+                    f"https://management.azure.com{connection['id']}"
+                    f"?api-version={STORAGE_MANAGEMENT_API}",
+                    MANAGEMENT_AUDIENCE,
+                    {
+                        "properties": {
+                            "privateLinkServiceConnectionState": {
+                                "status": "Approved",
+                                "description": config["shared_private_link_request_message"],
+                            }
+                        }
+                    },
+                )
+            elif state != "Approved":
+                raise RuntimeError(f"The matching Storage private endpoint request is {state}.")
+        print("Waiting for this demo's Search-to-Blob private link approval...", flush=True)
+        time.sleep(10)
+    raise RuntimeError(
+        "Search-to-Blob private link was not approved and ready within five minutes."
+    )
+
+
+def runner_payload(config):
+    files = [ROOT / "scripts/demo.py", *sorted((ROOT / "data").glob("*.md"))]
+    if len(files) == 1:
+        raise RuntimeError("No policy documents found in data/.")
+    bundle = {
+        "config": config,
+        "files": {str(path.relative_to(ROOT)): path.read_text() for path in files},
+    }
+    return base64.b64encode(gzip.compress(json.dumps(bundle).encode())).decode()
+
+
+def show_runner_logs(config, execution):
+    try:
+        result = subprocess.run(
+            [
+                "az",
+                "containerapp",
+                "job",
+                "logs",
+                "show",
+                "--subscription",
+                config["subscription_id"],
+                "--resource-group",
+                config["resource_group"],
+                "--name",
+                config["setup_runner_name"],
+                "--execution",
+                execution,
+                "--container",
+                "setup",
+                "--format",
+                "text",
+                "--tail",
+                "300",
+                "--follow",
+                "false",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=90,
+            cwd=ROOT,
+            env={**os.environ, "AZURE_EXTENSION_USE_DYNAMIC_INSTALL": "no"},
+        )
+    except subprocess.TimeoutExpired:
+        print(
+            f"WARNING: Console log retrieval timed out for execution {execution}.", file=sys.stderr
+        )
+        return
+    if result.stdout:
+        print(result.stdout.rstrip(), flush=True)
+    if result.returncode:
+        print(
+            f"WARNING: Could not read setup job console logs: {result.stderr.strip()}",
+            file=sys.stderr,
+        )
+
+
+def private_setup(client, config):
+    if not config.get("setup_runner_id"):
+        raise RuntimeError("Run task up to provision the private setup runner before task setup.")
+    base = f"https://management.azure.com{config['setup_runner_id']}"
+    page = f"{base}/executions?api-version={JOB_API}"
+    while page:
+        executions = client.request("GET", page, MANAGEMENT_AUDIENCE)
+        for execution in executions["value"]:
+            if execution["properties"]["status"] not in {"Succeeded", "Failed", "Stopped"}:
+                raise RuntimeError(
+                    f"Setup execution {execution['name']} is already active; wait for it to finish."
+                )
+        page = executions.get("nextLink")
+    approve_storage_link(client, config)
+    template = {
+        "containers": [
+            {
+                "name": "setup",
+                "image": config["setup_runner_image"],
+                "command": ["python3", "-c", (ROOT / "scripts/runner_bootstrap.py").read_text()],
+                "args": [runner_payload(config)],
+                "resources": {"cpu": 0.5, "memory": "1Gi"},
+            }
+        ]
+    }
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml") as manifest:
+        json.dump(template, manifest)
+        manifest.flush()
+        execution = command_json(
+            [
+                "az",
+                "containerapp",
+                "job",
+                "start",
+                "--subscription",
+                config["subscription_id"],
+                "--resource-group",
+                config["resource_group"],
+                "--name",
+                config["setup_runner_name"],
+                "--yaml",
+                manifest.name,
+                "-o",
+                "json",
+            ]
+        )["name"]
+    print(f"Started private setup execution: {execution}", flush=True)
+    deadline = time.monotonic() + 2400
+    while time.monotonic() < deadline:
+        result = client.request(
+            "GET",
+            f"{base}/executions/{quote(execution)}?api-version={JOB_API}",
+            MANAGEMENT_AUDIENCE,
+        )
+        status = result["properties"]["status"]
+        if status in {"Succeeded", "Failed", "Stopped"}:
+            show_runner_logs(config, execution)
+            if status != "Succeeded":
+                raise RuntimeError(
+                    f"Private setup execution {execution} {status}. See the job logs above."
+                )
+            print("Private setup completed successfully.", flush=True)
+            return
+        print(f"Private setup execution {execution}: {status}; waiting...", flush=True)
+        time.sleep(15)
+    show_runner_logs(config, execution)
+    raise RuntimeError(f"Private setup execution {execution} did not finish within 40 minutes.")
+
+
 def search_url(config, path):
     return f"{config['search_endpoint']}/{path}?api-version={SEARCH_API}"
 
@@ -190,7 +429,7 @@ def knowledge_source(config):
             "containerName": config["container_name"],
             "isADLSGen2": False,
             "ingestionParameters": {
-                "networkAccessMode": "public",
+                "networkAccessMode": "private",
                 "contentExtractionMode": "minimal",
                 "disableImageVerbalization": True,
                 "embeddingModel": model_parameters(config, "embedding"),
@@ -408,6 +647,8 @@ def preflight():
         raise RuntimeError(
             "Set AZURE_SUBSCRIPTION_ID in .env to your subscription GUID."
         ) from error
+    verify_private_configuration()
+    command_json(["az", "extension", "show", "--name", "containerapp", "-o", "json"])
     if (ROOT / "infra" / "terraform.tfstate").exists():
         verify_state_context()
     account = command_json(["az", "account", "show", "--subscription", subscription, "-o", "json"])
@@ -460,7 +701,8 @@ def outputs(config):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "command", choices=["preflight", "setup", "ask", "outputs", "resource-group"]
+        "command",
+        choices=["preflight", "setup", "ask", "outputs", "resource-group", "operator-id", "worker"],
     )
     args = parser.parse_args()
     try:
@@ -470,13 +712,21 @@ def main():
         if args.command == "resource-group":
             print(resource_group_name())
             return 0
+        if args.command == "operator-id":
+            print(operator_object_id())
+            return 0
+        if args.command == "worker":
+            config = json.loads(os.environ["DEMO_CONFIGURATION"])
+            verify_private_storage(config)
+            setup(AzureRest(config["subscription_id"]), config)
+            return 0
         config = configuration()
         if args.command == "outputs":
             outputs(config)
             return 0
         client = AzureRest(config["subscription_id"])
         if args.command == "setup":
-            setup(client, config)
+            private_setup(client, config)
         else:
             question = os.environ.get("DEMO_QUESTION", "").strip()
             if not question:

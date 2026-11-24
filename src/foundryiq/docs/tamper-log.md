@@ -95,3 +95,57 @@ Ruff lint/format checks and all sixteen Python/teardown tests passed. The full
 `task check` stopped at Terraform validation because the local provider cache is
 absent; the unchanged infrastructure dependency-graph test was not rerun.
 No live Azure deletion or provisioning was executed.
+
+## 2026-11-24: private Blob access and setup identity
+
+Read-only inspection reproduced the Blob network denial and confirmed that the
+live account had public access disabled by policy. The Azure CLI token's object
+ID also differed from Terraform's Blob-contributor principal. Waiting for role
+propagation could not fix either condition.
+
+The user approved private Blob access, S2, a new private setup runner, Terraform
+generation, and the VNet CIDR. Implemented private upload endpoint/DNS, a separate
+Search ingestion shared private link, and a manual managed-identity job.
+Deployment credentials no longer select the operator's data-plane permissions.
+
+Disabled or inverted the following independently in memory, except for the two
+Terraform dependency mutations, which used isolated copies and the existing
+provider cache. Production code, real deployment state, and Azure resources were
+not mutated.
+
+| Disabled guard | Detecting test |
+|---|---|
+| Reject Basic for private managed ingestion | `test_private_ingestion_rejects_basic_and_invalid_network_ranges` |
+| Require space for two runner/endpoint subnets | `test_private_ingestion_rejects_basic_and_invalid_network_ranges` |
+| Resolve Blob exclusively to the configured private endpoint | `test_worker_requires_exclusively_the_configured_private_endpoint` |
+| Fail Blob network denial without blind RBAC retries | `test_blob_network_denial_fails_without_propagation_retries` |
+| Approve only this demo's matching connection | `test_only_approves_the_matching_connection_and_waits_for_readiness` |
+| Wait for successful provisioning after approval | `test_approved_link_still_waits_for_successful_provisioning` |
+| Reject rejected/disconnected links | `test_rejected_link_and_ambiguous_connections_fail_explicitly` |
+| Reject failed link provisioning | `test_rejected_link_and_ambiguous_connections_fail_explicitly` |
+| Reject ambiguous approval targets | `test_rejected_link_and_ambiguous_connections_fail_explicitly` |
+| Do not reapprove a rejected target connection | `test_rejected_target_connection_is_not_reapproved` |
+| Bound waiting for an unmatched approval request | `test_unmatched_request_times_out_without_approving_other_connections` |
+| Require the provisioned private runner | `test_legacy_state_requires_provisioning_before_setup` |
+| Reject known-active setup executions | `test_existing_execution_prevents_another_start` |
+| Check subsequent execution-list pages | `test_existing_execution_prevents_another_start` |
+| Fail failed/stopped executions instead of reporting success | `test_job_status_controls_success_and_failure` |
+| Fail a timed-out execution | `test_running_job_times_out_instead_of_reporting_success` |
+| Exclude local credentials and state from the worker bundle | `test_bundle_excludes_local_credentials_and_terraform_state` |
+| Reject a bundle without policy documents | `test_empty_policy_bundle_cannot_start_a_demo` |
+| Preserve the worker's failure exit code | `test_bootstrap_logs_in_with_managed_identity_and_preserves_worker_exit_code` |
+| Dispatch local setup to the private job | `test_local_setup_dispatches_to_job_not_local_blob_uploads` |
+| Actually invoke private DNS validation inside the worker | `test_worker_uses_supplied_configuration_without_terraform` |
+| Configure the knowledge source for private ingestion | `test_setup_wires_blob_identity_and_shared_knowledge_base` |
+| Derive the operator from the Azure CLI identity claim | `test_operator_uses_cli_token_identity_not_terraform_credentials` |
+| Make the job wait for the private DNS VNet link | `test_foundry_and_private_setup_dependency_ordering` |
+| Make the job wait for its NAT subnet association | `test_foundry_and_private_setup_dependency_ordering` |
+
+All 25 mutations produced assertion failures, not test errors. After restoring
+the originals, all 35 tests passed. `task check` also passed Terraform schema and
+format validation plus Ruff lint/format checks. `task --dry up` confirmed the
+user-run command sequence without provisioning or invoking setup.
+
+These are offline contract and failure-handling checks, not a successful live
+private deployment. The user must run `task up` to apply the new infrastructure
+and exercise the private worker, ingestion, Foundry agent, and Copilot Studio.

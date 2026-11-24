@@ -32,8 +32,9 @@ native Foundry IQ connection.
 - Microsoft's native connection walkthrough targets an agent created with the
   **Microsoft Copilot harness**. Use that agent experience for the steps below.
 - Sign into the connection with the same Entra identity used by `task up` for
-  the simplest demo. Terraform grants that identity Search Service Contributor
-  and Search Index Data Reader on this Search service.
+  the simplest demo. Terraform derives that Azure CLI identity independently of
+  its deployment credentials and grants Search Service Contributor and
+  Search Index Data Contributor (which includes read access) on this Search service.
 - A different connection maker needs access to the Search resource and knowledge
   base. Have your administrator grant the appropriate Search roles rather than
   enabling API keys.
@@ -107,6 +108,9 @@ You cannot approve requests or perform business transactions.
 The activity trace matters: a plausible answer by itself does not prove that the
 knowledge base was used. Source links point to private blobs; the link does not
 grant permission to download a document.
+Blob Storage also has public network access disabled; following a source link
+requires private network connectivity as well as Blob permissions. Copilot
+Studio retrieves through Search, not by opening that Blob link.
 
 For a refresh demonstration, edit an existing policy locally, run `task setup`,
 start fresh conversations in both agents, and repeat the same question. The
@@ -122,5 +126,7 @@ Copilot Studio connection remains unchanged because the knowledge base is shared
 | Answers are wrong or stale | Tune or refresh the knowledge base centrally; inspect ingestion and try a fresh conversation |
 | You see a different tool UI | Verify the agent experience against Microsoft's current native connection walkthrough |
 
-Publishing to Teams, organization-wide rollout, private networking, and
-per-document authorization are outside this simple demo.
+Blob ingestion and uploads use private networking. Search and Foundry ingress
+remain Entra-authenticated public endpoints for this walkthrough. Publishing to
+Teams, organization-wide rollout, all-services-private ingress, and per-document
+authorization are outside this demo.

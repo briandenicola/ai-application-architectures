@@ -1,6 +1,6 @@
 # Foundry IQ demo deployment plan
 
-Status: Ready for Validation
+Status: Offline checks passed; live private deployment deferred to the user
 
 ## Confirmed scope
 
@@ -16,7 +16,8 @@ Status: Ready for Validation
 ## Architecture and recipe
 
 - Recipe: Terraform driven by Taskfile, matching the repository standard;
-  no azd wrapper, containers, web application, or hosted-agent runtime.
+  no azd wrapper, web application, or hosted-agent runtime. A manual Container
+  Apps job performs setup inside a private VNet.
 - One resource group, one StorageV2 account with a private blob container,
   one Azure AI Search service, one Foundry account, and one Foundry project.
 - Search manages ingestion, chunking, and vectorization of the Blob knowledge
@@ -31,27 +32,32 @@ Status: Ready for Validation
 - Resource names derive from `random_pet` and `random_id`.
 - Terraform creates infrastructure and RBAC. Python automation uploads synthetic
   documents, creates the knowledge source/base, waits for ingestion, and creates
-  the Foundry prompt agent.
-- Principal Task targets: `up`, `ask`, `outputs`, and `check`. `up` includes
+  the Foundry prompt agent from the VNet-integrated managed-identity job.
+- Principal Task targets: `up`, `down`, `setup`, `ask`, `outputs`, and `check`. `up` includes
   provisioning and setup; `ask` exercises the deployed Foundry agent.
 
 ## Execution boundary
 
-Prepare repository files only. Do not build, install dependencies, provision,
-invoke Azure services, or delete resources without approval.
-Subscription selection, regional model availability, and subscription-specific
-quotas must be checked when the user runs the deployment tasks; none have been
-queried or asserted available during preparation.
+Prepare and validate repository files only. The user executes provisioning,
+setup, and deletion. Scoped read-only Azure troubleshooting is permitted;
+those observations do not prove future capacity or successful provisioning.
+Do not install dependencies, run local containers, or perform Azure writes
+without approval.
 
 ## Approved configuration
 
-- Target region: `eastus2`, configurable in `.env`.
-- Authenticated public endpoints for the simple demo, with anonymous blob access
-  and local-key authentication disabled; no private networking.
+- Target region: `canadacentral`, configurable in `.env`.
+- Blob public access disabled; private endpoint/DNS for uploads and an independent
+  Search shared private link for private managed ingestion.
+- Search S2 and a new private setup runner explicitly approved. Search and
+  Foundry retain Entra-authenticated public endpoints for native Copilot Studio.
+- VNet CIDR `10.88.0.0/16` explicitly approved and supplied via ignored `.env`.
+  Two distinct `/27` subnets are derived, not hardcoded as deployment addresses.
 - User-selected region and subscription supplied in an ignored `.env`.
 - Local, offline validation approved; all Azure execution remains with the user.
-- Use a prompt agent and standard-library Python REST automation, avoiding
-  application containers and runtime package installation.
+- Use a prompt agent and standard-library Python REST automation. The runner
+  uses a pinned official Azure CLI image with managed identity; no custom image
+  build, application packages, SSH, API keys, or credentials.
 
 ## References
 
@@ -146,3 +152,32 @@ queried or asserted available during preparation.
 - Full `task check` could not pass Terraform validation because the local
   provider cache is absent. Providers were not reinstalled, and the unchanged
   infrastructure graph check was not rerun.
+
+## Private Blob correction
+
+- Read-only checks reproduced Blob `403 AuthorizationFailure`. Storage public
+  access was disabled by a management-group modify policy despite the original
+  public-access request. Search and Foundry public access remained enabled.
+- The signed-in Azure CLI identity differed from Terraform's operator role
+  principal and lacked Blob data permissions. Deployment, CLI operator, and
+  private-job identities are now deliberately separate.
+- The user approved private Blob networking, Search S2, a new private runner,
+  Terraform generation, and VNet CIDR `10.88.0.0/16`. The existing ignored `.env`
+  was updated only for the S2/CIDR choices.
+- The approved concrete plan is `.azure/infrastructure-plan.json`. No policy
+  exemptions, new deployment, or deletion were performed.
+- Added private Blob endpoint/DNS, a separate Search shared private link, and
+  VNet-integrated manual Container Apps job with explicit NAT egress and managed
+  identity. No custom image build, runtime Python packages, or secrets are used.
+- `task setup` approves only its own matching private-link request, waits for
+  readiness, checks all execution pages for active runs, starts the worker, and
+  requires the cloud-reported execution to succeed. The worker verifies private
+  Blob DNS before uploads; network-denial errors fail immediately.
+- Local proof: Terraform schema/format checks, Ruff lint/format, and all 35
+  tests passed. Twenty-five independent guard mutations produced assertion
+  failures; all originals passed after restoration. See `docs/tamper-log.md`.
+- The pinned official Azure CLI image tag exists in MCR and the local job-log
+  CLI command is available. The image was not run locally; no private runner
+  execution, Search S2 capacity, ingestion, or agent integration is claimed live.
+- `task --dry up` showed extension dependency handling, preflight, Terraform
+  init/validate/apply, private setup, and outputs without executing them.

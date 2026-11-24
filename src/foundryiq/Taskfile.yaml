@@ -13,7 +13,13 @@ tasks:
 
   up:
     desc: Provision infrastructure, upload policies, and configure Foundry IQ and its agent
+    vars:
+      OPERATOR_OBJECT_ID:
+        sh: python3 scripts/demo.py operator-id
+    env:
+      TF_VAR_operator_object_id: '{{.OPERATOR_OBJECT_ID}}'
     cmds:
+      - az extension show --name containerapp --output none || az extension add --name containerapp --yes --only-show-errors
       - python3 scripts/demo.py preflight
       - terraform -chdir=infra init -input=false
       - terraform -chdir=infra validate
@@ -36,7 +42,7 @@ tasks:
         sh: python3 scripts/demo.py resource-group
 
   setup:
-    desc: Re-upload policies and reconcile knowledge and agent configuration after provisioning
+    desc: Run private uploads and knowledge/agent configuration in the managed-identity job
     cmds:
       - python3 scripts/demo.py setup
 

@@ -138,13 +138,19 @@ class ConfigurationTests(unittest.TestCase):
                 return state
             if args[1:3] == ["account", "show"]:
                 return {"name": "Synthetic subscription", "state": "Enabled"}
+            if args[1:3] == ["extension", "show"]:
+                return {"name": "containerapp"}
             self.assertEqual(args[1:4], ["cognitiveservices", "model", "list"])
             return models
 
         with (
             patch.dict(
                 demo.os.environ,
-                {"AZURE_SUBSCRIPTION_ID": subscription, "AZURE_LOCATION": "eastus2"},
+                {
+                    "AZURE_SUBSCRIPTION_ID": subscription,
+                    "AZURE_LOCATION": "eastus2",
+                    "TF_VAR_network_address_space": "10.88.0.0/16",
+                },
                 clear=True,
             ),
             patch.object(demo.shutil, "which", return_value="/synthetic/tool"),
@@ -226,12 +232,15 @@ class RestTests(unittest.TestCase):
             patch.object(demo, "urlopen", side_effect=[self.error(403), self.error(403)]) as send,
             patch.object(demo.time, "monotonic", side_effect=[0, 1, 301]),
             patch.object(demo.time, "sleep") as sleep,
+            patch.object(demo.sys, "stdout", new_callable=io.StringIO) as output,
             self.assertRaises(demo.ServiceError) as raised,
         ):
             self.client().request("PUT", "https://example.com", "audience", propagation=True)
         self.assertEqual(raised.exception.status, 403)
         self.assertEqual(send.call_count, 2)
         sleep.assert_called_once_with(10)
+        self.assertIn("PUT https://example.com", output.getvalue())
+        self.assertIn('{"error":"test"}', output.getvalue())
 
     def test_post_server_error_is_not_replayed(self):
         with (
@@ -287,6 +296,9 @@ class SetupTests(unittest.TestCase):
         self.assertEqual(
             source["azureBlobParameters"]["connectionString"],
             "ResourceId=/subscriptions/subscription/storage",
+        )
+        self.assertEqual(
+            source["azureBlobParameters"]["ingestionParameters"]["networkAccessMode"], "private"
         )
         connection = next(payload for payload in payloads if "properties" in payload)
         self.assertEqual(connection["properties"]["authType"], "ProjectManagedIdentity")
