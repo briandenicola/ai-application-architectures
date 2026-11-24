@@ -1,6 +1,6 @@
 # Foundry IQ demo deployment plan
 
-Status: Offline checks passed; live private deployment deferred to the user
+Status: Offline checks passed; live Basic indexing deferred to the user
 
 ## Confirmed scope
 
@@ -20,8 +20,9 @@ Status: Offline checks passed; live private deployment deferred to the user
   Apps job performs setup inside a private VNet.
 - One resource group, one StorageV2 account with a private blob container,
   one Azure AI Search service, one Foundry account, and one Foundry project.
-- Search manages ingestion, chunking, and vectorization of the Blob knowledge
-  source. One knowledge base exposes retrieval to both agents.
+- The private runner reads Blob policies, chunks/embeds them, and pushes a Basic
+  Search index. A search-index knowledge source and shared knowledge base expose
+  retrieval to both agents. Search uses the same embedding model for query vectors.
 - A Foundry prompt agent calls the knowledge base through its MCP endpoint and
   a project-managed-identity connection.
 - Copilot Studio uses its native Foundry IQ tool, the Search service endpoint,
@@ -47,9 +48,10 @@ without approval.
 ## Approved configuration
 
 - Target region: `canadacentral`, configurable in `.env`.
-- Blob public access disabled; private endpoint/DNS for uploads and an independent
-  Search shared private link for private managed ingestion.
-- Search S2 and a new private setup runner explicitly approved. Search and
+- Blob public access disabled; private endpoint/DNS for runner uploads/downloads.
+  No Search shared private link or managed Blob ingestion is used.
+- Search Basic and runner-driven indexing explicitly approved after the S2
+  quota failure. The private setup runner is retained. Search and
   Foundry retain Entra-authenticated public endpoints for native Copilot Studio.
 - VNet CIDR `10.88.0.0/16` explicitly approved and supplied via ignored `.env`.
   Two distinct `/27` subnets are derived, not hardcoded as deployment addresses.
@@ -61,7 +63,8 @@ without approval.
 
 ## References
 
-- https://learn.microsoft.com/azure/search/agentic-knowledge-source-how-to-blob
+- https://learn.microsoft.com/azure/search/agentic-knowledge-source-how-to-search-index
+- https://learn.microsoft.com/azure/search/agentic-retrieval-how-to-create-index
 - https://learn.microsoft.com/azure/foundry/agents/how-to/foundry-iq-connect
 - https://learn.microsoft.com/microsoft-copilot-studio/agents-experience/foundry-iq-connect
 
@@ -153,7 +156,7 @@ without approval.
   provider cache is absent. Providers were not reinstalled, and the unchanged
   infrastructure graph check was not rerun.
 
-## Private Blob correction
+## Private Blob correction (initial S2 design, superseded)
 
 - Read-only checks reproduced Blob `403 AuthorizationFailure`. Storage public
   access was disabled by a management-group modify policy despite the original
@@ -181,3 +184,37 @@ without approval.
   execution, Search S2 capacity, ingestion, or agent integration is claimed live.
 - `task --dry up` showed extension dependency handling, preflight, Terraform
   init/validate/apply, private setup, and outputs without executing them.
+
+## Basic Search correction
+
+- The user's S2 update failed with `ServiceQuotaExceeded`. Read-only
+  `az search usage list --location canadacentral` confirmed zero quota for S2,
+  S3, L1, and L2, while Basic had one service against a limit of 12.
+  The generic `az quota list` returned no Search entries; an empty response
+  was not treated as unlimited quota.
+- The user selected: keep Basic and adapt the private runner to index Blob
+  documents instead of using managed Blob ingestion. Approved plan version 2
+  preserves the VNet, private endpoint, identity, and existing Task targets.
+- Read-only service inspection confirmed the existing Search service remained
+  `basic` / `Succeeded` after the failed upgrade. No teardown was performed.
+- Defaults and the ignored `.env` now select Basic. Removed the Search shared
+  private link, its approval workflow, and Search's Blob-reader assignment.
+  Added the runner's explicit Cognitive Services OpenAI User assignment.
+- The runner lists/downloads Markdown blobs through the private endpoint,
+  chunks content, requests embeddings, and pushes a semantic/vector index.
+  A `searchIndex` knowledge source connects it to the unchanged shared KB.
+- Refresh validates every upload/delete result, removes obsolete index chunks
+  only after successful uploads, and waits for both total and current-run
+  counts to match. Blob objects themselves are not deleted.
+- Preflight now reads the selected tier's regional Search quota before
+  Terraform. Missing, zero, or exhausted quota fails explicitly; an existing
+  same-tier service can be retried without requiring an extra service slot.
+- Passed: `task check`, all 39 tests, and `git diff --check`.
+  Approved-plan JSON and all 15 logical resource-group/type dependencies
+  were checked for missing references and cycles.
+- Passed: 25 independent guard mutations produced assertion failures.
+  Originals were restored and all 39 tests passed again; details are in
+  `docs/tamper-log.md`. No real state or Azure resources were mutated.
+- The user must run `task up` to apply the updated role/output configuration
+  and exercise live private indexing, Foundry retrieval, and Copilot Studio.
+  No live indexing success is claimed.

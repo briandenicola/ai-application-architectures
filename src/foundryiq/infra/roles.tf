@@ -1,10 +1,3 @@
-resource "azurerm_role_assignment" "search_blob_reader" {
-  scope                = azurerm_storage_account.this.id
-  role_definition_name = "Storage Blob Data Reader"
-  principal_id         = azurerm_search_service.this.identity[0].principal_id
-  principal_type       = "ServicePrincipal"
-}
-
 resource "azurerm_role_assignment" "search_model_user" {
   scope                = azapi_resource.foundry.id
   role_definition_name = "Cognitive Services OpenAI User"
@@ -60,6 +53,13 @@ resource "azurerm_role_assignment" "setup_search" {
 
   scope                = azurerm_search_service.this.id
   role_definition_name = each.value
+  principal_id         = azurerm_user_assigned_identity.setup.principal_id
+  principal_type       = "ServicePrincipal"
+}
+
+resource "azurerm_role_assignment" "setup_model_user" {
+  scope                = azapi_resource.foundry.id
+  role_definition_name = "Cognitive Services OpenAI User"
   principal_id         = azurerm_user_assigned_identity.setup.principal_id
   principal_type       = "ServicePrincipal"
 }

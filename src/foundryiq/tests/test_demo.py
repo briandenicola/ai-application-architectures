@@ -2,44 +2,47 @@ import copy
 import io
 import json
 import unittest
-from datetime import datetime, timezone
 from unittest.mock import patch
 from urllib.error import HTTPError
 
 from scripts import demo
 
-SINCE = datetime(2026, 1, 1, tzinfo=timezone.utc)
-
 
 class IngestionTests(unittest.TestCase):
-    def state(self, **changes):
-        state = {
-            "status": "success",
-            "startTime": "2026-01-01T00:01:00Z",
-            "itemUpdatesProcessed": 3,
-            "itemsUpdatesFailed": 0,
-        }
-        state.update(changes)
-        return {"lastSynchronizationState": state}
-
     def test_waits_for_current_upload_not_old_success(self):
-        self.assertFalse(demo.ingestion_complete({}, SINCE))
-        self.assertFalse(
-            demo.ingestion_complete(self.state(startTime="2025-12-31T23:59:00Z"), SINCE)
-        )
-        self.assertFalse(demo.ingestion_complete(self.state(status="inProgress"), SINCE))
-        self.assertTrue(demo.ingestion_complete(self.state(), SINCE))
+        client = unittest.mock.Mock()
+        client.request.side_effect = [{"@odata.count": count} for count in (3, 0, 4, 3, 3, 3)]
+        with patch.object(demo.time, "sleep") as sleep:
+            demo.wait_for_index(
+                client,
+                {"search_endpoint": "https://search", "search_index": "demo"},
+                "current-run",
+                3,
+            )
+        self.assertEqual(sleep.call_count, 2)
+        filtered = [
+            call.args[3]["filter"]
+            for call in client.request.call_args_list
+            if "filter" in call.args[3]
+        ]
+        self.assertEqual(filtered, ["ingestion_run eq 'current-run'"] * 3)
 
-    def test_failed_or_partial_ingestion_is_not_success(self):
-        for state in [
-            self.state(status="partialSuccess"),
-            self.state(status="failure"),
-            self.state(itemsUpdatesFailed=1),
-            self.state(errors=[{"errorMessage": "Permission denied"}]),
-            self.state(itemUpdatesProcessed=0),
-        ]:
-            with self.subTest(state=state), self.assertRaises(RuntimeError):
-                demo.ingestion_complete(state, SINCE)
+    def test_missing_current_documents_or_empty_index_cannot_report_success(self):
+        for expected, counts in [(3, [3, 0]), (3, [2, 2]), (0, [0, 0])]:
+            client = unittest.mock.Mock()
+            client.request.side_effect = [{"@odata.count": count} for count in counts]
+            with (
+                self.subTest(expected=expected, counts=counts),
+                patch.object(demo.time, "monotonic", side_effect=[0, 1, 301]),
+                patch.object(demo.time, "sleep"),
+                self.assertRaisesRegex(RuntimeError, "five minutes"),
+            ):
+                demo.wait_for_index(
+                    client,
+                    {"search_endpoint": "https://search", "search_index": "demo"},
+                    "current-run",
+                    expected,
+                )
 
 
 class ResponseTests(unittest.TestCase):
@@ -140,6 +143,8 @@ class ConfigurationTests(unittest.TestCase):
                 return {"name": "Synthetic subscription", "state": "Enabled"}
             if args[1:3] == ["extension", "show"]:
                 return {"name": "containerapp"}
+            if args[1:4] == ["search", "usage", "list"]:
+                return [{"name": {"value": "basic"}, "currentValue": 1, "limit": 12}]
             self.assertEqual(args[1:4], ["cognitiveservices", "model", "list"])
             return models
 
@@ -155,9 +160,14 @@ class ConfigurationTests(unittest.TestCase):
             ),
             patch.object(demo.shutil, "which", return_value="/synthetic/tool"),
             patch.object(demo.Path, "exists", return_value=True),
-            patch.object(demo, "command_json", side_effect=command),
+            patch.object(demo, "command_json", side_effect=command) as commands,
         ):
             demo.preflight()
+        self.assertTrue(
+            any(
+                call.args[0][1:4] == ["search", "usage", "list"] for call in commands.call_args_list
+            )
+        )
 
     def test_rejects_subscription_and_region_drift(self):
         config = {"subscription_id": "original", "location": "eastus2"}
@@ -261,6 +271,7 @@ class SetupTests(unittest.TestCase):
             "storage_resource_id": "/subscriptions/subscription/storage",
             "container_name": "handbook",
             "search_endpoint": "https://search.example.com",
+            "search_index": "handbook-index",
             "knowledge_source": "handbook-source",
             "knowledge_base": "handbook",
             "openai_endpoint": "https://model.example.com",
@@ -279,27 +290,30 @@ class SetupTests(unittest.TestCase):
 
         def request(method, url, audience, payload=None, **kwargs):
             calls.append((method, url, audience, copy.deepcopy(payload)))
-            if method == "GET" and not exists:
+            if method == "GET" and "/agents/" in url and not exists:
                 raise demo.ServiceError(404, method, url, "Not found")
             return {}
 
         client = unittest.mock.Mock()
         client.request.side_effect = request
-        with patch.object(demo, "wait_for_ingestion"):
+
+        def index_after_uploads(client, config):
+            uploads = [
+                call for call in calls if call[0] == "PUT" and ".blob.core.windows.net/" in call[1]
+            ]
+            self.assertEqual(len(uploads), len(list((demo.ROOT / "data").glob("*.md"))))
+
+        with patch.object(demo, "index_blobs", side_effect=index_after_uploads) as index:
             demo.setup(client, self.config())
+        index.assert_called_once_with(client, self.config())
         return calls
 
-    def test_setup_wires_blob_identity_and_shared_knowledge_base(self):
+    def test_setup_wires_existing_index_and_shared_knowledge_base(self):
         calls = self.run_setup(exists=False)
         payloads = [payload for _, _, _, payload in calls if isinstance(payload, dict)]
-        source = next(payload for payload in payloads if payload.get("kind") == "azureBlob")
-        self.assertEqual(
-            source["azureBlobParameters"]["connectionString"],
-            "ResourceId=/subscriptions/subscription/storage",
-        )
-        self.assertEqual(
-            source["azureBlobParameters"]["ingestionParameters"]["networkAccessMode"], "private"
-        )
+        source = next(payload for payload in payloads if payload.get("name") == "handbook-source")
+        self.assertEqual(source["kind"], "searchIndex")
+        self.assertEqual(source["searchIndexParameters"]["searchIndexName"], "handbook-index")
         connection = next(payload for payload in payloads if "properties" in payload)
         self.assertEqual(connection["properties"]["authType"], "ProjectManagedIdentity")
         agent = next(payload for payload in payloads if "definition" in payload)

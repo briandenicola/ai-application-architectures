@@ -62,6 +62,6 @@ resource "azurerm_container_app_job" "setup" {
     azurerm_role_assignment.setup_blob_contributor,
     azurerm_role_assignment.setup_search,
     azurerm_role_assignment.setup_foundry,
-    azurerm_search_shared_private_link_service.blob,
+    azurerm_role_assignment.setup_model_user,
   ]
 }

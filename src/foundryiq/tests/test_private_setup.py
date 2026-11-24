@@ -23,14 +23,20 @@ class PrivateConfigurationTests(unittest.TestCase):
         ):
             self.assertEqual(demo.operator_object_id(), oid)
 
-    def test_private_ingestion_rejects_basic_and_invalid_network_ranges(self):
+    def test_private_runner_accepts_basic_but_rejects_free_and_invalid_network_ranges(self):
+        with patch.dict(
+            os.environ,
+            {"TF_VAR_search_sku": "basic", "TF_VAR_network_address_space": "10.88.0.0/16"},
+            clear=True,
+        ):
+            demo.verify_private_configuration()
         for changes, message in [
-            ({"TF_VAR_search_sku": "basic"}, "S2"),
+            ({"TF_VAR_search_sku": "free"}, "billable"),
             ({"TF_VAR_network_address_space": ""}, "IPv4"),
             ({"TF_VAR_network_address_space": "10.88.0.0/27"}, "two /27"),
         ]:
             environment = {
-                "TF_VAR_search_sku": "standard2",
+                "TF_VAR_search_sku": "basic",
                 "TF_VAR_network_address_space": "10.88.0.0/16",
                 **changes,
             }
@@ -84,112 +90,12 @@ class PrivateConfigurationTests(unittest.TestCase):
         sleep.assert_not_called()
 
 
-class SharedLinkTests(unittest.TestCase):
-    def config(self):
-        return {
-            "shared_private_link_id": "/subscriptions/s/search/sharedPrivateLinkResources/ours",
-            "storage_resource_id": "/subscriptions/s/storage",
-            "shared_private_link_request_message": "unique-demo-request",
-        }
-
-    def connection(self, name, message, status="Pending"):
-        return {
-            "id": f"/subscriptions/s/storage/privateEndpointConnections/{name}",
-            "properties": {
-                "privateLinkServiceConnectionState": {"status": status, "description": message}
-            },
-        }
-
-    def test_only_approves_the_matching_connection_and_waits_for_readiness(self):
-        client = Mock()
-        client.request.side_effect = [
-            {"properties": {"status": "Pending", "provisioningState": "Succeeded"}},
-            {
-                "value": [
-                    self.connection("unrelated", "someone-else"),
-                    self.connection("ours", "unique-demo-request"),
-                ]
-            },
-            {},
-            {"properties": {"status": "Approved", "provisioningState": "Succeeded"}},
-        ]
-        with patch.object(demo.time, "sleep"):
-            demo.approve_storage_link(client, self.config())
-        puts = [call for call in client.request.call_args_list if call.args[0] == "PUT"]
-        self.assertEqual(len(puts), 1)
-        self.assertIn("/privateEndpointConnections/ours?", puts[0].args[1])
-
-    def test_approved_link_still_waits_for_successful_provisioning(self):
-        client = Mock()
-        client.request.side_effect = [
-            {"properties": {"status": "Approved", "provisioningState": "Updating"}},
-            {"value": [self.connection("ours", "unique-demo-request", "Approved")]},
-            {"properties": {"status": "Approved", "provisioningState": "Succeeded"}},
-        ]
-        with patch.object(demo.time, "sleep") as sleep:
-            demo.approve_storage_link(client, self.config())
-        sleep.assert_called_once()
-
-    def test_rejected_link_and_ambiguous_connections_fail_explicitly(self):
-        for status, provisioning, connections, message in [
-            ("Rejected", "Succeeded", [], "not usable"),
-            ("Approved", "Failed", [], "not usable"),
-            (
-                "Pending",
-                "Succeeded",
-                [
-                    self.connection("first", "unique-demo-request"),
-                    self.connection("second", "unique-demo-request"),
-                ],
-                "ambiguous",
-            ),
-        ]:
-            client = Mock()
-            client.request.return_value = {
-                "properties": {"status": status, "provisioningState": provisioning},
-                "value": connections,
-            }
-            with (
-                self.subTest(status=status),
-                patch.object(demo.time, "monotonic", side_effect=[0, 1, 301]),
-                patch.object(demo.time, "sleep"),
-                self.assertRaisesRegex(RuntimeError, message),
-            ):
-                demo.approve_storage_link(client, self.config())
-
-    def test_unmatched_request_times_out_without_approving_other_connections(self):
-        client = Mock()
-        client.request.return_value = {
-            "properties": {"status": "Pending", "provisioningState": "Succeeded"},
-            "value": [self.connection("unrelated", "someone-else")],
-        }
-        with (
-            patch.object(demo.time, "monotonic", side_effect=[0, 1, 301]),
-            patch.object(demo.time, "sleep"),
-            self.assertRaisesRegex(RuntimeError, "five minutes"),
-        ):
-            demo.approve_storage_link(client, self.config())
-        self.assertFalse(any(call.args[0] == "PUT" for call in client.request.call_args_list))
-
-    def test_rejected_target_connection_is_not_reapproved(self):
-        client = Mock()
-        client.request.return_value = {
-            "properties": {"status": "Pending", "provisioningState": "Succeeded"},
-            "value": [self.connection("ours", "unique-demo-request", "Rejected")],
-        }
-        with (
-            patch.object(demo.time, "monotonic", side_effect=[0, 1, 301]),
-            patch.object(demo.time, "sleep"),
-            self.assertRaisesRegex(RuntimeError, "request is Rejected"),
-        ):
-            demo.approve_storage_link(client, self.config())
-
-
 class PrivateJobTests(unittest.TestCase):
     def config(self):
         return {
             "subscription_id": "subscription",
             "resource_group": "synthetic-group",
+            "search_index": "handbook-index",
             "setup_runner_id": "/subscriptions/s/providers/Microsoft.App/jobs/setup",
             "setup_runner_name": "setup",
             "setup_runner_image": "mcr.microsoft.com/azure-cli:synthetic",
@@ -216,7 +122,6 @@ class PrivateJobTests(unittest.TestCase):
 
             with (
                 self.subTest(status=status),
-                patch.object(demo, "approve_storage_link"),
                 patch.object(demo, "command_json", side_effect=start),
                 patch.object(demo, "show_runner_logs") as logs,
             ):
@@ -242,7 +147,6 @@ class PrivateJobTests(unittest.TestCase):
             client.request.side_effect = request
             with (
                 self.subTest(later_page=later_page),
-                patch.object(demo, "approve_storage_link"),
                 patch.object(demo, "command_json", return_value={"name": "new"}) as start,
                 patch.object(demo, "show_runner_logs"),
                 self.assertRaisesRegex(RuntimeError, "already active"),
@@ -255,7 +159,6 @@ class PrivateJobTests(unittest.TestCase):
         client.request.return_value = {"value": [], "properties": {"status": "Succeeded"}}
         config = {**self.config(), "setup_runner_id": ""}
         with (
-            patch.object(demo, "approve_storage_link"),
             patch.object(demo, "command_json", return_value={"name": "execution"}),
             patch.object(demo, "show_runner_logs"),
             self.assertRaisesRegex(RuntimeError, "task up"),
@@ -267,7 +170,6 @@ class PrivateJobTests(unittest.TestCase):
         client = Mock()
         client.request.return_value = {"value": [], "properties": {"status": "Running"}}
         with (
-            patch.object(demo, "approve_storage_link"),
             patch.object(demo, "command_json", return_value={"name": "execution"}),
             patch.object(demo, "show_runner_logs") as logs,
             patch.object(demo.time, "monotonic", side_effect=[0, 1, 2401]),

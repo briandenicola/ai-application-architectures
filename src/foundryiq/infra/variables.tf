@@ -16,12 +16,12 @@ variable "location" {
 
 variable "search_sku" {
   type        = string
-  description = "Private managed Blob ingestion requires S2, S3, L1, or L2."
-  default     = "standard2"
+  description = "The private runner pushes the index; Basic supports this demo without managed Blob ingestion."
+  default     = "basic"
 
   validation {
-    condition     = contains(["standard2", "standard3", "storage_optimized_l1", "storage_optimized_l2"], var.search_sku)
-    error_message = "Use standard2 or another tier supporting managed private Blob ingestion."
+    condition     = contains(["basic", "standard", "standard2", "standard3", "storage_optimized_l1", "storage_optimized_l2"], var.search_sku)
+    error_message = "Use basic or another supported billable Search tier."
   }
 }
 
@@ -77,7 +77,7 @@ variable "chat_model_capacity" {
 
 variable "embedding_model_name" {
   type        = string
-  description = "Embedding model used by the managed Blob ingestion pipeline."
+  description = "Embedding model used by the private indexing runner and Search query vectorizer."
   default     = "text-embedding-3-small"
 }
 

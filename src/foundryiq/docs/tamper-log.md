@@ -96,7 +96,10 @@ Ruff lint/format checks and all sixteen Python/teardown tests passed. The full
 absent; the unchanged infrastructure dependency-graph test was not rerun.
 No live Azure deletion or provisioning was executed.
 
-## 2026-11-24: private Blob access and setup identity
+## 2026-11-24: private Blob access and setup identity (initial S2 design)
+
+This records commit `1e4596a`. The Basic correction below replaces its managed
+Blob ingestion and shared-link guards; those historical tests are no longer active.
 
 Read-only inspection reproduced the Blob network denial and confirmed that the
 live account had public access disabled by policy. The Azure CLI token's object
@@ -149,3 +152,47 @@ user-run command sequence without provisioning or invoking setup.
 These are offline contract and failure-handling checks, not a successful live
 private deployment. The user must run `task up` to apply the new infrastructure
 and exercise the private worker, ingestion, Foundry agent, and Copilot Studio.
+
+## 2026-11-24: Basic Search with private runner indexing
+
+The S2 update failed because the subscription had zero regional S2 quota.
+Read-only checks confirmed Basic was still healthy, with available Basic quota.
+The user explicitly selected runner-based Blob indexing on Basic, rather than a
+quota request or another region.
+
+Mutated the following independently in memory. The final Terraform mutation
+used an isolated source copy and the existing provider cache. No real state,
+Azure resources, credentials, or production source files were changed by tampering.
+
+| Disabled or altered behavior | Detecting test |
+|---|---|
+| Reject zero/exhausted service quota | `QuotaTests` |
+| Reject missing tier quota | `QuotaTests` |
+| Fail rather than succeed after quota exhaustion | `QuotaTests` |
+| Limit full-quota retries to the existing tier | `QuotaTests` |
+| Actually invoke quota checking from preflight | `test_preflight_can_retry_partial_state_without_demo_output` |
+| Reject unsupported Free tier | `test_private_runner_accepts_basic_but_rejects_free_and_invalid_network_ranges` |
+| Follow Blob continuation pages | `test_blob_downloads_follow_pages_and_skip_non_markdown` |
+| Select Markdown policy blobs only | `test_blob_downloads_follow_pages_and_skip_non_markdown` |
+| Reject an empty individual policy | `test_empty_blob_or_missing_markdown_fails_before_indexing` |
+| Reject a container without Markdown content | `test_empty_blob_or_missing_markdown_fails_before_indexing` |
+| Bound embedding chunks | `test_indexes_blob_chunks_with_vectors_and_reconciles_old_chunks` |
+| Preserve raw Blob response bytes | `test_raw_blob_response_is_not_parsed_as_json` |
+| Validate every index-action result | `test_partial_or_mismatched_index_results_fail_for_upload_and_delete` |
+| Require the current run's documents | `IngestionTests` |
+| Require obsolete chunks to be gone | `IngestionTests` |
+| Never accept an empty visible index | `IngestionTests` |
+| Fail when current-run visibility times out | `IngestionTests` |
+| Follow existing-index document pages | `test_indexes_blob_chunks_with_vectors_and_reconciles_old_chunks` |
+| Reconcile obsolete chunks | `test_indexes_blob_chunks_with_vectors_and_reconciles_old_chunks` |
+| Actually invoke indexing during setup | `SetupTests` |
+| Complete uploads before reading Blob for indexing | `SetupTests` |
+| Use an existing-index knowledge source | `test_setup_wires_existing_index_and_shared_knowledge_base` |
+| Reject incomplete embedding batches | Isolated assertion using the indexing test's mocked fixture |
+| Reject incompatible embedding dimensions | Isolated assertion using the indexing test's mocked fixture |
+| Wait for the runner's embedding-model role | `test_foundry_and_private_setup_dependency_ordering` |
+
+All 25 mutations caused assertion failures, with no test errors. After restoring
+the originals, all 39 tests passed. Final `task check` also passed Terraform
+format/schema validation and Ruff lint/format checks. `git diff --check` passed.
+These checks do not prove live indexing or either agent's Azure integration.

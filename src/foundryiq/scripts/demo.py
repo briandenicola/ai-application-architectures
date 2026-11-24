@@ -14,7 +14,7 @@ import sys
 import tempfile
 import time
 import uuid
-from datetime import datetime, timezone
+import xml.etree.ElementTree as ET
 from email.utils import formatdate
 from pathlib import Path
 from urllib.error import HTTPError, URLError
@@ -27,10 +27,17 @@ SEARCH_AUDIENCE = "https://search.azure.com/"
 FOUNDRY_AUDIENCE = "https://ai.azure.com/"
 MANAGEMENT_AUDIENCE = "https://management.azure.com/"
 STORAGE_AUDIENCE = "https://storage.azure.com/"
-SEARCH_MANAGEMENT_API = "2025-05-01"
-STORAGE_MANAGEMENT_API = "2023-05-01"
+OPENAI_AUDIENCE = "https://cognitiveservices.azure.com/"
 JOB_API = "2025-07-01"
-PRIVATE_SEARCH_SKUS = {"standard2", "standard3", "storage_optimized_l1", "storage_optimized_l2"}
+SEARCH_SKUS = {
+    "basic",
+    "standard",
+    "standard2",
+    "standard3",
+    "storage_optimized_l1",
+    "storage_optimized_l2",
+}
+EMBEDDING_DIMENSIONS = 1536
 DEFAULT_MODELS = {
     "chat": ("gpt-5.4-mini", "2026-03-17", "GlobalStandard"),
     "embedding": ("text-embedding-3-small", "1", "GlobalStandard"),
@@ -86,7 +93,9 @@ class AzureRest:
             self.tokens[audience] = cached
         return cached[0]
 
-    def request(self, method, url, audience, payload=None, *, headers=None, propagation=False):
+    def request(
+        self, method, url, audience, payload=None, *, headers=None, propagation=False, raw=False
+    ):
         data = (
             payload
             if isinstance(payload, bytes)
@@ -107,6 +116,8 @@ class AzureRest:
             try:
                 with urlopen(request, timeout=180) as response:
                     body = response.read()
+                    if raw:
+                        return body
                     return json.loads(body) if body else {}
             except HTTPError as error:
                 detail = error.read().decode(errors="replace")
@@ -191,10 +202,9 @@ def operator_object_id():
 
 
 def verify_private_configuration():
-    if os.environ.get("TF_VAR_search_sku", "standard2") not in PRIVATE_SEARCH_SKUS:
+    if os.environ.get("TF_VAR_search_sku", "basic") not in SEARCH_SKUS:
         raise RuntimeError(
-            "Managed private Blob ingestion requires S2 or higher. "
-            "Set TF_VAR_search_sku=standard2 in .env."
+            "Use TF_VAR_search_sku=basic or another supported billable Search tier in .env."
         )
     try:
         network = ipaddress.IPv4Network(os.environ.get("TF_VAR_network_address_space", ""))
@@ -215,62 +225,6 @@ def verify_private_storage(config):
             f"endpoint {config['storage_private_ip']}. Check the Blob private DNS zone/VNet link."
         )
     print(f"Verified private Blob DNS: {host} -> {config['storage_private_ip']}", flush=True)
-
-
-def approve_storage_link(client, config):
-    link_url = (
-        f"https://management.azure.com{config['shared_private_link_id']}"
-        f"?api-version={SEARCH_MANAGEMENT_API}"
-    )
-    deadline = time.monotonic() + 300
-    while time.monotonic() < deadline:
-        link = client.request("GET", link_url, MANAGEMENT_AUDIENCE)["properties"]
-        if link["status"] == "Approved" and link["provisioningState"] == "Succeeded":
-            print("Search-to-Blob shared private link is ready.", flush=True)
-            return
-        if link["status"] in {"Rejected", "Disconnected"} or link["provisioningState"] == "Failed":
-            raise RuntimeError(f"Search-to-Blob private link is not usable: {json.dumps(link)}")
-        connections = client.request(
-            "GET",
-            f"https://management.azure.com{config['storage_resource_id']}"
-            f"/privateEndpointConnections?api-version={STORAGE_MANAGEMENT_API}",
-            MANAGEMENT_AUDIENCE,
-        )["value"]
-        matching = [
-            item
-            for item in connections
-            if item["properties"]["privateLinkServiceConnectionState"].get("description")
-            == config["shared_private_link_request_message"]
-        ]
-        if len(matching) > 1:
-            raise RuntimeError(
-                "Multiple matching private endpoint requests; refusing ambiguous approval."
-            )
-        if matching:
-            connection = matching[0]
-            state = connection["properties"]["privateLinkServiceConnectionState"]["status"]
-            if state == "Pending":
-                client.request(
-                    "PUT",
-                    f"https://management.azure.com{connection['id']}"
-                    f"?api-version={STORAGE_MANAGEMENT_API}",
-                    MANAGEMENT_AUDIENCE,
-                    {
-                        "properties": {
-                            "privateLinkServiceConnectionState": {
-                                "status": "Approved",
-                                "description": config["shared_private_link_request_message"],
-                            }
-                        }
-                    },
-                )
-            elif state != "Approved":
-                raise RuntimeError(f"The matching Storage private endpoint request is {state}.")
-        print("Waiting for this demo's Search-to-Blob private link approval...", flush=True)
-        time.sleep(10)
-    raise RuntimeError(
-        "Search-to-Blob private link was not approved and ready within five minutes."
-    )
 
 
 def runner_payload(config):
@@ -331,7 +285,7 @@ def show_runner_logs(config, execution):
 
 
 def private_setup(client, config):
-    if not config.get("setup_runner_id"):
+    if not config.get("setup_runner_id") or not config.get("search_index"):
         raise RuntimeError("Run task up to provision the private setup runner before task setup.")
     base = f"https://management.azure.com{config['setup_runner_id']}"
     page = f"{base}/executions?api-version={JOB_API}"
@@ -343,7 +297,6 @@ def private_setup(client, config):
                     f"Setup execution {execution['name']} is already active; wait for it to finish."
                 )
         page = executions.get("nextLink")
-    approve_storage_link(client, config)
     template = {
         "containers": [
             {
@@ -421,20 +374,12 @@ def model_parameters(config, purpose):
 def knowledge_source(config):
     return {
         "name": config["knowledge_source"],
-        "kind": "azureBlob",
+        "kind": "searchIndex",
         "description": "Synthetic Northstar employee leave, expenses, and remote-work policies.",
-        "azureBlobParameters": {
-            # ResourceId selects managed identity; this contains no storage credential.
-            "connectionString": f"ResourceId={config['storage_resource_id']}",
-            "containerName": config["container_name"],
-            "isADLSGen2": False,
-            "ingestionParameters": {
-                "networkAccessMode": "private",
-                "contentExtractionMode": "minimal",
-                "disableImageVerbalization": True,
-                "embeddingModel": model_parameters(config, "embedding"),
-                "ingestionSchedule": {"interval": "PT5M"},
-            },
+        "searchIndexParameters": {
+            "searchIndexName": config["search_index"],
+            "semanticConfigurationName": "handbook-semantic",
+            "sourceDataFields": [{"name": name} for name in ("id", "title", "content", "url")],
         },
     }
 
@@ -468,42 +413,225 @@ def agent_definition(config):
     }
 
 
-def ingestion_complete(status, since):
-    state = status.get("lastSynchronizationState") or {}
-    started = state.get("startTime")
-    if not started or datetime.fromisoformat(started.replace("Z", "+00:00")) < since:
-        return False
-    if state.get("errors") or state.get("itemsUpdatesFailed", 0):
-        raise RuntimeError(f"Knowledge source ingestion failed: {json.dumps(state)}")
-    result = state.get("status")
-    if result in {"failure", "failed", "partialSuccess", "persistentFailure", "transientFailure"}:
-        raise RuntimeError(f"Knowledge source ingestion failed: {json.dumps(state)}")
-    if result == "success":
-        if state.get("itemUpdatesProcessed", 0) < 1:
-            raise RuntimeError(
-                f"Ingestion completed without processing documents: {json.dumps(state)}"
+def index_definition(config):
+    return {
+        "name": config["search_index"],
+        "description": "Synthetic employee handbook downloaded from private Blob Storage.",
+        "fields": [
+            {"name": "id", "type": "Edm.String", "key": True, "sortable": True},
+            {"name": "title", "type": "Edm.String", "searchable": True},
+            {"name": "content", "type": "Edm.String", "searchable": True},
+            {"name": "url", "type": "Edm.String"},
+            {"name": "ingestion_run", "type": "Edm.String", "filterable": True},
+            {
+                "name": "content_vector",
+                "type": "Collection(Edm.Single)",
+                "searchable": True,
+                "retrievable": False,
+                "dimensions": EMBEDDING_DIMENSIONS,
+                "vectorSearchProfile": "handbook-vectors",
+            },
+        ],
+        "semantic": {
+            "defaultConfiguration": "handbook-semantic",
+            "configurations": [
+                {
+                    "name": "handbook-semantic",
+                    "prioritizedFields": {
+                        "titleField": {"fieldName": "title"},
+                        "prioritizedContentFields": [{"fieldName": "content"}],
+                    },
+                }
+            ],
+        },
+        "vectorSearch": {
+            "algorithms": [{"name": "handbook-hnsw", "kind": "hnsw"}],
+            "profiles": [
+                {
+                    "name": "handbook-vectors",
+                    "algorithm": "handbook-hnsw",
+                    "vectorizer": "handbook-embedding",
+                }
+            ],
+            "vectorizers": [
+                {
+                    "name": "handbook-embedding",
+                    **model_parameters(config, "embedding"),
+                }
+            ],
+        },
+    }
+
+
+def storage_headers():
+    return {"x-ms-version": "2023-11-03", "x-ms-date": formatdate(usegmt=True)}
+
+
+def blob_chunks(client, config, run_id):
+    container = (
+        f"https://{config['storage_account']}.blob.core.windows.net/{config['container_name']}"
+    )
+    documents = []
+    marker = ""
+    while True:
+        listing = ET.fromstring(
+            client.request(
+                "GET",
+                f"{container}?restype=container&comp=list&marker={quote(marker, safe='')}",
+                STORAGE_AUDIENCE,
+                headers=storage_headers(),
+                propagation=True,
+                raw=True,
             )
-        return True
-    return False
+        )
+        for blob in listing.findall("./Blobs/Blob"):
+            name = blob.findtext("Name")
+            if not name or not name.endswith(".md"):
+                continue
+            url = f"{container}/{quote(name)}"
+            text = (
+                client.request(
+                    "GET",
+                    url,
+                    STORAGE_AUDIENCE,
+                    headers=storage_headers(),
+                    propagation=True,
+                    raw=True,
+                )
+                .decode("utf-8")
+                .strip()
+            )
+            if not text:
+                raise RuntimeError(f"Blob policy is empty: {url}")
+            chunks = []
+            current = ""
+            for paragraph in text.split("\n\n"):
+                for start in range(0, len(paragraph), 2000):
+                    part = paragraph[start : start + 2000]
+                    combined = f"{current}\n\n{part}" if current else part
+                    if len(combined) > 2000:
+                        chunks.append(current)
+                        current = part
+                    else:
+                        current = combined
+            if current:
+                chunks.append(current)
+            for number, content in enumerate(chunks):
+                documents.append(
+                    {
+                        "id": str(uuid.uuid5(uuid.NAMESPACE_URL, f"{url}#{number}")),
+                        "title": f"{Path(name).name}: {text.splitlines()[0].lstrip('# ')}",
+                        "content": content,
+                        "url": url,
+                        "ingestion_run": run_id,
+                    }
+                )
+        marker = listing.findtext("NextMarker")
+        if not marker:
+            break
+    if not documents:
+        raise RuntimeError("No Markdown policy content was found in the Blob container.")
+    return documents
 
 
-def wait_for_ingestion(client, config, since):
-    deadline = time.monotonic() + 1200
+def write_index_batch(client, config, actions):
+    result = client.request(
+        "POST",
+        search_url(config, f"indexes/{config['search_index']}/docs/index"),
+        SEARCH_AUDIENCE,
+        {"value": actions},
+        propagation=True,
+    )
+    results = result.get("value", [])
+    if (
+        len(results) != len(actions)
+        or {item["key"] for item in results} != {item["id"] for item in actions}
+        or any(item.get("status") is not True for item in results)
+    ):
+        raise RuntimeError(f"Search indexing batch failed or was incomplete: {json.dumps(result)}")
+
+
+def wait_for_index(client, config, run_id, expected):
+    deadline = time.monotonic() + 300
     while time.monotonic() < deadline:
-        status = client.request(
-            "GET",
-            search_url(config, f"knowledgesources/{config['knowledge_source']}/status"),
+        counts = [
+            client.request(
+                "POST",
+                search_url(config, f"indexes/{config['search_index']}/docs/search"),
+                SEARCH_AUDIENCE,
+                {"search": "*", "top": 0, "count": True, **extra},
+                propagation=True,
+            )["@odata.count"]
+            for extra in ({}, {"filter": f"ingestion_run eq '{run_id}'"})
+        ]
+        if counts == [expected, expected] and expected > 0:
+            print(f"Verified {expected} searchable chunks from this Blob indexing run.", flush=True)
+            return
+        print(
+            f"Waiting for current index contents: total/current={counts}, expected={expected}.",
+            flush=True,
+        )
+        time.sleep(5)
+    raise RuntimeError(
+        f"Current Blob indexing run was not searchable within five minutes: {counts}"
+    )
+
+
+def index_blobs(client, config):
+    run_id = str(uuid.uuid4())
+    documents = blob_chunks(client, config, run_id)
+    client.request(
+        "PUT",
+        search_url(config, f"indexes/{config['search_index']}"),
+        SEARCH_AUDIENCE,
+        index_definition(config),
+        propagation=True,
+    )
+    existing = set()
+    offset = 0
+    while True:
+        page = client.request(
+            "POST",
+            search_url(config, f"indexes/{config['search_index']}/docs/search"),
             SEARCH_AUDIENCE,
+            {"search": "*", "select": "id", "orderby": "id", "top": 1000, "skip": offset},
             propagation=True,
         )
-        if ingestion_complete(status, since):
-            print("Knowledge source ingestion succeeded.", flush=True)
-            return
-        print("Waiting for a completed ingestion run after the policy upload...", flush=True)
-        time.sleep(15)
-    raise RuntimeError(
-        f"Ingestion did not complete within 20 minutes. Last status: {json.dumps(status)}"
-    )
+        existing.update(item["id"] for item in page["value"])
+        if len(page["value"]) < 1000:
+            break
+        offset += len(page["value"])
+    for offset in range(0, len(documents), 16):
+        batch = documents[offset : offset + 16]
+        result = client.request(
+            "POST",
+            f"{config['openai_endpoint']}/openai/v1/embeddings",
+            OPENAI_AUDIENCE,
+            {
+                "model": config["embedding_deployment"],
+                "input": [d["content"] for d in batch],
+                "dimensions": EMBEDDING_DIMENSIONS,
+                "encoding_format": "float",
+            },
+            propagation=True,
+        )["data"]
+        if sorted(item["index"] for item in result) != list(range(len(batch))) or any(
+            len(item["embedding"]) != EMBEDDING_DIMENSIONS for item in result
+        ):
+            raise RuntimeError("Embedding response is incomplete or has incompatible dimensions.")
+        for embedding in result:
+            batch[embedding["index"]]["content_vector"] = embedding["embedding"]
+        write_index_batch(
+            client, config, [{"@search.action": "upload", **document} for document in batch]
+        )
+    stale = sorted(existing - {document["id"] for document in documents})
+    for offset in range(0, len(stale), 100):
+        write_index_batch(
+            client,
+            config,
+            [{"@search.action": "delete", "id": key} for key in stale[offset : offset + 100]],
+        )
+    wait_for_index(client, config, run_id, len(documents))
 
 
 def setup(client, config):
@@ -518,8 +646,7 @@ def setup(client, config):
             STORAGE_AUDIENCE,
             path.read_bytes(),
             headers={
-                "x-ms-version": "2023-11-03",
-                "x-ms-date": formatdate(usegmt=True),
+                **storage_headers(),
                 "x-ms-blob-type": "BlockBlob",
                 "Content-Type": "text/markdown; charset=utf-8",
             },
@@ -527,7 +654,7 @@ def setup(client, config):
         )
         print(f"Uploaded {path.name}.", flush=True)
 
-    since = datetime.now(timezone.utc).replace(microsecond=0)
+    index_blobs(client, config)
     client.request(
         "PUT",
         search_url(config, f"knowledgesources/{config['knowledge_source']}"),
@@ -535,7 +662,6 @@ def setup(client, config):
         knowledge_source(config),
         propagation=True,
     )
-    wait_for_ingestion(client, config, since)
     client.request(
         "PUT",
         search_url(config, f"knowledgebases/{config['knowledge_base']}"),
@@ -636,6 +762,42 @@ def verify_model(models, name, version, sku):
         )
 
 
+def verify_search_quota(subscription, region):
+    sku = os.environ.get("TF_VAR_search_sku", "basic")
+    usages = command_json(
+        [
+            "az",
+            "search",
+            "usage",
+            "list",
+            "--subscription",
+            subscription,
+            "--location",
+            region,
+            "-o",
+            "json",
+        ]
+    )
+    quota = next((item for item in usages if item["name"]["value"] == sku), None)
+    if quota is None:
+        raise RuntimeError(f"Search quota response did not include tier {sku} in {region}.")
+    if quota["limit"] > quota["currentValue"]:
+        return
+    if quota["limit"] > 0 and (ROOT / "infra" / "terraform.tfstate").exists():
+        state = command_json(["terraform", "-chdir=infra", "show", "-json"])
+        if any(
+            resource["address"] == "azurerm_search_service.this"
+            and resource["values"].get("sku") == sku
+            and resource["values"].get("location") == region
+            for resource in state.get("values", {}).get("root_module", {}).get("resources", [])
+        ):
+            return
+    raise RuntimeError(
+        f"Search {sku} service quota in {region}: {quota['currentValue']} used, "
+        f"limit {quota['limit']}. Request quota or select an available tier before provisioning."
+    )
+
+
 def preflight():
     for tool in ("az", "terraform", "task"):
         if shutil.which(tool) is None:
@@ -655,6 +817,7 @@ def preflight():
     if account.get("state") != "Enabled":
         raise RuntimeError("The selected Azure subscription is not enabled.")
     region = os.environ.get("AZURE_LOCATION", "canadacentral")
+    verify_search_quota(subscription, region)
     models = command_json(
         [
             "az",
@@ -677,7 +840,9 @@ def preflight():
         verify_model(models, name, version, sku)
     print(f"Subscription: {account['name']} ({subscription}); region: {region}", flush=True)
     print(
-        "Selected models are advertised. Quota/capacity is enforced by Terraform apply.", flush=True
+        "Search service quota checked; selected models are advertised. "
+        "Live capacity and model quota are still enforced by Terraform apply.",
+        flush=True,
     )
 
 
@@ -733,7 +898,7 @@ def main():
                 raise RuntimeError('Supply a question: task ask -- "your question"')
             ask(client, config, question)
         return 0
-    except (RuntimeError, ValueError, KeyError, OSError, URLError) as error:
+    except (RuntimeError, ValueError, KeyError, OSError, URLError, ET.ParseError) as error:
         print(f"ERROR: {error}", file=sys.stderr)
         return 1
 

@@ -7,12 +7,12 @@ agent independently use the same knowledge base.
 ```mermaid
 flowchart LR
     Blob["Azure Blob Storage\n3 synthetic policies"]
-    IQ["Foundry IQ / Azure AI Search\nBlob knowledge source + knowledge base"]
+    IQ["Foundry IQ / Basic Azure AI Search\nSearch index knowledge source + knowledge base"]
     Foundry["Foundry prompt agent"]
     Studio["Copilot Studio agent"]
     Runner["Private setup job\nmanaged identity + VNet"]
-    Runner -->|"Blob private endpoint + DNS\nsynthetic policy uploads"| Blob
-    Blob -->|"Search shared private link\nmanaged indexing + embeddings"| IQ
+    Runner <-->|"Blob private endpoint + DNS\nupload and download policies"| Blob
+    Runner -->|"Chunk, embed, and push index"| IQ
     Foundry -->|"MCP + project managed identity"| IQ
     Studio -->|"Native Foundry IQ tool\nEntra ID Integrated"| IQ
 ```
@@ -32,16 +32,18 @@ All implementation files and local state stay inside `src/foundryiq`.
 
 | Component | Purpose |
 |---|---|
-| Terraform in `infra/` | Resource group, private Blob Storage, S2 Search, Foundry account/project, models, RBAC |
+| Terraform in `infra/` | Resource group, private Blob Storage, Basic Search, Foundry account/project, models, RBAC |
 | Private setup infrastructure | VNet, delegated runner subnet, separate endpoint subnet, Blob private endpoint/DNS, NAT egress, managed identity, manual Container Apps job |
 | `data/*.md` | Fictional leave, expenses, and remote-work policies |
-| `scripts/demo.py` | Private-job orchestration, uploads inside the runner, knowledge/agent setup, questions |
+| `scripts/demo.py` | Private-job orchestration, Blob uploads/downloads, chunking/embedding/indexing, knowledge/agent setup, questions |
 | `scripts/runner_bootstrap.py` | Authenticate the job with managed identity and execute the supplied demo bundle |
 | `Taskfile.yaml` | Provision/setup, destroy, ask, display endpoints, offline checks |
 | [Copilot Studio walkthrough](docs/copilot-studio.md) | Connect the same knowledge base to a second agent |
 
-Search creates and manages the data source, index, indexer, and embedding pipeline
-for the Blob knowledge source. Do not separately maintain those generated objects.
+The runner reads Markdown documents from the private Blob container, chunks and
+embeds them, and pushes a hybrid text/vector index. A `searchIndex` knowledge
+source connects that index to Foundry IQ. There is no managed Blob knowledge
+source, indexer, Search-to-Blob shared private link, or S2 requirement.
 The knowledge base uses low-effort model-backed planning and returns extractive
 content; each agent composes its own cited answer.
 
@@ -51,8 +53,7 @@ content; each agent composes its own cited answer.
 - Sign in with `az login` before running the tasks.
 - A subscription where you can create resources **and role assignments**.
   Owner, or Contributor plus Role Based Access Control Administrator, is suitable.
-  The Azure CLI identity must also be able to start/read the setup job and approve
-  the demo's Search-to-Storage private endpoint connection.
+  The Azure CLI identity must also be able to start/read the setup job.
   Your organization must allow the required resource providers to be registered.
 - A `canadacentral` deployment supporting the selected models and agentic retrieval.
   The region, model versions, deployment SKUs, and capacities are configurable.
@@ -62,17 +63,19 @@ content; each agent composes its own cited answer.
 - `task up` checks for the Azure CLI `containerapp` extension and installs it if
   missing. The worker uses the pinned official Azure CLI image, not a local build.
 
-Private managed Blob ingestion requires **Search S2 or higher**. This demo defaults
-to S2; Basic and S1 are not supported for that path. S2, NAT Gateway, and private
-endpoints add charges even when the setup job is idle. The job itself runs only
+This demo defaults to **Search Basic**. The private runner handles indexing, so
+Search never needs to connect to private Blob Storage. Search, NAT Gateway, and
+private endpoints add charges even when the setup job is idle. The job itself runs only
 when started. This is a disposable single-region demo, not an HA architecture or
 an all-services-private deployment. Console logs are fetched after each execution;
 no persistent Log Analytics workspace or keys are introduced.
 
 The defaults are `gpt-5.4-mini` version `2026-03-17` (`GlobalStandard`) and
 `text-embedding-3-small` version `1` (`GlobalStandard`). `task up` checks the selected
-subscription's regional model catalog before provisioning. Catalog presence is
-not a quota or capacity guarantee; deployment reports those errors explicitly.
+subscription's regional model catalog and Search service quota before provisioning.
+An existing same-tier Search service can be retried even when its tier quota is
+fully used. Catalog presence and service quota do not guarantee live capacity or
+model-deployment quota; deployment reports those errors explicitly.
 GlobalStandard is a global deployment SKU, not a regional data-residency promise.
 
 ## Run
@@ -90,14 +93,15 @@ From `src/foundryiq`:
    task up
    ```
 
-   Review Terraform's plan and enter `yes` to provision. The task then approves
-   only this demo's Search-to-Blob shared private link and starts the private job.
+   Review Terraform's plan and enter `yes` to provision. The task starts the private job.
    The job verifies private Blob DNS before any upload, then uploads
-   the policies, creates the Blob knowledge source, waits for successful
-   ingestion, creates the knowledge base and managed-identity MCP connection,
+   the policies, reads Markdown back from Blob, chunks and embeds the contents,
+   and pushes the index. It checks every document-write result and waits until
+   the current run's chunks are searchable with no obsolete chunks remaining.
+   It then creates the index knowledge source, knowledge base, and managed-identity MCP connection,
    and creates the Foundry prompt agent. On later setup runs, it creates a new
    version of that agent. Initial provisioning and indexing can take several
-   minutes. Indexing polls every five minutes. Terraform creates the Foundry
+   minutes. Terraform creates the Foundry
    project, chat deployment, and embedding deployment sequentially because those
    writes lock the same Foundry account.
 
@@ -105,12 +109,14 @@ From `src/foundryiq`:
    running `task up`:
 
    ```dotenv
-   TF_VAR_search_sku=standard2
+   TF_VAR_search_sku=basic
    TF_VAR_network_address_space=10.88.0.0/16
    ```
 
-   Review any Search replacement in Terraform's plan. Do not use `task setup`
-   alone until the new private runner and networking have been provisioned.
+   Do not destroy the partial deployment after an S2 quota failure: rerun `task up`
+   to retain Basic and finish provisioning. Review the plan before accepting it.
+   Do not use `task setup` alone until the runner's model role and new index
+   configuration have been applied.
 
 3. Ask the Foundry agent:
 
@@ -176,16 +182,17 @@ contains no MCP call. It does not evaluate answer correctness or prove citation
 accuracy; check the cited policy against the table above.
 
 For a refresh demo, edit an existing policy in `data/`, run `task setup`, and ask
-both agents about the new value in fresh conversations. `setup` waits for an
-ingestion run started after the uploads, rather than accepting an older success.
-It overwrites matching blobs but does **not** delete blobs if a local file is
-removed. `task down` removes the entire deployment, not individual documents.
+both agents about the new value in fresh conversations. `setup` checks the current
+indexing run, rather than accepting an older success. It overwrites matching blobs,
+then indexes **all Markdown blobs** in the handbook container, including blobs
+whose local files were removed. It does not delete blobs. It reconciles obsolete
+index chunks after successful uploads, for example when a policy becomes shorter.
+Indexing runs only through `task up` or `task setup`, not on a background schedule.
 
 ## Authentication and permissions
 
 | Identity | Scope | Role |
 |---|---|---|
-| Search system identity | Storage account | Storage Blob Data Reader |
 | Search system identity | Foundry account hosting the models | Cognitive Services OpenAI User |
 | Foundry project system identity | Search service | Search Index Data Reader |
 | Azure CLI demo operator | Handbook container | Storage Blob Data Contributor |
@@ -193,7 +200,7 @@ removed. `task down` removes the entire deployment, not individual documents.
 | Azure CLI demo operator | Foundry account | Foundry User + Foundry Project Manager |
 | Setup job managed identity | Handbook container | Storage Blob Data Contributor |
 | Setup job managed identity | Search service | Search Service Contributor + Search Index Data Contributor |
-| Setup job managed identity | Foundry account | Foundry User + Foundry Project Manager |
+| Setup job managed identity | Foundry account | Foundry User + Foundry Project Manager + Cognitive Services OpenAI User |
 
 `task up` derives the operator object ID from the selected Azure CLI token.
 Terraform's deployment service principal can be different; its identity is not
@@ -203,8 +210,8 @@ and non-secret configuration are sent to the job: never `.env`, Terraform state,
 Azure CLI caches, or access tokens.
 
 The connection uses `ProjectManagedIdentity` with the Search audience.
-The Blob knowledge source's API field is named `connectionString`, but its value
-is only `ResourceId=<storage ARM ID>`: no credential is used or output.
+The runner uses its managed identity for Blob downloads and embedding requests.
+Search uses its system identity to vectorize queries with the same embedding model.
 Terraform state is local and can contain provider-managed sensitive attributes;
 it and `.env` are ignored. Do not share state files. Naming matches the existing
 Foundry infrastructure: `${random_pet.this.id}-${random_id.this.dec}` is the base,
@@ -216,16 +223,16 @@ with `-foundry`, `-project`, and `-ai_rg` suffixes. Search uses
 | Symptom | Action |
 |---|---|
 | Model/SKU not advertised | Change model name/version/SKU or region in `.env` **before the first deployment**, then rerun `task up` |
-| Insufficient quota or unavailable capacity | Adjust deployment capacities or request quota; rerun `task up` |
+| Search service quota exhausted | Preflight reports tier, usage, and limit before Terraform. Keep `TF_VAR_search_sku=basic` for this path, or request quota for your chosen tier |
+| Insufficient model quota or unavailable capacity | Adjust model deployment capacities or request quota; rerun `task up` |
 | Search reports regional capacity exhaustion | Choose another supported region; use `task down` first if moving an existing deployment |
 | Blob `403 AuthorizationFailure` | A network block, not a generic RBAC wait: check the runner's private endpoint/DNS. The script fails immediately and shows the request URL and server error |
 | Other setup 401/403 | Confirm the correct runtime identity and roles above; propagation retries are bounded and show method, endpoint, and error detail |
 | Private Blob DNS check fails | Check the private DNS zone, VNet link, and Blob endpoint; the worker rejects public or mixed DNS answers |
-| Search shared link stays pending | Inspect the target Storage connection. Only the connection matching this demo's unique request message is approved; unrelated requests are never approved |
 | Private setup job fails | `task setup` prints that execution's console logs and returns failure; correct the reported cause and rerun it |
 | Setup execution already active | Wait for that execution; the script refuses to start another known-active setup |
-| Indexing fails or processes no documents | Inspect the Blob knowledge source status in Search and its generated indexer's errors; fix the reported Blob/model permission or model configuration, then run `task setup` |
-| Ingestion takes too long | Setup stops after 20 minutes with the last status; inspect the indexer before retrying |
+| Indexing batch fails | Setup reports failed or missing document results; check the runner's Search data role and model configuration, then run `task setup` |
+| Index visibility times out | Setup stops after five minutes if current-run or total chunk counts differ; inspect the job logs and demo index before retrying |
 | Agent tool call fails | Check the project's Search reader role, managed-identity connection, and MCP endpoint from `task outputs` |
 | Blob citation link prompts for access or returns 403 | Documents are private; a citation is not a public download link. Review the matching local policy or open the blob using an authorized identity |
 | Region/subscription mismatch with state | Restore the original subscription; `task down` accepts a changed region while targeting the group recorded in state |
@@ -233,7 +240,7 @@ with `-foundry`, `-project`, and `-ai_rg` suffixes. Search uses
 
 Changing the subscription or region in an existing state can replace resources.
 Use one copy/state per deployment. Cleanup is explicit through `task down`;
-neither `task up` nor the setup script runs cleanup.
+neither `task up` nor the setup script tears down infrastructure.
 
 ## Offline checks
 
@@ -251,7 +258,9 @@ execution, model capacity, or Copilot Studio integration.
 ## Microsoft references
 
 - [Foundry IQ overview](https://learn.microsoft.com/azure/foundry/agents/concepts/what-is-foundry-iq)
-- [Blob knowledge source](https://learn.microsoft.com/azure/search/agentic-knowledge-source-how-to-blob)
+- [Search index knowledge source](https://learn.microsoft.com/azure/search/agentic-knowledge-source-how-to-search-index)
+- [Index requirements for agentic retrieval](https://learn.microsoft.com/azure/search/agentic-retrieval-how-to-create-index)
+- [Generate embeddings](https://learn.microsoft.com/azure/foundry/openai/how-to/embeddings)
 - [Create a knowledge base](https://learn.microsoft.com/azure/search/agentic-retrieval-how-to-create-knowledge-base)
 - [Connect a knowledge base to Foundry Agent Service](https://learn.microsoft.com/azure/foundry/agents/how-to/foundry-iq-connect)
 - [Connect Foundry IQ in Copilot Studio](https://learn.microsoft.com/microsoft-copilot-studio/agents-experience/foundry-iq-connect)

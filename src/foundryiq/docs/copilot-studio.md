@@ -126,7 +126,9 @@ Copilot Studio connection remains unchanged because the knowledge base is shared
 | Answers are wrong or stale | Tune or refresh the knowledge base centrally; inspect ingestion and try a fresh conversation |
 | You see a different tool UI | Verify the agent experience against Microsoft's current native connection walkthrough |
 
-Blob ingestion and uploads use private networking. Search and Foundry ingress
+The private runner uploads, downloads, and indexes Blob policies. Foundry IQ
+uses the populated Search index; there is no managed Blob indexer or S2 dependency.
+Search and Foundry ingress
 remain Entra-authenticated public endpoints for this walkthrough. Publishing to
 Teams, organization-wide rollout, all-services-private ingress, and per-document
 authorization are outside this demo.

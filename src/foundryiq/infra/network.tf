@@ -1,6 +1,5 @@
 locals {
-  subnet_newbits              = 27 - tonumber(split("/", var.network_address_space)[1])
-  shared_link_request_message = "Foundry IQ handbook ingestion: ${local.search_service_name}"
+  subnet_newbits = 27 - tonumber(split("/", var.network_address_space)[1])
 }
 
 resource "azurerm_virtual_network" "this" {
@@ -94,12 +93,4 @@ resource "azurerm_private_endpoint" "blob" {
     name                 = "blob"
     private_dns_zone_ids = [azurerm_private_dns_zone.blob.id]
   }
-}
-
-resource "azurerm_search_shared_private_link_service" "blob" {
-  name               = "${local.resource_name}-blob-link"
-  search_service_id  = azurerm_search_service.this.id
-  subresource_name   = "blob"
-  target_resource_id = azurerm_storage_account.this.id
-  request_message    = local.shared_link_request_message
 }
