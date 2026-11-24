@@ -93,6 +93,11 @@ class PrivateConfigurationTests(unittest.TestCase):
 
 
 class PrivateJobTests(unittest.TestCase):
+    def setUp(self):
+        connection = patch.object(demo, "connect_telemetry")
+        self.connect = connection.start()
+        self.addCleanup(connection.stop)
+
     def config(self):
         return {
             "subscription_id": "subscription",
@@ -108,6 +113,7 @@ class PrivateJobTests(unittest.TestCase):
 
     def test_job_status_controls_success_and_failure(self):
         for status in ("Succeeded", "Failed", "Stopped"):
+            self.connect.reset_mock()
             config = self.config()
             client = Mock()
             client.request.side_effect = [
@@ -115,7 +121,8 @@ class PrivateJobTests(unittest.TestCase):
                 {"properties": {"status": status}},
             ]
 
-            def start(args, config=config):
+            def start(args, config=config, client=client):
+                self.connect.assert_called_once_with(client, config)
                 self.assertEqual(args[1:4], ["containerapp", "job", "start"])
                 template = json.loads(Path(args[args.index("--yaml") + 1]).read_text())
                 container = template["containers"][0]
@@ -157,6 +164,7 @@ class PrivateJobTests(unittest.TestCase):
             ):
                 demo.private_setup(client, self.config())
             start.assert_not_called()
+            self.connect.assert_not_called()
 
     def test_legacy_state_requires_provisioning_before_setup(self):
         client = Mock()

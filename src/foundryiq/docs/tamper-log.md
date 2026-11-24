@@ -235,3 +235,33 @@ covers 50 tests plus Terraform format/schema and Ruff lint/format. Native graph
 checks use installed providers and no Azure operations. The existing Basic
 setup was confirmed working by the user; this proof does not verify the new
 live telemetry connection, ingestion, or query results.
+
+## Required App Insights routing metadata correction
+
+The user-run connection request returned HTTP 400 because
+`metadata.ApplicationInsightsConnectionString` was missing. The previous mocked
+payload assertions did not cover that actual service requirement. The regression
+now requires the exact metadata field while preserving managed-identity auth.
+Connection setup runs under the existing CLI operator before private indexing,
+so no routing value or new monitoring permission is needed in the worker.
+
+Independently mutated these 11 guards in memory:
+
+| Broken guard | Detecting test |
+|---|---|
+| Omit the required metadata property | `test_connection_supplies_required_routing_metadata_without_changing_auth_or_config` |
+| Replace project identity with key authentication | Same connection-contract test |
+| Use the wrong App Insights target | Same connection-contract test |
+| Accept local authentication | `test_missing_routing_or_non_entra_ingestion_never_creates_connection` |
+| Accept a nonboolean Entra-only flag | Same ingestion-auth test |
+| Accept missing/empty routing metadata | Same ingestion-auth test |
+| Put routing data in the bundled configuration | Connection-contract test |
+| Omit error-redaction values from the request | Connection-contract test |
+| Disable retry/final-error redaction | `test_routing_metadata_is_redacted_from_retry_logs_and_final_http_errors` |
+| Start the worker before configuring the connection | `test_job_status_controls_success_and_failure` |
+| Reconfigure while an execution is already active | `test_existing_execution_prevents_another_start` |
+
+All 11 mutations caused assertion failures, with zero test errors. Originals
+were restored. The complete offline regression suite now contains 53 tests.
+No connection PUT, model invocation, resource change, or role change was executed
+by the assistant; native connection acceptance and ingestion remain user-run.

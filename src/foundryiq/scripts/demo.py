@@ -109,6 +109,7 @@ class AzureRest:
         propagation=False,
         raw=False,
         timeout=180,
+        redact_values=(),
     ):
         data = (
             payload
@@ -135,6 +136,10 @@ class AzureRest:
                     return json.loads(body) if body else {}
             except HTTPError as error:
                 detail = error.read().decode(errors="replace")
+                for value in redact_values:
+                    if value:
+                        detail = detail.replace(value, "[redacted]")
+                        detail = detail.replace(json.dumps(value)[1:-1], "[redacted]")
                 code = error.headers.get("x-ms-error-code")
                 blob = (urlsplit(url).hostname or "").endswith(".blob.core.windows.net")
                 if error.code == 403 and blob and code == "AuthorizationFailure":
@@ -299,6 +304,47 @@ def show_runner_logs(config, execution):
         )
 
 
+def connect_telemetry(client, config):
+    telemetry.require_configuration(config)
+    resource = client.request(
+        "GET",
+        f"https://management.azure.com{config['application_insights_id']}?api-version=2020-02-02",
+        MANAGEMENT_AUDIENCE,
+        propagation=True,
+    )
+    properties = resource["properties"]
+    if properties.get("DisableLocalAuth") is not True:
+        raise RuntimeError(
+            "Application Insights must disable local authentication. Run task up first."
+        )
+    # Foundry requires routing metadata even when ingestion uses Entra ID.
+    routing = properties.get("ConnectionString")
+    if not isinstance(routing, str) or not routing.strip():
+        raise RuntimeError("Application Insights returned no connection routing metadata.")
+    client.request(
+        "PUT",
+        f"https://management.azure.com{config['project_resource_id']}/connections/"
+        f"{config['telemetry_connection_name']}?api-version=2025-10-01-preview",
+        MANAGEMENT_AUDIENCE,
+        {
+            "properties": {
+                "category": "AppInsights",
+                "authType": "ProjectManagedIdentity",
+                "target": config["application_insights_id"],
+                "isSharedToAll": False,
+                "metadata": {
+                    "ApiType": "Azure",
+                    "ResourceId": config["application_insights_id"],
+                    "ApplicationId": config["application_insights_app_id"],
+                    "ApplicationInsightsConnectionString": routing,
+                },
+            }
+        },
+        propagation=True,
+        redact_values=(routing, properties.get("InstrumentationKey")),
+    )
+
+
 def private_setup(client, config):
     if not config.get("setup_runner_id") or not config.get("search_index"):
         raise RuntimeError("Run task up to provision the private setup runner before task setup.")
@@ -313,6 +359,7 @@ def private_setup(client, config):
                     f"Setup execution {execution['name']} is already active; wait for it to finish."
                 )
         page = executions.get("nextLink")
+    connect_telemetry(client, config)
     template = {
         "containers": [
             {
@@ -652,26 +699,6 @@ def index_blobs(client, config):
 
 def setup(client, config):
     telemetry.require_configuration(config)
-    client.request(
-        "PUT",
-        f"https://management.azure.com{config['project_resource_id']}/connections/"
-        f"{config['telemetry_connection_name']}?api-version=2025-10-01-preview",
-        MANAGEMENT_AUDIENCE,
-        {
-            "properties": {
-                "category": "AppInsights",
-                "authType": "ProjectManagedIdentity",
-                "target": config["application_insights_id"],
-                "isSharedToAll": False,
-                "metadata": {
-                    "ApiType": "Azure",
-                    "ResourceId": config["application_insights_id"],
-                    "ApplicationId": config["application_insights_app_id"],
-                },
-            }
-        },
-        propagation=True,
-    )
     files = sorted((ROOT / "data").glob("*.md"))
     if not files:
         raise RuntimeError("No policy documents found in data/.")

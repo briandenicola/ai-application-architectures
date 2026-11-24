@@ -98,7 +98,8 @@ From `src/foundryiq`:
    task up
    ```
 
-   Review Terraform's plan and enter `yes` to provision. The task starts the private job.
+   Review Terraform's plan and enter `yes` to provision. Setup uses your existing
+   CLI permissions to connect App Insights before starting the private job.
    The job verifies private Blob DNS before any upload, then uploads
    the policies, reads Markdown back from Blob, chunks and embeds the contents,
    and pushes the index. It checks every document-write result and waits until
@@ -242,9 +243,16 @@ Azure CLI caches, or access tokens.
 
 The connection uses `ProjectManagedIdentity` with the Search audience.
 The project also has an `AppInsights` connection authenticated with its managed
-identity. Monitoring resources disable local authentication. Only resource IDs
-and the non-secret application ID are output; no instrumentation key or
-connection string is output, bundled, or supplied by the sample.
+identity. Monitoring resources disable local authentication. Foundry nevertheless
+requires `ApplicationInsightsConnectionString` as routing metadata. Setup reads
+it in memory using the CLI operator's existing permissions and sends it only to
+the Foundry connection, before starting the private job. It is not an ingestion
+credential: ingestion still requires the project identity and its publisher role.
+Setup rejects resources with local authentication enabled and redacts the routing
+value/identifier from HTTP error output. Only resource IDs and the non-secret
+application ID are output; no routing string enters Terraform outputs, logs,
+local artifacts, or the worker bundle. No additional reader role for the worker
+is needed.
 The runner uses its managed identity for Blob downloads and embedding requests.
 Search uses its system identity to vectorize queries with the same embedding model.
 Terraform state is local and can contain provider-managed sensitive attributes;

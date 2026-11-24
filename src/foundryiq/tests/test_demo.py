@@ -328,15 +328,7 @@ class SetupTests(unittest.TestCase):
         self.assertEqual(tool["server_url"], connection["properties"]["target"])
         self.assertEqual(tool["allowed_tools"], ["knowledge_base_retrieve"])
         self.assertNotIn("apiKey", json.dumps(payloads))
-        insights = next(
-            payload["properties"]
-            for payload in payloads
-            if payload.get("properties", {}).get("category") == "AppInsights"
-        )
-        self.assertEqual(insights["authType"], "ProjectManagedIdentity")
-        self.assertEqual(insights["target"], self.config()["application_insights_id"])
-        self.assertEqual(insights["metadata"]["ApplicationId"], "synthetic-application")
-        self.assertNotIn("credentials", insights)
+        self.assertFalse(any("handbook-insights" in url for _, url, _, _ in calls))
         self.assertTrue(any(url.endswith("/agents?api-version=v1") for _, url, _, _ in calls))
 
     def test_repeat_setup_creates_version_instead_of_duplicate_agent(self):

@@ -233,8 +233,8 @@ without approval.
   and Monitoring Metrics Publisher for the project identity. The existing
   project's RemoteTool connection confirms that auth representation is accepted
   by its ARM connection API, despite older template enum documentation.
-- Terraform owns monitoring resources/RBAC; setup reconciles the App Insights
-  project connection alongside the existing MCP connection. No connection
+- Terraform owns monitoring resources/RBAC; the CLI operator reconciles the App
+  Insights connection before the job configures the MCP connection. No connection
   string, instrumentation key, or credentials are output or packaged.
 - Proposed ask output: answer plus response ID, elapsed time, token usage when
   supplied, MCP call details, and correlated server-side telemetry.
@@ -258,7 +258,7 @@ without approval.
 
 - Implemented workspace-backed App Insights, 30-day retention, 1 GB/day caps,
   disabled local auth, project publisher RBAC, and operator query RBAC.
-- The private setup job reconciles a keyless `AppInsights` project connection.
+- Setup reconciles a keyless `AppInsights` project connection using the CLI operator.
   Only non-secret resource/application IDs enter outputs and the worker bundle.
 - `ask` preserves the full response, prints MCP/request diagnostics, and queries
   exact-response telemetry. `traces` retries queries without invoking the agent.
@@ -301,8 +301,36 @@ without approval.
 - CLI operator: existing Blob/Search/Foundry roles plus Log Analytics Reader
   scoped to this App Insights resource and workspace, not the Terraform deployer.
 - Setup identity: existing Blob contributor, Search service/index contributor,
-  Foundry user/project manager, and OpenAI user roles; reconciles the project
-  connection without ingesting/querying agent telemetry itself.
+  Foundry user/project manager, and OpenAI user roles; reconciles the MCP
+  connection without reading App Insights routing metadata or telemetry.
 - Search identity: existing OpenAI user role for query vectorization.
 - Native Terraform graph checks verify project/publisher/workspace ordering;
   actual assigned-role propagation and trace ingestion remain user-run checks.
+
+## App Insights connection correction - approved
+
+- The user-run setup failed with HTTP 400: the connection requires metadata
+  `ApplicationInsightsConnectionString`, even with `ProjectManagedIdentity`.
+- A scoped read-only check confirmed this App Insights resource has
+  `DisableLocalAuth=true` and exposes the required routing metadata; its value
+  was not displayed. Microsoft documents the instrumentation identifier as
+  routing information, not an authentication token or security key.
+- Proposed correction: use the CLI operator's existing permissions to read the
+  routing string in memory and configure the connection before starting the
+  private job. Keep it out of Terraform outputs, logs, local artifacts, and the
+  worker bundle; redact it from request-error output. Require Entra-only
+  ingestion before creating the connection.
+- No additional resources, RBAC roles, dependencies, or Task targets. Changes
+  remain under `src/foundryiq`. The user runs `task setup` after code/offline
+  verification; the assistant performs no Azure writes.
+- Approved explicitly: transient routing metadata only in the Foundry
+  connection, using existing CLI permissions; code changes and offline checks.
+- Implemented the required metadata and strict Entra-only checks, moved the
+  connection write before job startup, and added error redaction. No Terraform
+  resources or role assignments changed; recovery requires only `task setup`.
+- `task check` passed Terraform schema/format, Ruff, and 53 tests, including the actual required metadata property,
+  unchanged worker configuration, concurrency/ordering, and error redaction.
+  All 11 isolated guard mutations failed assertions with zero test errors and
+  originals restored. See `docs/tamper-log.md`.
+- Native PUT acceptance and subsequent trace ingestion are still unverified;
+  the assistant performed only the approved read-only check and offline work.

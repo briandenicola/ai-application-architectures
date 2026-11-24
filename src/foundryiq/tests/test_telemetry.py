@@ -1,12 +1,118 @@
+import base64
 import copy
+import gzip
 import io
 import json
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import Mock, patch
+from urllib.error import HTTPError
 
 from scripts import demo, telemetry
+
+
+class ConnectionTests(unittest.TestCase):
+    def config(self):
+        return {
+            "application_insights_id": "/subscriptions/s/components/insights",
+            "application_insights_app_id": "synthetic-application",
+            "project_resource_id": "/subscriptions/s/projects/project",
+            "telemetry_connection_name": "handbook-insights",
+        }
+
+    def properties(self):
+        identifier = "00000000-0000-0000-0000-000000000001"
+        return {
+            "DisableLocalAuth": True,
+            "InstrumentationKey": identifier,
+            "ConnectionString": (
+                f"InstrumentationKey={identifier};IngestionEndpoint=https://ingest.example.com/"
+            ),
+        }
+
+    def test_connection_supplies_required_routing_metadata_without_changing_auth_or_config(self):
+        config = self.config()
+        original = copy.deepcopy(config)
+        properties = self.properties()
+        client = Mock()
+        client.request.side_effect = [{"properties": properties}, {}]
+        demo.connect_telemetry(client, config)
+        read, write = client.request.call_args_list
+        self.assertEqual(read.args[0], "GET")
+        self.assertIn(config["application_insights_id"], read.args[1])
+        self.assertEqual(read.args[2], demo.MANAGEMENT_AUDIENCE)
+        self.assertEqual(write.args[0], "PUT")
+        self.assertIn(
+            config["project_resource_id"] + "/connections/handbook-insights", write.args[1]
+        )
+        connection = write.args[3]["properties"]
+        self.assertEqual(connection["category"], "AppInsights")
+        self.assertEqual(connection["authType"], "ProjectManagedIdentity")
+        self.assertEqual(connection["target"], config["application_insights_id"])
+        self.assertIn("ApplicationInsightsConnectionString", connection["metadata"])
+        self.assertEqual(
+            connection["metadata"]["ApplicationInsightsConnectionString"],
+            properties["ConnectionString"],
+        )
+        self.assertNotIn("credentials", connection)
+        self.assertIn("redact_values", write.kwargs)
+        self.assertEqual(
+            write.kwargs["redact_values"],
+            (properties["ConnectionString"], properties["InstrumentationKey"]),
+        )
+        self.assertEqual(config, original)
+        bundle = json.loads(gzip.decompress(base64.b64decode(demo.runner_payload(config))))
+        self.assertNotIn(properties["ConnectionString"], json.dumps(bundle))
+
+    def test_missing_routing_or_non_entra_ingestion_never_creates_connection(self):
+        for changes in (
+            {"DisableLocalAuth": False},
+            {"DisableLocalAuth": None},
+            {"DisableLocalAuth": "true"},
+            {"ConnectionString": None},
+            {"ConnectionString": ""},
+        ):
+            client = Mock()
+            client.request.return_value = {"properties": {**self.properties(), **changes}}
+            with self.subTest(changes=changes), self.assertRaises(RuntimeError):
+                demo.connect_telemetry(client, self.config())
+            client.request.assert_called_once()
+
+    def test_routing_metadata_is_redacted_from_retry_logs_and_final_http_errors(self):
+        properties = self.properties()
+        routing = properties["ConnectionString"]
+        identifier = properties["InstrumentationKey"]
+        url = "https://management.azure.com/synthetic/connection"
+        detail = json.dumps(
+            {
+                "code": "ValidationError",
+                "message": f"Invalid metadata: {routing}; identifier: {identifier}",
+            }
+        ).encode()
+        errors = [HTTPError(url, 403, "Forbidden", {}, io.BytesIO(detail)) for _ in range(2)]
+        client = demo.AzureRest("synthetic-subscription")
+        client.token = Mock(return_value="synthetic-token")
+        with (
+            patch.object(demo, "urlopen", side_effect=errors),
+            patch.object(demo.time, "sleep"),
+            patch.object(demo.time, "monotonic", side_effect=[0, 1, 400]),
+            patch.object(demo.sys, "stdout", new_callable=io.StringIO) as output,
+            self.assertRaises(demo.ServiceError) as caught,
+        ):
+            client.request(
+                "PUT",
+                url,
+                demo.MANAGEMENT_AUDIENCE,
+                {"metadata": {"ApplicationInsightsConnectionString": routing}},
+                propagation=True,
+                redact_values=(routing, identifier),
+            )
+        for text in (output.getvalue(), str(caught.exception)):
+            self.assertNotIn(routing, text)
+            self.assertNotIn(identifier, text)
+            self.assertIn("ValidationError", text)
+            self.assertIn("[redacted]", text)
 
 
 class TelemetryTests(unittest.TestCase):
