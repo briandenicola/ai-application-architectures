@@ -4,7 +4,7 @@ dotenv: ['.env']
 
 env:
   TF_VAR_subscription_id: '{{.AZURE_SUBSCRIPTION_ID | default ""}}'
-  TF_VAR_location: '{{.AZURE_LOCATION | default "eastus2"}}'
+  TF_VAR_location: '{{.AZURE_LOCATION | default "canadacentral"}}'
 
 tasks:
   default:
@@ -20,6 +20,12 @@ tasks:
       - terraform -chdir=infra apply
       - python3 scripts/demo.py setup
       - task: outputs
+
+  down:
+    desc: Destroy all Azure resources in this demo's Terraform state (asks for confirmation)
+    cmds:
+      - terraform -chdir=infra init -input=false
+      - terraform -chdir=infra destroy
 
   setup:
     desc: Re-upload policies and reconcile knowledge and agent configuration after provisioning
@@ -44,6 +50,7 @@ tasks:
     desc: Run offline formatting, lint, and unit checks (no Azure calls)
     cmds:
       - terraform -chdir=infra fmt -check
+      - terraform -chdir=infra validate
       - ruff check scripts tests
       - ruff format --check scripts tests
       - python3 -m unittest discover -s tests -v

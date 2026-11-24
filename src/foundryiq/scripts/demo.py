@@ -24,7 +24,7 @@ MANAGEMENT_AUDIENCE = "https://management.azure.com/"
 STORAGE_AUDIENCE = "https://storage.azure.com/"
 DEFAULT_MODELS = {
     "chat": ("gpt-5.4-mini", "2026-03-17", "GlobalStandard"),
-    "embedding": ("text-embedding-3-small", "1", "Standard"),
+    "embedding": ("text-embedding-3-small", "1", "GlobalStandard"),
 }
 INSTRUCTIONS = """You are the Northstar Demo Company employee handbook assistant.
 Use the employee-handbook knowledge base for every policy question. Never answer
@@ -114,6 +114,11 @@ class AzureRest:
 
 def configuration():
     config = command_json(["terraform", "-chdir=infra", "output", "-json", "demo"])
+    verify_context(config)
+    return config
+
+
+def verify_context(config):
     selected = os.environ.get("AZURE_SUBSCRIPTION_ID", "").strip()
     if selected and selected.lower() != config["subscription_id"].lower():
         raise RuntimeError(
@@ -123,9 +128,19 @@ def configuration():
     location = os.environ.get("AZURE_LOCATION", "").strip()
     if location and location.lower() != config["location"].lower():
         raise RuntimeError(
-            "The .env region differs from Terraform state. Restore the original region."
+            "The .env region differs from Terraform state. Restore the original region, "
+            "or run task down to remove the old deployment before changing regions."
         )
-    return config
+
+
+def verify_state_context():
+    state = command_json(["terraform", "-chdir=infra", "show", "-json"])
+    for resource in state.get("values", {}).get("root_module", {}).get("resources", []):
+        if resource["address"] == "azurerm_resource_group.this":
+            group = resource["values"]
+            verify_context(
+                {"subscription_id": group["id"].split("/")[2], "location": group["location"]}
+            )
 
 
 def search_url(config, path):
@@ -377,11 +392,11 @@ def preflight():
             "Set AZURE_SUBSCRIPTION_ID in .env to your subscription GUID."
         ) from error
     if (ROOT / "infra" / "terraform.tfstate").exists():
-        configuration()
+        verify_state_context()
     account = command_json(["az", "account", "show", "--subscription", subscription, "-o", "json"])
     if account.get("state") != "Enabled":
         raise RuntimeError("The selected Azure subscription is not enabled.")
-    region = os.environ.get("AZURE_LOCATION", "eastus2")
+    region = os.environ.get("AZURE_LOCATION", "canadacentral")
     models = command_json(
         [
             "az",

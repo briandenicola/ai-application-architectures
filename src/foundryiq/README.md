@@ -30,7 +30,7 @@ All implementation files and local state stay inside `src/foundryiq`.
 | Terraform in `infra/` | Resource group, Blob Storage, Search, Foundry account/project, model deployments, RBAC |
 | `data/*.md` | Fictional leave, expenses, and remote-work policies |
 | `scripts/demo.py` | Upload, knowledge source/base setup, managed-identity connection, agent creation, questions |
-| `Taskfile.yaml` | Provision/setup, ask, display endpoints, offline checks |
+| `Taskfile.yaml` | Provision/setup, destroy, ask, display endpoints, offline checks |
 | [Copilot Studio walkthrough](docs/copilot-studio.md) | Connect the same knowledge base to a second agent |
 
 Search creates and manages the data source, index, indexer, and embedding pipeline
@@ -45,14 +45,14 @@ content; each agent composes its own cited answer.
 - A subscription where you can create resources **and role assignments**.
   Owner, or Contributor plus Role Based Access Control Administrator, is suitable.
   Your organization must allow the required resource providers to be registered.
-- An `eastus2` deployment supporting the selected models and agentic retrieval.
+- A `canadacentral` deployment supporting the selected models and agentic retrieval.
   The region, model versions, deployment SKUs, and capacities are configurable.
 - Copilot Studio access and permission to create an agent and its connection in
   your Power Platform environment.
 - Ruff for `task check` only; no Python runtime packages are required.
 
 The defaults are `gpt-5.4-mini` version `2026-03-17` (`GlobalStandard`) and
-`text-embedding-3-small` version `1` (`Standard`). `task up` checks the selected
+`text-embedding-3-small` version `1` (`GlobalStandard`). `task up` checks the selected
 subscription's regional model catalog before provisioning. Catalog presence is
 not a quota or capacity guarantee; deployment reports those errors explicitly.
 GlobalStandard is a global deployment SKU, not a regional data-residency promise.
@@ -62,7 +62,7 @@ GlobalStandard is a global deployment SKU, not a regional data-residency promise
 From `src/foundryiq`:
 
 1. Copy `.env.example` to `.env`. Set `AZURE_SUBSCRIPTION_ID`; keep
-   `AZURE_LOCATION=eastus2` or choose another supported region. Set model
+   `AZURE_LOCATION=canadacentral` or choose another supported region. Set model
    overrides in the same file if needed.
 2. Run:
 
@@ -75,7 +75,9 @@ From `src/foundryiq`:
    ingestion, creates the knowledge base and managed-identity MCP connection,
    and creates the Foundry prompt agent. On later setup runs, it creates a new
    version of that agent. Initial provisioning and indexing can take several
-   minutes. Indexing polls every five minutes.
+   minutes. Indexing polls every five minutes. Terraform creates the Foundry
+   project, chat deployment, and embedding deployment sequentially because those
+   writes lock the same Foundry account.
 
 3. Ask the Foundry agent:
 
@@ -90,6 +92,32 @@ From `src/foundryiq`:
 
 No commands in this sample are run against Azure automatically by a coding
 assistant; the tasks are for you to execute.
+
+## Destroy or change region
+
+```bash
+task down
+```
+
+Review Terraform's destroy plan and enter `yes` to remove every resource managed
+by this demo's state, including a partially created deployment. Agents, knowledge
+bases, and uploaded data are removed with their parent services. The task does
+not manually delete state files or suppress failures; if destruction fails,
+correct the reported problem and rerun it.
+
+To move an existing deployment to Canada Central, run `task down` **before**
+`task up`. Set these values in `.env` for the new deployment:
+
+```dotenv
+AZURE_LOCATION=canadacentral
+TF_VAR_embedding_model_sku=GlobalStandard
+```
+
+Then run `task up`. The region guard blocks provisioning over a state that still
+contains the old region's resource group. Keep the same subscription selected
+while destroying the old deployment. Canada Central advertises GlobalStandard,
+not regional Standard, for this embedding model. Search service capacity can
+still change between checking regional support and provisioning.
 
 ## Demo talk track
 
@@ -111,7 +139,7 @@ For a refresh demo, edit an existing policy in `data/`, run `task setup`, and as
 both agents about the new value in fresh conversations. `setup` waits for an
 ingestion run started after the uploads, rather than accepting an older success.
 It overwrites matching blobs but does **not** delete blobs if a local file is
-removed. This sample intentionally provides no deletion task.
+removed. `task down` removes the entire deployment, not individual documents.
 
 ## Authentication and permissions
 
@@ -128,8 +156,10 @@ The connection uses `ProjectManagedIdentity` with the Search audience.
 The Blob knowledge source's API field is named `connectionString`, but its value
 is only `ResourceId=<storage ARM ID>`: no credential is used or output.
 Terraform state is local and can contain provider-managed sensitive attributes;
-it and `.env` are ignored. Do not share state files. Resource names derive from
-`random_pet` + `random_id`, not caller-supplied names.
+it and `.env` are ignored. Do not share state files. Naming matches the existing
+Foundry infrastructure: `${random_pet.this.id}-${random_id.this.dec}` is the base,
+with `-foundry`, `-project`, and `-ai_rg` suffixes. Search uses
+`${project_name}-search`; Storage uses 22 UUID hex characters followed by `sa`.
 
 ## Troubleshooting
 
@@ -137,16 +167,17 @@ it and `.env` are ignored. Do not share state files. Resource names derive from
 |---|---|
 | Model/SKU not advertised | Change model name/version/SKU or region in `.env` **before the first deployment**, then rerun `task up` |
 | Insufficient quota or unavailable capacity | Adjust deployment capacities or request quota; rerun `task up` |
+| Search reports regional capacity exhaustion | Choose another supported region; use `task down` first if moving an existing deployment |
 | Setup receives 401/403 | Confirm the identity and roles above; setup retries authorization propagation for up to five minutes per request |
 | Indexing fails or processes no documents | Inspect the Blob knowledge source status in Search and its generated indexer's errors; fix the reported Blob/model permission or model configuration, then run `task setup` |
 | Ingestion takes too long | Setup stops after 20 minutes with the last status; inspect the indexer before retrying |
 | Agent tool call fails | Check the project's Search reader role, managed-identity connection, and MCP endpoint from `task outputs` |
 | Blob citation link prompts for access or returns 403 | Documents are private; a citation is not a public download link. Review the matching local policy or open the blob using an authorized identity |
-| Region/subscription mismatch with state | Restore the original `.env`; use a separate copy of the demo for a different deployment |
+| Region/subscription mismatch with state | Restore the original `.env`; for a region move, run `task down` before provisioning in the new region |
 
 Changing the subscription or region in an existing state can replace resources.
-Use one copy/state per deployment. This demo does not include automatic cleanup
-or execute any resource deletion.
+Use one copy/state per deployment. Cleanup is explicit through `task down`;
+neither `task up` nor the setup script runs cleanup.
 
 ## Offline checks
 
@@ -154,8 +185,10 @@ or execute any resource deletion.
 task check
 ```
 
-This runs Terraform formatting, Ruff, and standard-library unit tests with mocked
-service calls. `task up` also runs `terraform validate` after provider
+This runs Terraform formatting and schema validation, Ruff, standard-library unit
+tests with mocked service calls, and an offline Terraform dependency-graph check. Initialize
+providers first with `terraform -chdir=infra init -backend=false` if you have
+not run `task up` yet. `task up` also runs `terraform validate` after provider
 initialization. Offline checks cannot verify live Azure provisioning, MCP
 execution, model capacity, or Copilot Studio integration.
 

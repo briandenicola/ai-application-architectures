@@ -103,3 +103,28 @@ queried or asserted available during preparation.
   using the updated `.env`.
 - Terraform plan/apply and end-to-end ingestion, agent, and Copilot Studio
   verification remain for the user to run.
+
+## Deployment recovery and Canada move
+
+- The user requested the entire demo move to Canada Central, plus `task down`
+  and naming matching the existing repository. The user runs destruction and
+  provisioning; no Azure writes are authorized for the assistant.
+- Added interactive `task down`; it does not delete state files or suppress
+  failures. Run it against the current partial deployment before `task up`.
+- Updated defaults and the ignored `.env` to `canadacentral` and embedding
+  `GlobalStandard`. Read-only catalog and usage queries confirmed both selected
+  model/version/SKU combinations and available quota in Canada Central.
+- Matched `infrastructure/microsoft-foundry/main.tf` and `rg.tf` naming:
+  pet + decimal random ID, followed by service suffixes. Search and Storage
+  naming follow `infrastructure/agent-service/project/main.tf`.
+- Serialized Foundry project/chat/embedding writes to remove concurrent
+  operations against the parent account. Model address moves preserve Terraform
+  tracking of the existing embedding deployment during cleanup.
+- Fixed preflight to validate context from partial Terraform state rather than
+  require outputs that do not exist after a failed apply.
+- No other code directories are modified. No Terraform apply/destroy is run by
+  the assistant.
+- Passed: `task check`, including Terraform schema validation, Ruff, thirteen
+  tests, and native Terraform dependency-graph assertions.
+- Verified `task --dry down` schedules only initialization and interactive
+  destruction; destruction itself was not executed.

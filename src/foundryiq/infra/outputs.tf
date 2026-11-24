@@ -9,11 +9,11 @@ output "demo" {
     container_name       = azapi_resource.container.name
     search_endpoint      = "https://${azurerm_search_service.this.name}.search.windows.net"
     project_resource_id  = azapi_resource.project.id
-    project_endpoint     = "https://${local.account_name}.services.ai.azure.com/api/projects/${local.project_name}"
-    openai_endpoint      = "https://${local.account_name}.openai.azure.com"
-    chat_deployment      = azapi_resource.model["chat"].name
+    project_endpoint     = "https://${local.ai_services_name}.services.ai.azure.com/api/projects/${local.project_name}"
+    openai_endpoint      = "https://${local.ai_services_name}.openai.azure.com"
+    chat_deployment      = azapi_resource.chat_model.name
     chat_model           = var.chat_model_name
-    embedding_deployment = azapi_resource.model["embedding"].name
+    embedding_deployment = azapi_resource.embedding_model.name
     embedding_model      = var.embedding_model_name
     knowledge_source     = "employee-handbook-blob"
     knowledge_base       = "employee-handbook"

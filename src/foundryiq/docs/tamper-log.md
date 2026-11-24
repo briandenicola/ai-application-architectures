@@ -44,3 +44,29 @@ available quota were confirmed by read-only `eastus2` catalog and usage queries.
 After the fix, all ten tests passed, Terraform schema validation passed, and the
 actual preflight succeeded against the selected subscription and `eastus2`.
 No Azure provisioning was performed.
+
+## 2026-11-24: failed-deployment recovery and serialization
+
+The reported deployment exposed two additional problems: Foundry child resources
+were written concurrently, and preflight expected the final `demo` output even
+when a failed apply had not produced it.
+
+Before the fix, the new dependency-graph test failed for both project-to-chat and
+chat-to-embedding ordering. The partial-state test failed because preflight
+requested the missing output instead of reading the existing resource group's
+subscription and region from state.
+
+The fix uses explicit project -> chat -> embedding dependencies and retains
+address moves for existing model state. Preflight now validates context from
+partial state, while an empty state after destruction permits a new region.
+`task down` uses Terraform's interactive destroy and retains local state files.
+
+Canada Central's catalog advertises both selected models on GlobalStandard; the
+regional Standard embedding SKU is not advertised there. Read-only usage queries
+confirmed quota for both GlobalStandard deployments. Physical Search capacity
+was not tested by creating a service.
+
+After the fixes, `task check` passed Terraform schema validation, Ruff, and all
+thirteen tests, including the native dependency-graph assertions.
+`task --dry down` confirmed initialization followed by interactive destruction;
+no destroy command was executed.

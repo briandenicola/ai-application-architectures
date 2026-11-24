@@ -11,7 +11,7 @@ variable "subscription_id" {
 variable "location" {
   type        = string
   description = "Region supporting Foundry, agentic retrieval, and the selected models."
-  default     = "eastus2"
+  default     = "canadacentral"
 }
 
 variable "search_sku" {
@@ -64,7 +64,7 @@ variable "embedding_model_version" {
 variable "embedding_model_sku" {
   type        = string
   description = "Deployment SKU for the embedding model."
-  default     = "Standard"
+  default     = "GlobalStandard"
 }
 
 variable "embedding_model_capacity" {

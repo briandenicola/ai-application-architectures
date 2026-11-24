@@ -4,38 +4,28 @@ resource "random_pet" "this" {
 }
 
 resource "random_id" "this" {
-  byte_length = 3
+  byte_length = 2
 }
 
+resource "random_uuid" "guid" {}
+
 locals {
-  suffix       = "${random_pet.this.id}-${random_id.this.hex}"
-  account_name = "ai-${local.suffix}"
-  project_name = "project-${local.suffix}"
-  tags         = { sample = "foundryiq", data = "synthetic" }
-  models = {
-    chat = {
-      name     = var.chat_model_name
-      version  = var.chat_model_version
-      sku      = var.chat_model_sku
-      capacity = var.chat_model_capacity
-    }
-    embedding = {
-      name     = var.embedding_model_name
-      version  = var.embedding_model_version
-      sku      = var.embedding_model_sku
-      capacity = var.embedding_model_capacity
-    }
-  }
+  resource_name        = "${random_pet.this.id}-${random_id.this.dec}"
+  ai_services_name     = "${local.resource_name}-foundry"
+  project_name         = "${local.resource_name}-project"
+  search_service_name  = "${local.project_name}-search"
+  storage_account_name = "${substr(replace(random_uuid.guid.result, "-", ""), 0, 22)}sa"
+  tags                 = { sample = "foundryiq", data = "synthetic" }
 }
 
 resource "azurerm_resource_group" "this" {
-  name     = "rg-${local.suffix}"
+  name     = "${local.resource_name}-ai_rg"
   location = var.location
   tags     = local.tags
 }
 
 resource "azurerm_storage_account" "this" {
-  name                            = "st${substr(random_pet.this.id, 0, 12)}${random_id.this.hex}"
+  name                            = local.storage_account_name
   resource_group_name             = azurerm_resource_group.this.name
   location                        = azurerm_resource_group.this.location
   account_tier                    = "Standard"
@@ -60,7 +50,7 @@ resource "azapi_resource" "container" {
 }
 
 resource "azurerm_search_service" "this" {
-  name                          = "search-${local.suffix}"
+  name                          = local.search_service_name
   resource_group_name           = azurerm_resource_group.this.name
   location                      = azurerm_resource_group.this.location
   sku                           = var.search_sku
@@ -78,7 +68,7 @@ resource "azurerm_search_service" "this" {
 
 resource "azapi_resource" "foundry" {
   type      = "Microsoft.CognitiveServices/accounts@2025-06-01"
-  name      = local.account_name
+  name      = local.ai_services_name
   parent_id = azurerm_resource_group.this.id
   location  = azurerm_resource_group.this.location
   tags      = local.tags
@@ -92,7 +82,7 @@ resource "azapi_resource" "foundry" {
     sku  = { name = "S0" }
     properties = {
       allowProjectManagement = true
-      customSubDomainName    = local.account_name
+      customSubDomainName    = local.ai_services_name
       disableLocalAuth       = true
       publicNetworkAccess    = "Enabled"
     }
@@ -120,23 +110,57 @@ resource "azapi_resource" "project" {
   response_export_values = ["identity.principalId"]
 }
 
-resource "azapi_resource" "model" {
-  for_each  = local.models
+resource "azapi_resource" "chat_model" {
   type      = "Microsoft.CognitiveServices/accounts/deployments@2025-06-01"
-  name      = each.key
+  name      = var.chat_model_name
   parent_id = azapi_resource.foundry.id
+
+  depends_on = [azapi_resource.project]
 
   body = {
     sku = {
-      name     = each.value.sku
-      capacity = each.value.capacity
+      name     = var.chat_model_sku
+      capacity = var.chat_model_capacity
     }
     properties = {
       model = {
         format  = "OpenAI"
-        name    = each.value.name
-        version = each.value.version
+        name    = var.chat_model_name
+        version = var.chat_model_version
       }
     }
   }
+}
+
+resource "azapi_resource" "embedding_model" {
+  type      = "Microsoft.CognitiveServices/accounts/deployments@2025-06-01"
+  name      = var.embedding_model_name
+  parent_id = azapi_resource.foundry.id
+
+  depends_on = [azapi_resource.chat_model]
+
+  body = {
+    sku = {
+      name     = var.embedding_model_sku
+      capacity = var.embedding_model_capacity
+    }
+    properties = {
+      model = {
+        format  = "OpenAI"
+        name    = var.embedding_model_name
+        version = var.embedding_model_version
+      }
+    }
+  }
+
+}
+
+moved {
+  from = azapi_resource.model["chat"]
+  to   = azapi_resource.chat_model
+}
+
+moved {
+  from = azapi_resource.model["embedding"]
+  to   = azapi_resource.embedding_model
 }

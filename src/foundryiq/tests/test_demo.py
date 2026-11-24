@@ -73,6 +73,56 @@ class ResponseTests(unittest.TestCase):
 
 
 class ConfigurationTests(unittest.TestCase):
+    def test_empty_state_allows_a_new_region_after_destroy(self):
+        with (
+            patch.dict(demo.os.environ, {"AZURE_LOCATION": "canadacentral"}, clear=True),
+            patch.object(demo, "command_json", return_value={"format_version": "1.0"}),
+        ):
+            demo.verify_state_context()
+
+    def test_preflight_can_retry_partial_state_without_demo_output(self):
+        subscription = "00000000-0000-0000-0000-000000000001"
+        state = {
+            "values": {
+                "root_module": {
+                    "resources": [
+                        {
+                            "address": "azurerm_resource_group.this",
+                            "values": {
+                                "id": f"/subscriptions/{subscription}/resourceGroups/demo",
+                                "location": "eastus2",
+                            },
+                        }
+                    ]
+                }
+            }
+        }
+        models = [
+            {"model": {"name": name, "version": version, "skus": [{"name": sku}]}}
+            for name, version, sku in demo.DEFAULT_MODELS.values()
+        ]
+
+        def command(args):
+            if args[0] == "terraform":
+                self.assertEqual(args[2:], ["show", "-json"])
+                return state
+            if args[1:3] == ["account", "show"]:
+                return {"name": "Synthetic subscription", "state": "Enabled"}
+            self.assertEqual(args[1:4], ["cognitiveservices", "model", "list"])
+            return models
+
+        with (
+            patch.dict(
+                demo.os.environ,
+                {"AZURE_SUBSCRIPTION_ID": subscription, "AZURE_LOCATION": "eastus2"},
+                clear=True,
+            ),
+            patch.object(demo.shutil, "which", return_value="/synthetic/tool"),
+            patch.object(demo.Path, "exists", return_value=True),
+            patch.object(demo, "command_json", side_effect=command),
+        ):
+            demo.preflight()
+
     def test_rejects_subscription_and_region_drift(self):
         config = {"subscription_id": "original", "location": "eastus2"}
         for environment in [
